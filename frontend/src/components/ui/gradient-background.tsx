@@ -4,61 +4,80 @@ import { motion } from 'framer-motion';
 
 export function GradientBackground() {
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Main gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-blue-100/40 via-purple-50/30 to-teal-50/40" />
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
+      {/* Main gradient overlay - Microsoft Loop inspired with purple and blue */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-purple-100/50 via-blue-100/40 to-indigo-50/30" />
 
-      {/* Animated gradient orbs - Microsoft-inspired */}
+      {/* Animated gradient orbs - Microsoft Loop inspired with purple and blue */}
       <motion.div
-        className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
+        className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl"
         style={{
-          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.2) 50%, transparent 100%)',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, rgba(124, 58, 237, 0.3) 40%, rgba(99, 102, 241, 0.1) 70%, transparent 100%)',
         }}
         animate={{
-          x: [0, 50, 0],
-          y: [0, 30, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
-      <motion.div
-        className="absolute top-1/3 -left-40 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl"
-        style={{
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%)',
-        }}
-        animate={{
-          x: [0, -30, 0],
-          y: [0, 50, 0],
+          x: [0, 60, 0],
+          y: [0, 40, 0],
           scale: [1, 1.15, 1],
         }}
         transition={{
-          duration: 18,
+          duration: 25,
           repeat: Infinity,
           ease: "easeInOut",
-          delay: 1,
         }}
       />
 
       <motion.div
-        className="absolute bottom-0 right-1/4 w-[450px] h-[450px] rounded-full opacity-25 blur-3xl"
+        className="absolute top-1/4 -left-40 w-[600px] h-[600px] rounded-full opacity-35 blur-3xl"
         style={{
-          background: 'radial-gradient(circle, rgba(20, 184, 166, 0.4) 0%, rgba(16, 185, 129, 0.2) 50%, transparent 100%)',
+          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(37, 99, 235, 0.3) 40%, rgba(29, 78, 216, 0.1) 70%, transparent 100%)',
         }}
         animate={{
-          x: [0, 40, 0],
-          y: [0, -40, 0],
+          x: [0, -40, 0],
+          y: [0, 60, 0],
           scale: [1, 1.2, 1],
         }}
         transition={{
           duration: 22,
           repeat: Infinity,
           ease: "easeInOut",
-          delay: 2,
+          delay: 1.5,
+        }}
+      />
+
+      <motion.div
+        className="absolute bottom-10 right-1/4 w-[550px] h-[550px] rounded-full opacity-30 blur-3xl"
+        style={{
+          background: 'radial-gradient(circle, rgba(147, 51, 234, 0.4) 0%, rgba(168, 85, 247, 0.25) 40%, rgba(192, 132, 252, 0.1) 70%, transparent 100%)',
+        }}
+        animate={{
+          x: [0, 50, 0],
+          y: [0, -50, 0],
+          scale: [1, 1.25, 1],
+        }}
+        transition={{
+          duration: 28,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2.5,
+        }}
+      />
+
+      {/* Additional abstract purple shape - Loop style */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
+        style={{
+          background: 'radial-gradient(circle, rgba(109, 40, 217, 0.4) 0%, rgba(126, 34, 206, 0.2) 50%, transparent 100%)',
+        }}
+        animate={{
+          x: [-20, 20, -20],
+          y: [-30, 30, -30],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 30,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1,
         }}
       />
 
@@ -82,45 +101,64 @@ export function GradientBackground() {
         }}
       />
 
-      {/* Floating geometric shapes */}
+      {/* Floating geometric shapes - Microsoft Loop style */}
       <motion.div
-        className="absolute top-1/4 right-1/4 w-32 h-32 border border-indigo-200/20 rounded-2xl rotate-12"
+        className="absolute top-1/4 right-1/4 w-40 h-40 border-2 border-purple-300/25 rounded-3xl rotate-12 backdrop-blur-sm"
         animate={{
-          y: [0, -20, 0],
-          rotate: [12, 22, 12],
+          y: [0, -30, 0],
+          rotate: [12, 25, 12],
+          borderColor: ['rgba(216, 180, 254, 0.25)', 'rgba(192, 132, 252, 0.35)', 'rgba(216, 180, 254, 0.25)'],
         }}
         transition={{
-          duration: 15,
+          duration: 18,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
 
       <motion.div
-        className="absolute bottom-1/3 left-1/3 w-24 h-24 border border-blue-300/20 rounded-full"
+        className="absolute bottom-1/3 left-1/4 w-32 h-32 border-2 border-blue-400/25 rounded-full backdrop-blur-sm"
         animate={{
-          y: [0, 30, 0],
-          x: [0, 20, 0],
+          y: [0, 40, 0],
+          x: [0, 25, 0],
+          scale: [1, 1.1, 1],
         }}
         transition={{
-          duration: 17,
+          duration: 20,
           repeat: Infinity,
           ease: "easeInOut",
-          delay: 0.5,
+          delay: 0.8,
         }}
       />
 
       <motion.div
-        className="absolute top-2/3 right-1/3 w-20 h-20 border border-purple-300/20 rounded-lg rotate-45"
+        className="absolute top-2/3 right-1/3 w-28 h-28 border-2 border-indigo-400/30 rounded-2xl rotate-45 backdrop-blur-sm"
         animate={{
-          y: [0, -25, 0],
-          rotate: [45, 60, 45],
+          y: [0, -35, 0],
+          rotate: [45, 65, 45],
         }}
         transition={{
-          duration: 19,
+          duration: 22,
           repeat: Infinity,
           ease: "easeInOut",
-          delay: 1,
+          delay: 1.2,
+        }}
+      />
+
+      {/* Abstract curved shapes - Loop inspired */}
+      <motion.div
+        className="absolute top-1/3 right-1/2 w-36 h-36 border-2 border-purple-400/20 rounded-full backdrop-blur-sm"
+        style={{
+          clipPath: 'polygon(0% 0%, 100% 0%, 100% 50%, 0% 100%)',
+        }}
+        animate={{
+          rotate: [0, 360],
+          scale: [1, 1.15, 1],
+        }}
+        transition={{
+          duration: 35,
+          repeat: Infinity,
+          ease: "linear",
         }}
       />
 
