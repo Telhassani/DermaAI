@@ -52,6 +52,25 @@ export default function PatientDetailPage() {
     }
   }, [activeTab])
 
+  // Prevent default drag & drop behavior on the entire window when on images tab
+  useEffect(() => {
+    if (activeTab !== 'images') return
+
+    const preventDefaults = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    // Prevent browser from opening files
+    window.addEventListener('dragover', preventDefaults)
+    window.addEventListener('drop', preventDefaults)
+
+    return () => {
+      window.removeEventListener('dragover', preventDefaults)
+      window.removeEventListener('drop', preventDefaults)
+    }
+  }, [activeTab])
+
   const fetchPatient = async () => {
     try {
       setLoading(true)
@@ -158,18 +177,34 @@ export default function PatientDetailPage() {
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(true)
+
+    // Only set dragging if files are being dragged
+    if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true)
+    }
   }
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(false)
+
+    // Only unset if leaving the drop zone element itself
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setIsDragging(false)
+    }
   }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
+    // Required to allow drop
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
   }
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
@@ -177,7 +212,7 @@ export default function PatientDetailPage() {
     e.stopPropagation()
     setIsDragging(false)
 
-    const files = e.dataTransfer.files
+    const files = e.dataTransfer?.files
     if (files && files.length > 0) {
       await processFiles(files)
     }
