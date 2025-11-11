@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, User, Phone, Mail, MapPin, FileText, Heart } from 'lucide-react'
 import { createPatient, PatientData } from '@/lib/api/patients'
+import { toast, toastMessages } from '@/lib/utils/toast'
 
 export default function NewPatientPage() {
   const router = useRouter()
@@ -33,12 +34,26 @@ export default function NewPatientPage() {
     setError('')
     setLoading(true)
 
+    const loadingToast = toast.loading('Création du patient en cours...')
+
     try {
-      await createPatient(formData)
-      router.push('/dashboard/patients')
+      const patient = await createPatient(formData)
+      toast.dismiss(loadingToast)
+
+      const patientName = `${formData.first_name} ${formData.last_name}`
+      const msg = toastMessages.patient.created(patientName)
+      toast.success(msg.title, msg.description)
+
+      // Navigate after a short delay to let user see the success toast
+      setTimeout(() => {
+        router.push('/dashboard/patients')
+      }, 500)
     } catch (err: any) {
+      toast.dismiss(loadingToast)
       console.error('Error creating patient:', err)
-      setError(err.response?.data?.detail || 'Erreur lors de la création du patient')
+      const errorMessage = err.response?.data?.detail || 'Erreur lors de la création du patient'
+      setError(errorMessage)
+      toast.error('Erreur', errorMessage)
     } finally {
       setLoading(false)
     }

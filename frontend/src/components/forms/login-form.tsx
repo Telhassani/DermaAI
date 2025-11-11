@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { toast, toastMessages } from '@/lib/utils/toast'
 
 // Validation schema
 const loginSchema = z.object({

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { listPatients, deletePatient, PatientResponse } from '@/lib/api/patients'
 import { PatientListSkeleton } from '@/components/ui/skeletons'
+import { toast, toastMessages } from '@/lib/utils/toast'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -55,15 +56,35 @@ export default function PatientsPage() {
 
   // Handle delete
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${name}?`)) return
+    // Show confirmation toast with action
+    toast.withAction(
+      `Supprimer ${name}?`,
+      {
+        description: 'Cette action est définitive',
+        actionLabel: 'Supprimer',
+        cancelLabel: 'Annuler',
+        onAction: async () => {
+          // Show loading toast
+          const loadingToast = toast.loading('Suppression en cours...')
 
-    try {
-      await deletePatient(id)
-      fetchPatients()
-    } catch (error) {
-      console.error('Error deleting patient:', error)
-      alert('Erreur lors de la suppression du patient')
-    }
+          try {
+            await deletePatient(id)
+            toast.dismiss(loadingToast)
+
+            // Show success toast with undo (fake undo for demo, real implementation would need backend support)
+            const msg = toastMessages.patient.deleted(name)
+            toast.success(msg.title, msg.description)
+
+            fetchPatients()
+          } catch (error) {
+            toast.dismiss(loadingToast)
+            console.error('Error deleting patient:', error)
+            const msg = toastMessages.patient.deleteError
+            toast.error(msg.title, msg.description)
+          }
+        },
+      }
+    )
   }
 
   // Format date
