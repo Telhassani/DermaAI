@@ -165,7 +165,7 @@ export default function PatientDetailPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{patient.full_name}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {patient.age} ans • {getGenderLabel(patient.gender)} • Patient depuis le{' '}
+              {patient.age} ans • {getGenderLabel(patient.gender || 'other')} • Patient depuis le{' '}
               {formatDate(patient.created_at)}
             </p>
           </div>
@@ -229,7 +229,7 @@ export default function PatientDetailPage() {
                   <div>
                     <p className="text-xs text-gray-500">Identification</p>
                     <p className="text-sm text-gray-900">
-                      {getIdentificationTypeLabel(patient.identification_type)} • {patient.identification_number}
+                      {patient.identification_type && getIdentificationTypeLabel(patient.identification_type)} {patient.identification_type && '•'} {patient.identification_number}
                     </p>
                   </div>
                 </div>
@@ -289,10 +289,12 @@ export default function PatientDetailPage() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Date de naissance</p>
-                <p className="text-sm text-gray-900">{formatDate(patient.date_of_birth)}</p>
-              </div>
+              {patient.date_of_birth && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Date de naissance</p>
+                  <p className="text-sm text-gray-900">{formatDate(patient.date_of_birth)}</p>
+                </div>
+              )}
 
               {patient.allergies && (
                 <div>

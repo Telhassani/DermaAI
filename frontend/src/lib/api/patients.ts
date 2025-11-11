@@ -3,6 +3,8 @@ import { apiClient } from './client'
 export interface PatientResponse {
   id: number
   full_name: string
+  first_name?: string
+  last_name?: string
   email?: string
   phone?: string
   date_of_birth?: string
@@ -10,7 +12,13 @@ export interface PatientResponse {
   gender?: 'male' | 'female' | 'other'
   address?: string
   city?: string
+  postal_code?: string
+  country?: string
+  identification_type?: 'cin' | 'passport'
   identification_number?: string
+  insurance_number?: string
+  allergies?: string
+  medical_history?: string
   created_at: string
   updated_at: string
 }
@@ -25,14 +33,25 @@ export interface PatientListResponse {
 
 export interface PatientCreateRequest {
   full_name: string
+  first_name?: string
+  last_name?: string
   email?: string
   phone?: string
   date_of_birth?: string
   gender?: 'male' | 'female' | 'other'
   address?: string
   city?: string
+  postal_code?: string
+  country?: string
+  identification_type?: 'cin' | 'passport'
   identification_number?: string
+  insurance_number?: string
+  allergies?: string
+  medical_history?: string
 }
+
+// Alias for compatibility
+export type PatientData = PatientCreateRequest
 
 export interface PatientListParams {
   search?: string
@@ -47,6 +66,11 @@ export interface PatientListParams {
 export async function listPatients(params?: PatientListParams): Promise<PatientListResponse> {
   const response = await apiClient.get('/patients', { params })
   return response.data
+}
+
+// Search patients (alias for listPatients with search param)
+export async function searchPatients(query: string): Promise<PatientListResponse> {
+  return listPatients({ search: query, page: 1, page_size: 20 })
 }
 
 // Get single patient by ID
