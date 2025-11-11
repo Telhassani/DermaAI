@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -16,17 +16,20 @@ import {
   Image as ImageIcon,
   Pill,
   Activity,
+  Upload,
+  X,
 } from 'lucide-react'
 import { getPatient, deletePatient, PatientResponse } from '@/lib/api/patients'
 import { getPatientImages, ImageMetadata } from '@/lib/api/images'
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
-import { ImageUpload, ImageGallery, TimelineComparison } from '@/components/images'
+import { TimelineComparison } from '@/components/images'
 import { toast } from '@/lib/utils/toast'
 
 export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const patientId = parseInt(params.id as string)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [patient, setPatient] = useState<PatientResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -35,6 +38,8 @@ export default function PatientDetailPage() {
   const [imagesLoading, setImagesLoading] = useState(false)
   const [showUploadSection, setShowUploadSection] = useState(false)
   const [imageViewMode, setImageViewMode] = useState<'grid' | 'timeline'>('grid')
+  const [localImages, setLocalImages] = useState<string[]>([])
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchPatient()
@@ -94,10 +99,60 @@ export default function PatientDetailPage() {
     })
   }
 
-  const handleImageUploadComplete = (imageIds: number[]) => {
-    toast.success('Images téléchargées', `${imageIds.length} image(s) ajoutée(s)`)
-    setShowUploadSection(false)
-    fetchImages()
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImage(true)
+
+    try {
+      const newImages: string[] = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast.error('Fichier invalide', `${file.name} n'est pas une image`)
+          continue
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Fichier trop volumineux', `${file.name} dépasse 5MB`)
+          continue
+        }
+
+        // Convert to base64
+        const reader = new FileReader()
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+
+        newImages.push(base64)
+      }
+
+      setLocalImages((prev) => [...prev, ...newImages])
+      toast.success('Images ajoutées', `${newImages.length} image(s) ajoutée(s)`)
+      setShowUploadSection(false)
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error)
+      toast.error('Erreur', 'Impossible de charger les images')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setLocalImages((prev) => prev.filter((_, i) => i !== index))
+    toast.success('Image supprimée', 'L\'image a été retirée')
   }
 
   const handleImageDeleted = (imageId: number) => {
@@ -352,7 +407,7 @@ export default function PatientDetailPage() {
                   <ImageIcon className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{images.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{localImages.length}</p>
                   <p className="text-xs text-gray-500">Images</p>
                 </div>
               </div>
@@ -383,35 +438,9 @@ export default function PatientDetailPage() {
         <div className="space-y-6">
           {/* Image controls */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Images médicales ({images.length})
-              </h2>
-              {images.length > 2 && (
-                <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-1">
-                  <button
-                    onClick={() => setImageViewMode('grid')}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                      imageViewMode === 'grid'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Galerie
-                  </button>
-                  <button
-                    onClick={() => setImageViewMode('timeline')}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                      imageViewMode === 'timeline'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    Timeline
-                  </button>
-                </div>
-              )}
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Images médicales ({localImages.length})
+            </h2>
             <button
               onClick={() => setShowUploadSection(!showUploadSection)}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -427,22 +456,41 @@ export default function PatientDetailPage() {
               <h3 className="text-lg font-semibold text-slate-900 mb-4">
                 Télécharger de nouvelles images
               </h3>
-              <ImageUpload
-                patientId={patientId}
-                onUploadComplete={handleImageUploadComplete}
-                maxFiles={10}
-                compressImages={true}
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center transition-colors hover:border-blue-400 hover:bg-blue-50"
+              >
+                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  Cliquez pour sélectionner des images
+                </p>
+                <p className="text-xs text-gray-500">
+                  JPG, PNG, WEBP jusqu'à 5MB
+                </p>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={uploadingImage}
               />
+
+              {uploadingImage && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-600">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                  Chargement des images...
+                </div>
+              )}
             </div>
           )}
 
           {/* Images display */}
-          {imagesLoading ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-r-transparent mx-auto"></div>
-              <p className="mt-4 text-sm text-gray-500">Chargement des images...</p>
-            </div>
-          ) : images.length === 0 ? (
+          {localImages.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white p-12 shadow-sm text-center">
               <div className="mx-auto max-w-md">
                 <ImageIcon className="mx-auto h-16 w-16 text-gray-300 mb-4" />
@@ -463,15 +511,26 @@ export default function PatientDetailPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              {imageViewMode === 'grid' ? (
-                <ImageGallery
-                  images={images}
-                  onImageDeleted={handleImageDeleted}
-                  columns={4}
-                />
-              ) : (
-                <TimelineComparison images={images} />
-              )}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {localImages.map((image, index) => (
+                  <div
+                    key={index}
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+                  >
+                    <img
+                      src={image}
+                      alt={`Image ${index + 1}`}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 hover:bg-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
