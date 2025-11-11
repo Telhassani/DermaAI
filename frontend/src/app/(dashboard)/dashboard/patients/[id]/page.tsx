@@ -40,6 +40,7 @@ export default function PatientDetailPage() {
   const [imageViewMode, setImageViewMode] = useState<'grid' | 'timeline'>('grid')
   const [localImages, setLocalImages] = useState<string[]>([])
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     fetchPatient()
@@ -99,18 +100,14 @@ export default function PatientDetailPage() {
     })
   }
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
+  const processFiles = async (fileList: FileList | File[]) => {
     setUploadingImage(true)
 
     try {
       const newImages: string[] = []
+      const files = Array.from(fileList)
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-
+      for (const file of files) {
         // Validate file type
         if (!file.type.startsWith('image/')) {
           toast.error('Fichier invalide', `${file.name} n'est pas une image`)
@@ -134,9 +131,11 @@ export default function PatientDetailPage() {
         newImages.push(base64)
       }
 
-      setLocalImages((prev) => [...prev, ...newImages])
-      toast.success('Images ajoutées', `${newImages.length} image(s) ajoutée(s)`)
-      setShowUploadSection(false)
+      if (newImages.length > 0) {
+        setLocalImages((prev) => [...prev, ...newImages])
+        toast.success('Images ajoutées', `${newImages.length} image(s) ajoutée(s)`)
+        setShowUploadSection(false)
+      }
 
       // Reset file input
       if (fileInputRef.current) {
@@ -147,6 +146,40 @@ export default function PatientDetailPage() {
       toast.error('Erreur', 'Impossible de charger les images')
     } finally {
       setUploadingImage(false)
+    }
+  }
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+    await processFiles(files)
+  }
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      await processFiles(files)
     }
   }
 
@@ -458,15 +491,25 @@ export default function PatientDetailPage() {
               </h3>
 
               <div
-                onClick={() => fileInputRef.current?.click()}
-                className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center transition-colors hover:border-blue-400 hover:bg-blue-50"
+                onClick={() => !uploadingImage && fileInputRef.current?.click()}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                className={`cursor-pointer rounded-xl border-2 border-dashed p-12 text-center transition-all duration-200 ${
+                  isDragging
+                    ? 'border-blue-500 bg-blue-50 scale-105'
+                    : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+                } ${uploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <Upload className={`mx-auto h-12 w-12 mb-4 transition-colors ${
+                  isDragging ? 'text-blue-500' : 'text-gray-400'
+                }`} />
                 <p className="text-sm font-medium text-gray-900 mb-1">
-                  Cliquez pour sélectionner des images
+                  {isDragging ? 'Déposez les images ici' : 'Glissez-déposez des images ou cliquez'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  JPG, PNG, WEBP jusqu'à 5MB
+                  JPG, PNG, WEBP jusqu'à 5MB • Plusieurs fichiers acceptés
                 </p>
               </div>
 
