@@ -20,6 +20,7 @@ import {
 import { listPatients, deletePatient, PatientResponse } from '@/lib/api/patients'
 import { PatientListSkeleton } from '@/components/ui/skeletons'
 import { toast, toastMessages } from '@/lib/utils/toast'
+import { EmptyStateNoPatients, EmptyStateNoResults } from '@/components/ui/empty-state'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -160,20 +161,11 @@ export default function PatientsPage() {
       ) : (
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         {patients.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-4 text-sm text-gray-500">
-              {search ? 'Aucun patient trouvé' : 'Aucun patient enregistré'}
-            </p>
-            {!search && (
-              <button
-                onClick={() => router.push('/dashboard/patients/new')}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-700"
-              >
-                Ajouter votre premier patient
-              </button>
-            )}
-          </div>
+          search ? (
+            <EmptyStateNoResults searchQuery={search} />
+          ) : (
+            <EmptyStateNoPatients onCreatePatient={() => router.push('/dashboard/patients/new')} />
+          )
         ) : (
           <>
             <div className="overflow-x-auto">

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { DashboardSkeleton } from '@/components/ui/skeletons'
+import { EmptyStateNoActivity, EmptyStateNoAppointments } from '@/components/ui/empty-state'
 import {
   Users,
   Calendar,
@@ -173,10 +174,7 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Activité récente</h2>
-            <div className="text-center py-12">
-              <Activity className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-sm text-gray-500">Aucune activité récente</p>
-            </div>
+            <EmptyStateNoActivity />
           </div>
         </div>
 
@@ -185,10 +183,7 @@ export default function DashboardPage() {
           {/* Upcoming appointments */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Prochains rendez-vous</h2>
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-sm text-gray-500">Aucun rendez-vous programmé</p>
-            </div>
+            <EmptyStateNoAppointments onSchedule={() => router.push('/dashboard/appointments')} />
           </div>
 
           {/* Alerts */}
