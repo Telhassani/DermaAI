@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -16,24 +16,43 @@ import {
   Image as ImageIcon,
   Pill,
   Activity,
+  Upload,
+  X,
+  Printer,
 } from 'lucide-react'
 import { getPatient, deletePatient, PatientResponse } from '@/lib/api/patients'
+import { getPatientConsultationHistory, getConsultation, ConsultationResponse } from '@/lib/api/consultations'
+import { listPrescriptions, deletePrescription, PrescriptionResponse, markPrescriptionPrinted } from '@/lib/api/prescriptions'
+import { getPatientImages, deleteImage, updateImage, ImageResponse } from '@/lib/api/images'
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
+import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
+import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
+import { PrescriptionPrintView } from '@/components/prescriptions/PrescriptionPrintView'
 
 export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const patientId = parseInt(params.id as string)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [patient, setPatient] = useState<PatientResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [consultationCount, setConsultationCount] = useState(0)
+  const [prescriptionCount, setPrescriptionCount] = useState(0)
+  const [imageCount, setImageCount] = useState(0)
+  const [lastConsultationDate, setLastConsultationDate] = useState<string | null>(null)
+  const [images, setImages] = useState<ImageResponse[]>([])
+  const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([])
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
+  const [selectedImageForAnnotation, setSelectedImageForAnnotation] = useState<ImageResponse | null>(null)
+  const [editingPrescription, setEditingPrescription] = useState<PrescriptionResponse | null>(null)
+  const [prescriptionEditModalOpen, setPrescriptionEditModalOpen] = useState(false)
+  const [printingPrescription, setPrintingPrescription] = useState<PrescriptionResponse | null>(null)
+  const [consultationNumbers, setConsultationNumbers] = useState<{ [key: number]: number | undefined }>({})
 
-  useEffect(() => {
-    fetchPatient()
-  }, [patientId])
-
-  const fetchPatient = async () => {
+  const fetchPatient = useCallback(async () => {
     try {
       setLoading(true)
       const data = await getPatient(patientId)
@@ -45,7 +64,76 @@ export default function PatientDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [patientId, router])
+
+  const fetchStatistics = useCallback(async () => {
+    try {
+      console.log('📊 Fetching statistics for patientId:', patientId)
+      // Fetch consultation history, prescriptions, and images in parallel
+      const consultationPromise = getPatientConsultationHistory(patientId, 1, 50)
+      const prescriptionPromise = listPrescriptions({ patient_id: patientId })
+      const imagesPromise = getPatientImages(patientId)
+
+      const [consultationData, prescriptionData, imagesData] = await Promise.all([
+        consultationPromise,
+        prescriptionPromise,
+        imagesPromise,
+      ])
+
+      console.log('📊 Statistics fetched successfully:', {
+        consultations: consultationData.total,
+        prescriptions: prescriptionData.total,
+        images: imagesData.total,
+      })
+
+      setConsultationCount(consultationData.total)
+      setPrescriptionCount(prescriptionData.total)
+      setImageCount(imagesData.total)
+
+      // Store prescriptions list for display
+      setPrescriptions(prescriptionData.prescriptions || [])
+
+      // Get last consultation date if available
+      if (consultationData.consultations.length > 0) {
+        const lastConsultation = consultationData.consultations[0]
+        setLastConsultationDate(lastConsultation.consultation_time)
+      }
+    } catch (error) {
+      console.error('❌ Error fetching statistics:', error)
+      // Silently fail - statistics are not critical
+    }
+  }, [patientId])
+
+  useEffect(() => {
+    // Guard against invalid patientId
+    if (!patientId || isNaN(patientId)) {
+      console.log('⚠️ Invalid patientId, skipping effect:', { patientId, isNaN: isNaN(patientId) })
+      return
+    }
+
+    console.log('🔄 useEffect triggered with patientId:', patientId)
+
+    // Get tab from URL query parameter, default to 'consultations' if provided, else 'overview'
+    const tabParam = new URLSearchParams(window.location.search).get('tab')
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+
+    fetchPatient()
+    fetchStatistics().catch((error) => {
+      console.error('⚠️ Statistics fetch failed:', error)
+    })
+    fetchPatientImages()
+  }, [patientId, fetchPatient, fetchStatistics])
+
+  const fetchPatientImages = useCallback(async () => {
+    try {
+      const imagesData = await getPatientImages(patientId)
+      setImages(imagesData.images)
+    } catch (error) {
+      console.error('Error fetching patient images:', error)
+    }
+  }, [patientId])
 
   const handleDelete = async () => {
     if (!patient) return
@@ -57,6 +145,91 @@ export default function PatientDetailPage() {
     } catch (error) {
       console.error('Error deleting patient:', error)
       alert('Erreur lors de la suppression du patient')
+    }
+  }
+
+  const handleRemoveImage = async (imageId: number) => {
+    try {
+      await deleteImage(imageId)
+      setImages(prev => prev.filter(img => img.id !== imageId))
+      setImageCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Error deleting image:', error)
+      alert('Erreur lors de la suppression de l\'image')
+    }
+  }
+
+  const handleSaveAnnotation = async (imageId: number, notes: string) => {
+    try {
+      console.log('[handleSaveAnnotation] Saving annotations for image:', imageId)
+      const updatedImage = await updateImage(imageId, { notes })
+      console.log('[handleSaveAnnotation] Annotations saved successfully')
+
+      // Update the image in the list
+      setImages(prev =>
+        prev.map(img => (img.id === imageId ? updatedImage : img))
+      )
+
+      // Close the modal
+      setAnnotationModalOpen(false)
+      setSelectedImageForAnnotation(null)
+    } catch (error) {
+      console.error('[handleSaveAnnotation] Error saving annotations:', error)
+      throw error
+    }
+  }
+
+  const handleDeletePrescription = async (prescriptionId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette ordonnance ?')) return
+
+    try {
+      await deletePrescription(prescriptionId)
+      setPrescriptions(prev => prev.filter(p => p.id !== prescriptionId))
+      setPrescriptionCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Error deleting prescription:', error)
+      alert('Erreur lors de la suppression de l\'ordonnance')
+    }
+  }
+
+  const getConsultationNumber = async (consultationId: number): Promise<number | undefined> => {
+    // Check if we already have it cached
+    if (consultationNumbers[consultationId] !== undefined) {
+      return consultationNumbers[consultationId]
+    }
+
+    try {
+      const consultation = await getConsultation(consultationId)
+      const num = consultation.consultation_number
+      setConsultationNumbers(prev => ({ ...prev, [consultationId]: num }))
+      return num
+    } catch (error) {
+      console.error('Error fetching consultation:', error)
+      return undefined
+    }
+  }
+
+  const handleEditPrescription = (prescription: PrescriptionResponse) => {
+    setEditingPrescription(prescription)
+    setPrescriptionEditModalOpen(true)
+  }
+
+  const handleSavePrescription = (updatedPrescription: PrescriptionResponse) => {
+    setPrescriptions(prev =>
+      prev.map(p => (p.id === updatedPrescription.id ? updatedPrescription : p))
+    )
+    setPrescriptionEditModalOpen(false)
+    setEditingPrescription(null)
+  }
+
+  const handlePrintPrescription = async (prescription: PrescriptionResponse) => {
+    try {
+      // Mark as printed
+      await markPrescriptionPrinted(prescription.id)
+      setPrintingPrescription(prescription)
+    } catch (error) {
+      console.error('Error marking prescription as printed:', error)
+      alert('Erreur lors du marquage de l\'ordonnance')
     }
   }
 
@@ -84,6 +257,53 @@ export default function PatientDetailPage() {
       passport: 'Passeport',
     }
     return labels[type as keyof typeof labels] || type
+  }
+
+  const formatLastVisitDate = (dateString: string | null) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Aujourd\'hui'
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Hier'
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    setUploadingImage(true)
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setImages(prev => [...prev, event.target.result as string])
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
   }
 
   if (loading) {
@@ -142,6 +362,61 @@ export default function PatientDetailPage() {
             <Trash2 className="h-4 w-4" />
             Supprimer
           </button>
+        </div>
+      </div>
+
+      {/* Quick Stats - Always visible */}
+      <div className="grid gap-6 md:grid-cols-4">
+        {/* Consultations */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{consultationCount}</p>
+              <p className="text-xs text-gray-500">Consultations</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Ordonnances */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+              <Pill className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{prescriptionCount}</p>
+              <p className="text-xs text-gray-500">Ordonnances</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Images */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+              <ImageIcon className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{imageCount}</p>
+              <p className="text-xs text-gray-500">Images</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Dernière visite */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
+              <Activity className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{formatLastVisitDate(lastConsultationDate)}</p>
+              <p className="text-xs text-gray-500">Dernière visite</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -273,57 +548,6 @@ export default function PatientDetailPage() {
               )}
             </div>
           </div>
-
-          {/* Quick Stats */}
-          <div className="md:col-span-2 grid gap-6 md:grid-cols-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
-                  <p className="text-xs text-gray-500">Rendez-vous</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                  <Pill className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
-                  <p className="text-xs text-gray-500">Ordonnances</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-                  <ImageIcon className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
-                  <p className="text-xs text-gray-500">Images</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                  <Activity className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">-</p>
-                  <p className="text-xs text-gray-500">Dernière visite</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -333,7 +557,239 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {activeTab !== 'overview' && activeTab !== 'consultations' && (
+      {/* Prescriptions Tab */}
+      {activeTab === 'prescriptions' && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="space-y-4">
+            {prescriptions.length > 0 ? (
+              <div className="space-y-4">
+                {prescriptions.map((prescription) => {
+                  const prescriptionDate = prescription.prescription_date
+                    ? new Date(prescription.prescription_date).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : null
+
+                  const createdDate = new Date(prescription.created_at).toLocaleDateString('fr-FR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+
+                  const validUntilDate = prescription.valid_until
+                    ? new Date(prescription.valid_until).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : null
+
+                  return (
+                    <div
+                      key={prescription.id}
+                      className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        {/* Header with Consultation Reference and Dates */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            {prescription.consultation_id && (
+                              <p className="text-sm font-semibold text-gray-900">
+                                Consultation #{prescription.consultation_id}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            {prescriptionDate && (
+                              <p className="text-xs text-gray-600 font-medium">
+                                Prescription: <span className="text-gray-900">{prescriptionDate}</span>
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              Créée le: {createdDate}
+                            </p>
+                            {validUntilDate && (
+                              <p className="text-xs text-orange-600">
+                                Valide jusqu'au: {validUntilDate}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Medications */}
+                        {prescription.medications && prescription.medications.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-sm font-semibold text-gray-900 mb-2">Médicaments</p>
+                            <ul className="space-y-1">
+                              {prescription.medications.map((med, idx) => (
+                                <li key={idx} className="text-sm text-gray-700">
+                                  <span className="font-medium">{med.name}</span>
+                                  {med.dosage && <span> - {med.dosage}</span>}
+                                  {med.frequency && <span> - {med.frequency}</span>}
+                                  {med.duration && <span> - {med.duration}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Instructions */}
+                        {prescription.instructions && (
+                          <div className="mb-3 p-2 bg-blue-50 rounded">
+                            <p className="text-xs font-medium text-blue-700 mb-1">Instructions:</p>
+                            <p className="text-sm text-blue-900">{prescription.instructions}</p>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {prescription.notes && (
+                          <div className="p-2 bg-gray-50 rounded">
+                            <p className="text-xs font-medium text-gray-600 mb-1">Notes:</p>
+                            <p className="text-sm text-gray-800">{prescription.notes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditPrescription(prescription)}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Éditer l'ordonnance"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Éditer
+                        </button>
+                        <button
+                          onClick={() => handlePrintPrescription(prescription)}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded transition-colors"
+                          title="Imprimer l'ordonnance"
+                        >
+                          <Printer className="h-4 w-4" />
+                          Imprimer
+                        </button>
+                        <button
+                          onClick={() => handleDeletePrescription(prescription.id)}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Supprimer l'ordonnance"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Pill className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">Aucune ordonnance</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Images Tab */}
+      {activeTab === 'images' && (
+        <div className="space-y-4">
+          {/* Upload Area */}
+          <div
+            className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <Upload className="h-8 w-8 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">
+                Glissez-déposez des images ici ou cliquez pour parcourir
+              </span>
+              <span className="text-xs text-gray-500">PNG, JPG, GIF jusqu'à 10MB</span>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              className="hidden"
+            />
+          </div>
+
+          {/* Images Gallery */}
+          {images.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {images.map((image) => {
+                const uploadDate = new Date(image.uploaded_at)
+                const formattedDate = uploadDate.toLocaleDateString('fr-FR', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+
+                return (
+                  <div key={image.id} className="relative group">
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={image.image_data}
+                        alt={`Patient image ${image.filename}`}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Overlay on hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setSelectedImageForAnnotation(image)
+                            setAnnotationModalOpen(true)
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                          title="Modifier les annotations"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          Notes
+                        </button>
+                        <button
+                          onClick={() => handleRemoveImage(image.id)}
+                          className="flex items-center justify-center h-8 w-8 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          title="Supprimer l'image"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Info Badge */}
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-gray-500">{formattedDate}</p>
+                      {image.notes && (
+                        <div className="text-xs bg-blue-50 text-blue-700 p-1 rounded line-clamp-2">
+                          {image.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {images.length === 0 && (
+            <div className="text-center py-8">
+              <ImageIcon className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">Aucune image téléchargée</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab !== 'overview' && activeTab !== 'consultations' && activeTab !== 'images' && (
         <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
           <div className="mx-auto max-w-md">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
@@ -346,6 +802,40 @@ export default function PatientDetailPage() {
               Cette fonctionnalité sera bientôt disponible
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Image Annotation Modal */}
+      <ImageAnnotationModal
+        isOpen={annotationModalOpen}
+        image={selectedImageForAnnotation}
+        patientName={patient?.full_name || 'Patient'}
+        onSave={handleSaveAnnotation}
+        onCancel={() => {
+          setAnnotationModalOpen(false)
+          setSelectedImageForAnnotation(null)
+        }}
+      />
+
+      {/* Prescription Edit Modal */}
+      <PrescriptionEditModal
+        isOpen={prescriptionEditModalOpen}
+        prescription={editingPrescription}
+        onClose={() => {
+          setPrescriptionEditModalOpen(false)
+          setEditingPrescription(null)
+        }}
+        onSave={handleSavePrescription}
+      />
+
+      {/* Prescription Print View */}
+      {printingPrescription && (
+        <div>
+          <PrescriptionPrintView
+            prescription={printingPrescription}
+            patientName={patient?.full_name || 'Patient'}
+            doctorName={patient?.doctor_id ? `Docteur` : undefined}
+          />
         </div>
       )}
     </div>

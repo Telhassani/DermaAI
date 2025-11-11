@@ -176,10 +176,14 @@ export default function PatientsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {patients.map((patient) => (
-                    <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={patient.id}
+                      className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                      onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                             {patient.full_name}
                           </div>
                           {patient.identification_number && (
@@ -216,12 +220,15 @@ export default function PatientsPage() {
                           {formatDate(patient.created_at)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
+                            onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
                             className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Voir"
+                            title="Voir les consultations"
                           >
                             <Eye className="h-4 w-4" />
                           </button>

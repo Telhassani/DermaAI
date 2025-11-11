@@ -108,10 +108,20 @@ async def create_consultation(
             detail="Patient non trouvé",
         )
 
+    # Get the next consultation number for this patient
+    last_consultation = (
+        db.query(Consultation)
+        .filter(Consultation.patient_id == consultation_data.patient_id)
+        .order_by(desc(Consultation.consultation_number))
+        .first()
+    )
+    next_consultation_number = (last_consultation.consultation_number or 0) + 1 if last_consultation else 1
+
     # Create new consultation
     new_consultation = Consultation(**consultation_data.model_dump())
     new_consultation.doctor_id = current_user.id
     new_consultation.consultation_time = datetime.now()
+    new_consultation.consultation_number = next_consultation_number
 
     db.add(new_consultation)
     db.commit()

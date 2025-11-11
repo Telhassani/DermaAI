@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.css'
 import { Providers } from '@/components/providers'
+import { DragDropHandler } from '@/components/drag-drop-handler'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <DragDropHandler />
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -3,9 +3,20 @@ Configuration settings for DermAI Backend
 Using Pydantic Settings for environment variable management
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import PostgresDsn, field_validator
+from pydantic import PostgresDsn, field_validator, ConfigDict
+from pydantic_settings.sources import DotEnvSettingsSource, EnvSettingsSource
+
+
+class CustomEnvSettingsSource(EnvSettingsSource):
+    """Custom env source that handles empty values for optional fields"""
+
+    def prepare_field_value(self, field_name: str, field, field_value: Any, value_is_complex: bool):
+        # Skip JSON parsing for empty values
+        if isinstance(field_value, str) and field_value.strip() == "":
+            return None
+        return super().prepare_field_value(field_name, field, field_value, value_is_complex)
 
 
 class Settings(BaseSettings):
@@ -16,6 +27,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
+        settings_sources=(CustomEnvSettingsSource, DotEnvSettingsSource),
     )
 
     # =====================================
@@ -48,19 +60,19 @@ class Settings(BaseSettings):
     # =====================================
     # CORS
     # =====================================
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-    ]
+    ALLOWED_ORIGINS_STR: str = '["http://localhost:3000","http://localhost:3001","http://127.0.0.1:3000"]'
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
 
-    @field_validator("ALLOWED_ORIGINS", mode="before")
-    @classmethod
-    def parse_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @property
+    def ALLOWED_ORIGINS(self) -> List[str]:
+        """Parse ALLOWED_ORIGINS from string"""
+        import json
+        if isinstance(self.ALLOWED_ORIGINS_STR, str):
+            try:
+                return json.loads(self.ALLOWED_ORIGINS_STR)
+            except (json.JSONDecodeError, TypeError):
+                return [origin.strip() for origin in self.ALLOWED_ORIGINS_STR.split(",")]
+        return self.ALLOWED_ORIGINS_STR
 
     # =====================================
     # AI APIs

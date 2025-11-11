@@ -76,6 +76,7 @@ class ConsultationResponse(ConsultationBase):
 
     id: int
     doctor_id: int
+    consultation_number: Optional[int] = None  # Sequential number for this patient's consultations
     consultation_time: datetime
     created_at: datetime
     updated_at: datetime
