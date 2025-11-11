@@ -45,15 +45,20 @@ export default function PatientDetailPage() {
   // Load images from localStorage on mount
   useEffect(() => {
     const storageKey = `patient_${patientId}_images`
+    console.log('🔵 Loading images from localStorage, key:', storageKey)
     const savedImages = localStorage.getItem(storageKey)
+    console.log('🔵 Found in localStorage:', savedImages ? 'YES' : 'NO')
+
     if (savedImages) {
       try {
         const parsed = JSON.parse(savedImages)
-        if (Array.isArray(parsed)) {
+        console.log('🔵 Parsed images count:', parsed.length)
+        if (Array.isArray(parsed) && parsed.length > 0) {
           setLocalImages(parsed)
+          console.log('✅ Loaded', parsed.length, 'images from localStorage')
         }
       } catch (error) {
-        console.error('Error loading saved images:', error)
+        console.error('❌ Error loading saved images:', error)
       }
     }
   }, [patientId])
@@ -61,10 +66,13 @@ export default function PatientDetailPage() {
   // Save images to localStorage whenever they change
   useEffect(() => {
     const storageKey = `patient_${patientId}_images`
+
     if (localImages.length > 0) {
+      console.log('💾 Saving', localImages.length, 'images to localStorage')
       localStorage.setItem(storageKey, JSON.stringify(localImages))
+      console.log('✅ Saved successfully')
     } else {
-      // Remove from localStorage if no images
+      console.log('🗑️ Removing from localStorage (no images)')
       localStorage.removeItem(storageKey)
     }
   }, [localImages, patientId])
@@ -79,29 +87,25 @@ export default function PatientDetailPage() {
     }
   }, [activeTab])
 
-  // Prevent default drag & drop behavior globally - CRITICAL for preventing file opening
+  // CRITICAL: Prevent browser from opening dropped files globally
   useEffect(() => {
-    const preventDefaults = (e: DragEvent) => {
-      // Check if the target is our drop zone or its children
-      const target = e.target as HTMLElement
-      const isDropZone = target.closest('[data-drop-zone="true"]')
-
-      // Only prevent default if NOT in our drop zone
-      if (!isDropZone) {
-        e.preventDefault()
-        e.stopPropagation()
-      }
+    // Prevent all default drag/drop behaviors on the entire page
+    const preventDefault = (e: Event) => {
+      e.preventDefault()
+      e.stopPropagation()
     }
 
-    // Prevent browser from opening files everywhere except our drop zone
-    document.addEventListener('dragover', preventDefaults, false)
-    document.addEventListener('drop', preventDefaults, false)
-    document.addEventListener('dragenter', preventDefaults, false)
+    // Use capture phase (true) to intercept events before they reach other handlers
+    window.addEventListener('dragover', preventDefault, true)
+    window.addEventListener('drop', preventDefault, true)
+    document.body.addEventListener('dragover', preventDefault, true)
+    document.body.addEventListener('drop', preventDefault, true)
 
     return () => {
-      document.removeEventListener('dragover', preventDefaults, false)
-      document.removeEventListener('drop', preventDefaults, false)
-      document.removeEventListener('dragenter', preventDefaults, false)
+      window.removeEventListener('dragover', preventDefault, true)
+      window.removeEventListener('drop', preventDefault, true)
+      document.body.removeEventListener('dragover', preventDefault, true)
+      document.body.removeEventListener('drop', preventDefault, true)
     }
   }, [])
 
@@ -211,23 +215,21 @@ export default function PatientDetailPage() {
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
-
-    // Only set dragging if files are being dragged
-    if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
-      setIsDragging(true)
-    }
+    console.log('📥 Drag enter')
+    setIsDragging(true)
   }
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Only unset if leaving the drop zone element itself
+    // Only unset if truly leaving the drop zone
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX
     const y = e.clientY
 
     if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      console.log('📤 Drag leave')
       setIsDragging(false)
     }
   }
@@ -235,7 +237,7 @@ export default function PatientDetailPage() {
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
-    // Required to allow drop
+    // Allow drop
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy'
     }
@@ -244,9 +246,12 @@ export default function PatientDetailPage() {
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
+    console.log('🎯 Drop event triggered!')
     setIsDragging(false)
 
     const files = e.dataTransfer?.files
+    console.log('📁 Files dropped:', files?.length || 0)
+
     if (files && files.length > 0) {
       await processFiles(files)
     }
@@ -560,7 +565,6 @@ export default function PatientDetailPage() {
               </h3>
 
               <div
-                data-drop-zone="true"
                 onClick={() => !uploadingImage && fileInputRef.current?.click()}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
