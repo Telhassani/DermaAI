@@ -18,7 +18,10 @@ import {
   Activity,
 } from 'lucide-react'
 import { getPatient, deletePatient, PatientResponse } from '@/lib/api/patients'
+import { getPatientImages, ImageMetadata } from '@/lib/api/images'
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
+import { ImageUpload, ImageGallery, TimelineComparison } from '@/components/images'
+import { toast } from '@/lib/utils/toast'
 
 export default function PatientDetailPage() {
   const router = useRouter()
@@ -28,10 +31,20 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<PatientResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [images, setImages] = useState<ImageMetadata[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [showUploadSection, setShowUploadSection] = useState(false)
+  const [imageViewMode, setImageViewMode] = useState<'grid' | 'timeline'>('grid')
 
   useEffect(() => {
     fetchPatient()
   }, [patientId])
+
+  useEffect(() => {
+    if (activeTab === 'images') {
+      fetchImages()
+    }
+  }, [activeTab])
 
   const fetchPatient = async () => {
     try {
@@ -40,24 +53,55 @@ export default function PatientDetailPage() {
       setPatient(data)
     } catch (error) {
       console.error('Error fetching patient:', error)
-      alert('Erreur lors du chargement du patient')
+      toast.error('Erreur', 'Impossible de charger les informations du patient')
       router.push('/dashboard/patients')
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchImages = async () => {
+    try {
+      setImagesLoading(true)
+      const data = await getPatientImages(patientId)
+      setImages(data)
+    } catch (error) {
+      console.error('Error fetching images:', error)
+      // Don't show error if API not ready yet
+      setImages([])
+    } finally {
+      setImagesLoading(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!patient) return
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${patient.full_name}?`)) return
 
-    try {
-      await deletePatient(patientId)
-      router.push('/dashboard/patients')
-    } catch (error) {
-      console.error('Error deleting patient:', error)
-      alert('Erreur lors de la suppression du patient')
-    }
+    toast.withAction(`Supprimer ${patient.full_name}?`, {
+      description: 'Cette action est définitive et supprimera toutes les données du patient',
+      actionLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      onAction: async () => {
+        try {
+          await deletePatient(patientId)
+          toast.success('Patient supprimé', 'Le patient a été supprimé avec succès')
+          router.push('/dashboard/patients')
+        } catch (error) {
+          console.error('Error deleting patient:', error)
+          toast.error('Erreur', 'Impossible de supprimer le patient')
+        }
+      },
+    })
+  }
+
+  const handleImageUploadComplete = (imageIds: number[]) => {
+    toast.success('Images téléchargées', `${imageIds.length} image(s) ajoutée(s)`)
+    setShowUploadSection(false)
+    fetchImages()
+  }
+
+  const handleImageDeleted = (imageId: number) => {
+    setImages((prev) => prev.filter((img) => img.id !== imageId))
   }
 
   const formatDate = (dateString: string) => {
@@ -306,7 +350,7 @@ export default function PatientDetailPage() {
                   <ImageIcon className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
+                  <p className="text-2xl font-bold text-gray-900">{images.length}</p>
                   <p className="text-xs text-gray-500">Images</p>
                 </div>
               </div>
@@ -333,7 +377,105 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {activeTab !== 'overview' && activeTab !== 'consultations' && (
+      {activeTab === 'images' && (
+        <div className="space-y-6">
+          {/* Image controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Images médicales ({images.length})
+              </h2>
+              {images.length > 2 && (
+                <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-1">
+                  <button
+                    onClick={() => setImageViewMode('grid')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      imageViewMode === 'grid'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Galerie
+                  </button>
+                  <button
+                    onClick={() => setImageViewMode('timeline')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      imageViewMode === 'timeline'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Timeline
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowUploadSection(!showUploadSection)}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              <ImageIcon className="h-4 w-4" />
+              {showUploadSection ? 'Masquer l\'upload' : 'Ajouter des images'}
+            </button>
+          </div>
+
+          {/* Upload section */}
+          {showUploadSection && (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                Télécharger de nouvelles images
+              </h3>
+              <ImageUpload
+                patientId={patientId}
+                onUploadComplete={handleImageUploadComplete}
+                maxFiles={10}
+                compressImages={true}
+              />
+            </div>
+          )}
+
+          {/* Images display */}
+          {imagesLoading ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-r-transparent mx-auto"></div>
+              <p className="mt-4 text-sm text-gray-500">Chargement des images...</p>
+            </div>
+          ) : images.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white p-12 shadow-sm text-center">
+              <div className="mx-auto max-w-md">
+                <ImageIcon className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucune image
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Commencez par ajouter des photos du patient pour suivre l'évolution des traitements
+                </p>
+                <button
+                  onClick={() => setShowUploadSection(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Ajouter des images
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              {imageViewMode === 'grid' ? (
+                <ImageGallery
+                  images={images}
+                  onImageDeleted={handleImageDeleted}
+                  columns={4}
+                />
+              ) : (
+                <TimelineComparison images={images} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab !== 'overview' && activeTab !== 'consultations' && activeTab !== 'images' && (
         <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
           <div className="mx-auto max-w-md">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
