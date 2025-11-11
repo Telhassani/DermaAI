@@ -42,6 +42,33 @@ export default function PatientDetailPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
+  // Load images from localStorage on mount
+  useEffect(() => {
+    const storageKey = `patient_${patientId}_images`
+    const savedImages = localStorage.getItem(storageKey)
+    if (savedImages) {
+      try {
+        const parsed = JSON.parse(savedImages)
+        if (Array.isArray(parsed)) {
+          setLocalImages(parsed)
+        }
+      } catch (error) {
+        console.error('Error loading saved images:', error)
+      }
+    }
+  }, [patientId])
+
+  // Save images to localStorage whenever they change
+  useEffect(() => {
+    const storageKey = `patient_${patientId}_images`
+    if (localImages.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(localImages))
+    } else {
+      // Remove from localStorage if no images
+      localStorage.removeItem(storageKey)
+    }
+  }, [localImages, patientId])
+
   useEffect(() => {
     fetchPatient()
   }, [patientId])
@@ -52,24 +79,31 @@ export default function PatientDetailPage() {
     }
   }, [activeTab])
 
-  // Prevent default drag & drop behavior on the entire window when on images tab
+  // Prevent default drag & drop behavior globally - CRITICAL for preventing file opening
   useEffect(() => {
-    if (activeTab !== 'images') return
-
     const preventDefaults = (e: DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      // Check if the target is our drop zone or its children
+      const target = e.target as HTMLElement
+      const isDropZone = target.closest('[data-drop-zone="true"]')
+
+      // Only prevent default if NOT in our drop zone
+      if (!isDropZone) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
     }
 
-    // Prevent browser from opening files
-    window.addEventListener('dragover', preventDefaults)
-    window.addEventListener('drop', preventDefaults)
+    // Prevent browser from opening files everywhere except our drop zone
+    document.addEventListener('dragover', preventDefaults, false)
+    document.addEventListener('drop', preventDefaults, false)
+    document.addEventListener('dragenter', preventDefaults, false)
 
     return () => {
-      window.removeEventListener('dragover', preventDefaults)
-      window.removeEventListener('drop', preventDefaults)
+      document.removeEventListener('dragover', preventDefaults, false)
+      document.removeEventListener('drop', preventDefaults, false)
+      document.removeEventListener('dragenter', preventDefaults, false)
     }
-  }, [activeTab])
+  }, [])
 
   const fetchPatient = async () => {
     try {
@@ -526,6 +560,7 @@ export default function PatientDetailPage() {
               </h3>
 
               <div
+                data-drop-zone="true"
                 onClick={() => !uploadingImage && fileInputRef.current?.click()}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
