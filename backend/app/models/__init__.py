@@ -7,6 +7,7 @@ from app.models.patient import Patient, Gender, IdentificationType
 from app.models.appointment import Appointment, AppointmentStatus, AppointmentType
 from app.models.consultation import Consultation
 from app.models.prescription import Prescription, PrescriptionMedication
+from app.models.image import Image, ImageAnnotation, ImageType, ImageCategory, AnnotationTool
 
 __all__ = [
     "User",
@@ -20,4 +21,9 @@ __all__ = [
     "Consultation",
     "Prescription",
     "PrescriptionMedication",
+    "Image",
+    "ImageAnnotation",
+    "ImageType",
+    "ImageCategory",
+    "AnnotationTool",
 ]

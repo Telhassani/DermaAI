@@ -81,6 +81,7 @@ class Settings(BaseSettings):
     # =====================================
     # FILE STORAGE
     # =====================================
+    BASE_URL: str = "http://localhost:8000"
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE_MB: int = 10
 
