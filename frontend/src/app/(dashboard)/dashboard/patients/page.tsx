@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { listPatients, deletePatient, PatientResponse } from '@/lib/api/patients'
+import { PatientListSkeleton } from '@/components/ui/skeletons'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -131,12 +132,13 @@ export default function PatientsPage() {
       </div>
 
       {/* Table */}
+      {loading ? (
+        <div className="space-y-4">
+          <PatientListSkeleton count={8} />
+        </div>
+      ) : (
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
-          </div>
-        ) : patients.length === 0 ? (
+        {patients.length === 0 ? (
           <div className="text-center py-12">
             <Users className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-4 text-sm text-gray-500">
@@ -276,6 +278,7 @@ export default function PatientsPage() {
           </>
         )}
       </div>
+      )}
     </div>
   )
 }
