@@ -1,0 +1,253 @@
+# ========================================
+# DermAI - Global .gitignore
+# ========================================
+
+# =====================================
+# SECRETS & ENVIRONMENT
+# =====================================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# =====================================
+# FRONTEND (Next.js / React)
+# =====================================
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# =====================================
+# BACKEND (Python / FastAPI)
+# =====================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# =====================================
+# DATABASES
+# =====================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+postgres-data/
+redis-data/
+
+# =====================================
+# DOCKER
+# =====================================
+docker-compose.override.yml
+
+# =====================================
+# LOGS
+# =====================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# =====================================
+# OS
+# =====================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# =====================================
+# MEDICAL DATA (CRITICAL - NEVER COMMIT)
+# =====================================
+uploads/
+patient-data/
+medical-images/
+lab-results/
+prescriptions/
+backups/
+*.dcm
+*.dicom
+*.jpg
+*.jpeg
+*.png
+*.pdf
+# Exception: Keep design assets
+!docs/**/*.png
+!docs/**/*.jpg
+!frontend/public/**/*.png
+!frontend/public/**/*.jpg
+
+# =====================================
+# SENSITIVE FILES
+# =====================================
+**/secrets.yaml
+**/credentials.json
+**/*-secret.*
+**/*.private.*
+
+# =====================================
+# TEMPORARY FILES
+# =====================================
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# =====================================
+# IDE & EDITORS
+# =====================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# =====================================
+# CI/CD
+# =====================================
+.github/secrets/
+
+# =====================================
+# DOCUMENTATION BUILD
+# =====================================
+docs/_build/
+docs/.doctrees/
+
+# =====================================
+# MISC
+# =====================================
+*.bak
+*.old
+*.backup
+.terraform/
+*.tfstate
+*.tfstate.backup
