@@ -1,7 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Bell, Search, User, LogOut, Settings, HelpCircle } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useKeyboardShortcut, isMacOS } from '@/lib/hooks/use-keyboard-shortcut'
+import { SearchModal } from '@/components/search/search-modal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
@@ -20,6 +22,17 @@ interface HeaderProps {
 
 export function Header({ sidebarCollapsed }: HeaderProps) {
   const { user, logout } = useAuth()
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const isMac = typeof window !== 'undefined' && isMacOS()
+
+  // Cmd+K or Ctrl+K to open search
+  useKeyboardShortcut(
+    [
+      { key: 'k', metaKey: true }, // Mac
+      { key: 'k', ctrlKey: true }, // Windows/Linux
+    ],
+    () => setIsSearchOpen(true)
+  )
 
   const getInitials = (name: string) => {
     return name
@@ -35,16 +48,18 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
       className="fixed top-0 right-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 transition-all duration-300"
       style={{ left: sidebarCollapsed ? '4rem' : '16rem' }}
     >
-      {/* Search bar */}
+      {/* Search button */}
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Rechercher un patient, rendez-vous..."
-            className="pl-10 pr-4 focus-visible:ring-blue-500"
-          />
-        </div>
+        <button
+          onClick={() => setIsSearchOpen(true)}
+          className="group flex w-full max-w-md items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm text-slate-600 transition-all hover:border-slate-300 hover:bg-white hover:shadow-sm"
+        >
+          <Search className="h-4 w-4 text-slate-400" />
+          <span>Rechercher...</span>
+          <kbd className="ml-auto hidden rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 shadow-sm sm:inline-block">
+            {isMac ? '⌘K' : 'Ctrl+K'}
+          </kbd>
+        </button>
       </div>
 
       {/* Right section */}
@@ -107,6 +122,9 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
           </DropdownMenu>
         )}
       </div>
+
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   )
 }
