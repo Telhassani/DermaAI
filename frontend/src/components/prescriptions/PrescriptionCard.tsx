@@ -20,8 +20,6 @@ interface PrescriptionCardProps {
   instructions?: string
   notes?: string
   consultation_id?: number
-  created_at?: string
-  valid_until?: string
   is_delivered?: boolean
   onEdit?: () => void
   onPrint?: () => void
@@ -38,17 +36,6 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 export function PrescriptionCard({
   id,
   prescription_date,
@@ -57,8 +44,6 @@ export function PrescriptionCard({
   instructions,
   notes,
   consultation_id,
-  created_at,
-  valid_until,
   is_delivered,
   onEdit,
   onPrint,
@@ -88,23 +73,14 @@ export function PrescriptionCard({
             <p className="text-xs text-gray-500">Ordonnance #{id}</p>
           )}
         </div>
-        <div className="text-right">
-          {created_at && (
-            <p className="text-xs text-gray-500">
-              Créée le: {formatDateTime(created_at)}
-            </p>
-          )}
-          {valid_until && (
-            <p className="text-xs text-orange-600">
-              Valide jusqu'au: {formatDate(valid_until)}
-            </p>
-          )}
-          {is_delivered && (
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 mt-1">
+        {/* Right side - only show is_delivered badge if present */}
+        {is_delivered && (
+          <div className="text-right">
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
               Remise
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Medications Section */}
