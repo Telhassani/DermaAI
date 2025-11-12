@@ -155,7 +155,7 @@ export default function PatientsPage() {
       ) : (
         <div className="space-y-3">
           {/* Column Headers - Desktop Only */}
-          <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-600 to-purple-500 rounded-lg border border-violet-600">
+          <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg border border-blue-600">
             <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Patient</div>
             <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Contact</div>
             <div className="text-center text-xs font-bold text-white uppercase tracking-wider">Âge / Sexe</div>
