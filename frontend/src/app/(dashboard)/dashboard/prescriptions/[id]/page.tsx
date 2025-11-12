@@ -9,7 +9,7 @@ import {
   Trash2,
   AlertCircle,
 } from 'lucide-react'
-import { getPrescription, deletePrescription } from '@/lib/api/prescriptions'
+import { getPrescription, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
 
 interface Medication {
   name: string
@@ -67,8 +67,17 @@ export default function PrescriptionDetailPage() {
     }
   }
 
-  const handlePrint = () => {
-    window.print()
+  const handlePrint = async () => {
+    if (!prescription) return
+    try {
+      // Mark as printed
+      await markPrescriptionPrinted(prescription.id)
+      // Navigate to print page
+      router.push(`/print-prescription/${prescription.id}`)
+    } catch (error) {
+      console.error('Error marking prescription as printed:', error)
+      setError('Erreur lors du marquage de l\'ordonnance')
+    }
   }
 
   const handleDelete = async () => {
@@ -161,14 +170,6 @@ export default function PrescriptionDetailPage() {
               <div className="text-right print:hidden">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}/edit`)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                    title="Éditer l'ordonnance"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Éditer
-                  </button>
-                  <button
                     onClick={handlePrint}
                     className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     title="Imprimer l'ordonnance"
@@ -234,22 +235,9 @@ export default function PrescriptionDetailPage() {
             </div>
           )}
 
-          {/* Validity section */}
-          <div className="border-t border-gray-200 pt-6 print:border-t print:pt-4">
-            <p className="text-sm text-gray-600">
-              Valide jusqu'au: <span className="font-medium text-gray-900">{formatDate(prescription.valid_until)}</span>
-            </p>
-          </div>
 
           {/* Action buttons for print view */}
           <div className="mt-8 hidden gap-2 border-t border-gray-200 pt-6 print:flex print:flex-row">
-            <button
-              onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}/edit`)}
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-900"
-            >
-              <Edit className="h-5 w-5" />
-              Éditer
-            </button>
             <button
               onClick={handlePrint}
               className="inline-flex items-center gap-2 text-green-600 hover:text-green-900"
