@@ -592,6 +592,15 @@ export default function PatientDetailPage() {
                       key={prescription.id}
                       className="flex flex-col p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
+                      {/* Patient Name - Top Header */}
+                      {patient?.full_name && (
+                        <div className="mb-3">
+                          <h3 className="text-xl font-bold text-gray-900">
+                            {patient.full_name}
+                          </h3>
+                        </div>
+                      )}
+
                       {/* Header with Consultation Reference and Dates */}
                       <div className="flex items-center justify-between mb-3">
                         <div>

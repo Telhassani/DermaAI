@@ -841,6 +841,15 @@ export default function ConsultationDetailPage() {
 
                 return (
                   <div key={prescription.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                    {/* Patient Name - Top Header */}
+                    {prescription.patient_name && (
+                      <div className="mb-3">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {prescription.patient_name}
+                        </h3>
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-sm font-medium text-gray-900">
