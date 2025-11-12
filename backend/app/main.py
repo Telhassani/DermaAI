@@ -7,10 +7,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import sentry_sdk
 
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.rate_limiter import rate_limit_handler
 # Only import auth for now - other modules will be added in later phases
 # from app.api.v1 import auth, patients, appointments, prescriptions, ai_analysis, billing
 
@@ -25,6 +29,9 @@ if settings.SENTRY_DSN:
         traces_sample_rate=1.0 if settings.DEBUG else 0.1,
     )
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,6 +41,10 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None,
 )
+
+# Add rate limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # =====================================
 # MIDDLEWARE
