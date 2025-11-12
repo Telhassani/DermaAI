@@ -256,7 +256,7 @@ export default function PrescriptionsPage() {
                   {filteredPrescriptions.map((prescription) => (
                     <tr
                       key={prescription.id}
-                      onClick={() => router.push(`/print-prescription/${prescription.id}`)}
+                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
                       className="cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -288,15 +288,7 @@ export default function PrescriptionsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => router.push(`/print-prescription/${prescription.id}`)}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded transition-colors"
-                            title="Imprimer l'ordonnance"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </div>
+                        {/* Actions are accessed from detail page */}
                       </td>
                     </tr>
                   ))}
