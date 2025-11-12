@@ -88,22 +88,22 @@ export default function ConsultationsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Consultations</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Gérer et rechercher toutes les consultations
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard/consultations/new')}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
-            >
-              <Plus className="h-4 w-4" />
-              Nouvelle consultation
-            </button>
+        <div className="mb-8 flex items-start justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
+              Consultations
+            </h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Gérer et rechercher toutes les consultations
+            </p>
           </div>
+          <button
+            onClick={() => router.push('/dashboard/consultations/new')}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-3 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle consultation
+          </button>
         </div>
 
         {/* Search and Filter Section */}
