@@ -127,14 +127,6 @@ async def create_consultation(
     new_consultation.doctor_id = current_user.id
     new_consultation.consultation_time = datetime.now()
 
-    # Calculate the next consultation_number for this patient
-    last_consultation = db.query(Consultation).filter(
-        Consultation.patient_id == consultation_data.patient_id
-    ).order_by(desc(Consultation.consultation_number)).first()
-
-    next_number = 1 if last_consultation is None else (last_consultation.consultation_number or 0) + 1
-    new_consultation.consultation_number = next_number
-
     db.add(new_consultation)
     db.commit()
     db.refresh(new_consultation)
