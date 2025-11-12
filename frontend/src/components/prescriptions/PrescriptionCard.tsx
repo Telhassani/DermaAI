@@ -68,9 +68,9 @@ export function PrescriptionCard({
             {prescription_date && formatDate(prescription_date)}
           </p>
           {consultation_id ? (
-            <p className="text-xs text-gray-500">Consultation #{consultation_id}</p>
+            <p className="text-xs text-gray-500">Consultation n°{consultation_id}</p>
           ) : (
-            <p className="text-xs text-gray-500">Ordonnance #{id}</p>
+            <p className="text-xs text-gray-500">Ordonnance n°{id}</p>
           )}
         </div>
         {/* Right side - only show is_delivered badge if present */}

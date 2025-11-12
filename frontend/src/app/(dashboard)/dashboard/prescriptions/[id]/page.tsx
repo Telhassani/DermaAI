@@ -118,15 +118,22 @@ export default function PrescriptionDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-3xl">
-        {/* Header with back button */}
-        <div className="mb-6">
+        {/* Header with back button and title */}
+        <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-900 transition-colors"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-900 transition-colors mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             Retour aux ordonnances
           </button>
+
+          {/* Page Title */}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Ordonnance n°{prescription.id} - {prescription.patient_name || 'Patient'}
+            </h1>
+          </div>
         </div>
 
         {/* Prescription Card */}
