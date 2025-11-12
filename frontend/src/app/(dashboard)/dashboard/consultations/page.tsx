@@ -243,7 +243,7 @@ export default function ConsultationsPage() {
                   {consultations.map((consultation) => (
                     <tr
                       key={consultation.id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="hover:bg-blue-50 transition-colors cursor-pointer group"
                       onClick={() => router.push(`/dashboard/consultations/${consultation.id}`)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -263,7 +263,7 @@ export default function ConsultationsPage() {
                         <div className="flex items-center gap-2">
                           <UserIcon className="h-4 w-4 text-gray-400" />
                           <div className="text-sm">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                               {consultation.patient_name || 'N/A'}
                             </div>
                           </div>
