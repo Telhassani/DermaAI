@@ -27,6 +27,7 @@ import { getPatientImages, deleteImage, updateImage, ImageResponse } from '@/lib
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
 import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
+import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
 
 export default function PatientDetailPage() {
   const router = useRouter()
@@ -562,134 +563,23 @@ export default function PatientDetailPage() {
           <div className="space-y-4">
             {prescriptions.length > 0 ? (
               <div className="space-y-4">
-                {prescriptions.map((prescription) => {
-                  const prescriptionDate = prescription.prescription_date
-                    ? new Date(prescription.prescription_date).toLocaleDateString('fr-FR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : null
-
-                  const createdDate = new Date(prescription.created_at).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-
-                  const validUntilDate = prescription.valid_until
-                    ? new Date(prescription.valid_until).toLocaleDateString('fr-FR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : null
-
-                  return (
-                    <div
-                      key={prescription.id}
-                      className="flex flex-col p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      {/* Patient Name - Top Header */}
-                      {patient?.full_name && (
-                        <div className="mb-3">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {patient.full_name}
-                          </h3>
-                        </div>
-                      )}
-
-                      {/* Header with Consultation Reference and Dates */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          {prescription.consultation_id && (
-                            <p className="text-sm font-semibold text-gray-900">
-                              Consultation #{prescription.consultation_id}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          {prescriptionDate && (
-                            <p className="text-xs text-gray-600 font-medium">
-                              Prescription: <span className="text-gray-900">{prescriptionDate}</span>
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            Créée le: {createdDate}
-                          </p>
-                          {validUntilDate && (
-                            <p className="text-xs text-orange-600">
-                              Valide jusqu'au: {validUntilDate}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Medications */}
-                      {prescription.medications && prescription.medications.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm font-semibold text-gray-900 mb-2">Médicaments</p>
-                          <ul className="space-y-1">
-                            {prescription.medications.map((med, idx) => (
-                              <li key={idx} className="text-sm text-gray-700">
-                                <span className="font-medium">{med.name}</span>
-                                {med.dosage && <span> - {med.dosage}</span>}
-                                {med.frequency && <span> - {med.frequency}</span>}
-                                {med.duration && <span> - {med.duration}</span>}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Instructions */}
-                      {prescription.instructions && (
-                        <div className="mb-3 p-2 bg-blue-50 rounded">
-                          <p className="text-xs font-medium text-blue-700 mb-1">Instructions:</p>
-                          <p className="text-sm text-blue-900">{prescription.instructions}</p>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {prescription.notes && (
-                        <div className="mb-3 p-2 bg-gray-50 rounded">
-                          <p className="text-xs font-medium text-gray-600 mb-1">Notes:</p>
-                          <p className="text-sm text-gray-800">{prescription.notes}</p>
-                        </div>
-                      )}
-
-                      {/* Action Buttons - Below prescription content */}
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200">
-                        <button
-                          onClick={() => handleEditPrescription(prescription)}
-                          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                          title="Éditer l'ordonnance"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                          Éditer
-                        </button>
-                        <button
-                          onClick={() => handlePrintPrescription(prescription)}
-                          className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded transition-colors"
-                          title="Imprimer l'ordonnance"
-                        >
-                          <Printer className="h-4 w-4" />
-                          Imprimer
-                        </button>
-                        <button
-                          onClick={() => handleDeletePrescription(prescription.id)}
-                          className="flex items-center gap-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Supprimer l'ordonnance"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Supprimer
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
+                {prescriptions.map((prescription) => (
+                  <PrescriptionCard
+                    key={prescription.id}
+                    id={prescription.id}
+                    prescription_date={prescription.prescription_date}
+                    patient_name={patient?.full_name}
+                    medications={prescription.medications}
+                    instructions={prescription.instructions}
+                    notes={prescription.notes}
+                    consultation_id={prescription.consultation_id}
+                    created_at={prescription.created_at}
+                    valid_until={prescription.valid_until}
+                    onEdit={() => handleEditPrescription(prescription)}
+                    onPrint={() => handlePrintPrescription(prescription)}
+                    onDelete={() => handleDeletePrescription(prescription.id)}
+                  />
+                ))}
               </div>
             ) : (
               <div className="text-center py-8">

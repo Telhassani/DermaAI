@@ -9,6 +9,7 @@ import { uploadImage, getConsultationImages, deleteImage, validateImageFile, upd
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { ArrowLeft, Upload, FileText, Plus, Clock, User, Pill, Image as ImageIcon, X, Download, Edit2, Trash2, Check, AlertCircle, Printer } from 'lucide-react'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
+import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
 
 export default function ConsultationDetailPage() {
   const router = useRouter()
@@ -840,83 +841,19 @@ export default function ConsultationDetailPage() {
                 const canEdit = user?.role === 'doctor' && isDoctorOwner
 
                 return (
-                  <div key={prescription.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                    {/* Patient Name - Top Header */}
-                    {prescription.patient_name && (
-                      <div className="mb-3">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {prescription.patient_name}
-                        </h3>
-                      </div>
-                    )}
-
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {prescription.prescription_date && formatDate(prescription.prescription_date)}
-                        </p>
-                        <p className="text-xs text-gray-500">Ordonnance #{prescription.id}</p>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <div className="flex gap-1">
-                          {prescription.is_delivered && (
-                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                              Remise
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Medications List */}
-                    <div className="mb-3">
-                      <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Médicaments</h4>
-                      <ul className="space-y-1 text-sm text-gray-700">
-                        {prescription.medications.map((med: any, idx: number) => (
-                          <li key={idx}>
-                            {med.name} - {med.dosage} ({med.frequency}, {med.duration})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {prescription.instructions && (
-                      <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded mb-2">
-                        <p className="text-xs font-medium text-gray-500 mb-1">Instructions:</p>
-                        <p>{prescription.instructions}</p>
-                      </div>
-                    )}
-
-                    {/* Action buttons - Below prescription content */}
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200">
-                      <button
-                        onClick={() => handleEditPrescription(prescription)}
-                        className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Éditer l'ordonnance"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Éditer
-                      </button>
-                      <button
-                        onClick={() => handlePrintPrescription(prescription)}
-                        className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded transition-colors"
-                        title="Imprimer l'ordonnance"
-                      >
-                        <Printer className="h-4 w-4" />
-                        Imprimer
-                      </button>
-                      {canEdit && (
-                        <button
-                          onClick={() => handleDeletePrescription(prescription.id)}
-                          className="flex items-center gap-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Supprimer l'ordonnance"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Supprimer
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <PrescriptionCard
+                    key={prescription.id}
+                    id={prescription.id}
+                    prescription_date={prescription.prescription_date}
+                    patient_name={prescription.patient_name}
+                    medications={prescription.medications}
+                    instructions={prescription.instructions}
+                    is_delivered={prescription.is_delivered}
+                    onEdit={() => handleEditPrescription(prescription)}
+                    onPrint={() => handlePrintPrescription(prescription)}
+                    onDelete={() => handleDeletePrescription(prescription.id)}
+                    canDelete={canEdit}
+                  />
                 )
               })}
             </div>
