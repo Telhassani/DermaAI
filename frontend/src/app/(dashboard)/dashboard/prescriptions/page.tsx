@@ -230,75 +230,73 @@ export default function PrescriptionsPage() {
             )}
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-violet-200 to-purple-200 border-b border-violet-300">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Médicaments
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Validité
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredPrescriptions.map((prescription) => (
-                    <tr
-                      key={prescription.id}
-                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
-                      className="cursor-pointer hover:bg-violet-50 transition-colors hover:shadow-md"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <div className="font-medium text-gray-900">
-                            {formatDate(prescription.prescription_date)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-gray-400" />
-                          <div className="text-sm font-medium text-gray-900">
-                            {prescription.patient_name || 'N/A'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="max-w-xs">
-                          <p className="text-sm text-gray-900">
-                            {prescription.medications?.length || 0} médicament{prescription.medications?.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(prescription.valid_until)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {/* Actions are accessed from detail page */}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="space-y-3">
+            {/* Column Headers - Desktop Only */}
+            <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-200 to-purple-200 rounded-lg border border-violet-300">
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</div>
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient</div>
+              <div className="text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Médicaments</div>
+              <div className="text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Validité</div>
+              <div className="text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</div>
             </div>
+
+            {/* Prescription Cards with Spacing */}
+            {filteredPrescriptions.map((prescription) => (
+              <div
+                key={prescription.id}
+                onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
+                className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-violet-300 hover:shadow-lg transition-all duration-200 p-5 group"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                  {/* Date Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Date</p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                      <div className="font-medium text-gray-900">
+                        {formatDate(prescription.prescription_date)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Patient Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Patient</p>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors truncate">
+                        {prescription.patient_name || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Medications Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Médicaments</p>
+                    <p className="text-sm text-gray-900 text-center md:text-center">
+                      {prescription.medications?.length || 0} médicament{prescription.medications?.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+
+                  {/* Validity Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Validité</p>
+                    <div className="text-sm text-gray-900 text-center md:text-center">
+                      {formatDate(prescription.valid_until)}
+                    </div>
+                  </div>
+
+                  {/* Actions Column */}
+                  <div className="text-right">
+                    {/* Actions are accessed from detail page */}
+                  </div>
+                </div>
+              </div>
+            ))}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4">
+              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4 mt-6 rounded-lg">
                 <div className="flex flex-1 justify-between sm:hidden">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
