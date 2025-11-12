@@ -19,6 +19,7 @@ class Prescription(BaseModel):
         doctor_id: ID of the doctor (FK to users)
         prescription_date: Date the prescription was created
         valid_until: Expiration date of prescription
+        control_date: Follow-up date when patient should return for check-up
         medications: JSON array of medications with details
         instructions: General instructions for the patient
         notes: Additional notes
@@ -36,6 +37,7 @@ class Prescription(BaseModel):
     # Prescription Details
     prescription_date = Column(Date, nullable=False, default=datetime.now, index=True)
     valid_until = Column(Date, nullable=True)  # Date d'expiration
+    control_date = Column(Date, nullable=True)  # Date de contrôle (follow-up date)
 
     # Medications - Stored as JSON array
     # Example: [

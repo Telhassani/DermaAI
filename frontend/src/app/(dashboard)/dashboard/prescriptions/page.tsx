@@ -11,6 +11,9 @@ import {
   X,
   User as UserIcon,
   Calendar,
+  Eye,
+  Edit2,
+  Trash2,
 } from 'lucide-react'
 import { listPrescriptions } from '@/lib/api/prescriptions'
 
@@ -20,6 +23,7 @@ interface Prescription {
   patient_id: number
   prescription_date: string
   valid_until: string
+  control_date: string
   medications: any[]
   instructions: string
   notes: string
@@ -236,7 +240,7 @@ export default function PrescriptionsPage() {
               <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Date</div>
               <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Patient</div>
               <div className="text-center text-xs font-bold text-white uppercase tracking-wider">Médicaments</div>
-              <div className="text-center text-xs font-bold text-white uppercase tracking-wider">Validité</div>
+              <div className="text-center text-xs font-bold text-white uppercase tracking-wider">Contrôle</div>
               <div className="text-right text-xs font-bold text-white uppercase tracking-wider">Actions</div>
             </div>
 
@@ -278,17 +282,42 @@ export default function PrescriptionsPage() {
                     </p>
                   </div>
 
-                  {/* Validity Column */}
+                  {/* Control Date Column */}
                   <div>
-                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Validité</p>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Contrôle</p>
                     <div className="text-sm text-gray-900 text-center md:text-center">
-                      {formatDate(prescription.valid_until)}
+                      {prescription.control_date ? formatDate(prescription.control_date) : '-'}
                     </div>
                   </div>
 
                   {/* Actions Column */}
-                  <div className="text-right">
-                    {/* Actions are accessed from detail page */}
+                  <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
+                      className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
+                      title="Voir les détails"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}/edit`)}
+                      className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                      title="Modifier"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer cette ordonnance?`)) {
+                          // Delete handler would go here
+                          console.log('Delete prescription:', prescription.id)
+                        }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>

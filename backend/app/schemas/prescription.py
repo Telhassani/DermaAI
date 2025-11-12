@@ -34,6 +34,7 @@ class PrescriptionBase(BaseModel):
     patient_id: int
     prescription_date: date = Field(default_factory=date.today)
     valid_until: Optional[date] = None
+    control_date: Optional[date] = Field(None, description="Date de contrôle (suivi)")
     medications: List[MedicationItem] = Field(..., min_items=1, description="Liste des médicaments")
     instructions: Optional[str] = Field(None, description="Instructions générales")
     notes: Optional[str] = Field(None, description="Notes additionnelles")
@@ -49,6 +50,7 @@ class PrescriptionUpdate(BaseModel):
 
     prescription_date: Optional[date] = None
     valid_until: Optional[date] = None
+    control_date: Optional[date] = None
     medications: Optional[List[MedicationItem]] = Field(None, min_items=1)
     instructions: Optional[str] = None
     notes: Optional[str] = None
@@ -124,6 +126,7 @@ class PrescriptionPrintData(BaseModel):
     instructions: Optional[str] = None
     notes: Optional[str] = None
     valid_until: Optional[date] = None
+    control_date: Optional[date] = None
 
     class Config:
         from_attributes = True
