@@ -397,6 +397,11 @@ export default function ConsultationDetailPage() {
           <p className="mt-1 text-sm text-gray-500">
             {formatDate(consultation.consultation_date)} à {formatTime(consultation.consultation_time)}
           </p>
+          {patient && (
+            <p className="mt-2 text-sm text-gray-600">
+              <span className="font-semibold">Patient:</span> {patient.full_name} • <span className="text-gray-500">ID: {patient.id}</span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -845,11 +850,6 @@ export default function ConsultationDetailPage() {
                       </div>
                       <div className="flex gap-2 items-center">
                         <div className="flex gap-1">
-                          {prescription.is_printed && (
-                            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                              Imprimée
-                            </span>
-                          )}
                           {prescription.is_delivered && (
                             <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                               Remise
