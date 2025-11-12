@@ -681,7 +681,7 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {activeTab !== 'overview' && activeTab !== 'consultations' && activeTab !== 'images' && (
+      {activeTab !== 'overview' && activeTab !== 'consultations' && activeTab !== 'images' && activeTab !== 'prescriptions' && (
         <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
           <div className="mx-auto max-w-md">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
