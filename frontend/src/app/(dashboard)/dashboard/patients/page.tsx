@@ -130,159 +130,152 @@ export default function PatientsPage() {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
+      {/* Patients List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
+        </div>
+      ) : patients.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+          <Users className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-sm text-gray-500">
+            {search ? 'Aucun patient trouvé' : 'Aucun patient enregistré'}
+          </p>
+          {!search && (
+            <button
+              onClick={() => router.push('/dashboard/patients/new')}
+              className="mt-4 text-sm text-violet-600 hover:text-violet-700"
+            >
+              Ajouter votre premier patient
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Column Headers - Desktop Only */}
+          <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-200 to-purple-200 rounded-lg border border-violet-300">
+            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient</div>
+            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</div>
+            <div className="text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Âge / Sexe</div>
+            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Inscription</div>
+            <div className="text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</div>
           </div>
-        ) : patients.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-4 text-sm text-gray-500">
-              {search ? 'Aucun patient trouvé' : 'Aucun patient enregistré'}
-            </p>
-            {!search && (
-              <button
-                onClick={() => router.push('/dashboard/patients/new')}
-                className="mt-4 text-sm text-violet-600 hover:text-violet-700"
-              >
-                Ajouter votre premier patient
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-violet-200 to-purple-200 border-b border-violet-300">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Âge / Sexe
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date d'inscription
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {patients.map((patient) => (
-                    <tr
-                      key={patient.id}
-                      className="hover:bg-violet-50 transition-colors cursor-pointer group"
-                      onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors">
-                            {patient.full_name}
-                          </div>
-                          {patient.identification_number && (
-                            <div className="text-xs text-gray-500">
-                              {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="space-y-1">
-                          {patient.phone && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Phone className="h-3 w-3" />
-                              {patient.phone}
-                            </div>
-                          )}
-                          {patient.email && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Mail className="h-3 w-3" />
-                              {patient.email}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {patient.age} ans / {getGenderLabel(patient.gender)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(patient.created_at)}
-                        </div>
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
-                            className="p-1 text-gray-400 hover:text-violet-600 transition-colors"
-                            title="Voir les consultations"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => router.push(`/dashboard/patients/${patient.id}/edit`)}
-                            className="p-1 text-gray-400 hover:text-green-600 transition-colors"
-                            title="Modifier"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(patient.id, patient.full_name)}
-                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
-                <div className="text-sm text-gray-500">
-                  Page {page} sur {totalPages} ({total} patients au total)
+          {/* Patient Cards with Spacing */}
+          {patients.map((patient) => (
+            <div
+              key={patient.id}
+              onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
+              className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-violet-300 hover:shadow-lg transition-all duration-200 p-5 group"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+                {/* Patient Column */}
+                <div>
+                  <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Patient</p>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors">
+                      {patient.full_name}
+                    </div>
+                    {patient.identification_number && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Contact Column */}
+                <div>
+                  <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Contact</p>
+                  <div className="space-y-1">
+                    {patient.phone && (
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        {patient.phone}
+                      </div>
+                    )}
+                    {patient.email && (
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{patient.email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Age / Gender Column */}
+                <div>
+                  <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Âge / Sexe</p>
+                  <div className="text-sm text-gray-900 text-center md:text-left">
+                    {patient.age} ans / {getGenderLabel(patient.gender)}
+                  </div>
+                </div>
+
+                {/* Registration Date Column */}
+                <div>
+                  <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Inscription</p>
+                  <div className="flex items-center gap-1 text-sm text-gray-600 md:justify-start justify-center">
+                    <Calendar className="h-3 w-3 flex-shrink-0" />
+                    {formatDate(patient.created_at)}
+                  </div>
+                </div>
+
+                {/* Actions Column */}
+                <div className="flex items-center justify-center md:justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
+                    className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
+                    title="Voir les consultations"
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                    Précédent
+                    <Eye className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === totalPages}
-                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={() => router.push(`/dashboard/patients/${patient.id}/edit`)}
+                    className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                    title="Modifier"
                   >
-                    Suivant
-                    <ChevronRight className="h-4 w-4" />
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(patient.id, patient.full_name)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4 mt-6 rounded-lg">
+              <div className="text-sm text-gray-500">
+                Page {page} sur {totalPages} ({total} patients au total)
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Précédent
+                </button>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === totalPages}
+                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Suivant
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

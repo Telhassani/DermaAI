@@ -217,95 +217,91 @@ export default function ConsultationsPage() {
             )}
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-violet-200 to-purple-200 border-b border-violet-300">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Motif de consultation
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Diagnostic
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {consultations.map((consultation) => (
-                    <tr
-                      key={consultation.id}
-                      className="hover:bg-violet-50 transition-colors cursor-pointer group"
-                      onClick={() => router.push(`/dashboard/consultations/${consultation.id}`)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {formatDate(consultation.consultation_date)}
-                            </div>
-                            <div className="text-gray-500">
-                              {formatTime(consultation.consultation_time)}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-gray-400" />
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-900 group-hover:text-violet-600 transition-colors">
-                              {consultation.patient_name || 'N/A'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="max-w-xs">
-                          <p className="text-sm text-gray-900 line-clamp-2">
-                            {consultation.chief_complaint}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {consultation.diagnosis ? (
-                          <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
-                            {consultation.diagnosis}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/dashboard/consultations/${consultation.id}`)
-                          }}
-                          className="inline-flex items-center gap-1 text-violet-600 hover:text-violet-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Voir
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="space-y-3">
+            {/* Column Headers - Desktop Only */}
+            <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-200 to-purple-200 rounded-lg border border-violet-300">
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</div>
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient</div>
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Motif</div>
+              <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Diagnostic</div>
+              <div className="text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</div>
             </div>
+
+            {/* Consultation Cards with Spacing */}
+            {consultations.map((consultation) => (
+              <div
+                key={consultation.id}
+                onClick={() => router.push(`/dashboard/consultations/${consultation.id}`)}
+                className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-violet-300 hover:shadow-lg transition-all duration-200 p-5 group"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+                  {/* Date Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Date</p>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {formatDate(consultation.consultation_date)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatTime(consultation.consultation_time)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Patient Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Patient</p>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors truncate">
+                        {consultation.patient_name || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chief Complaint Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Motif</p>
+                    <p className="text-sm text-gray-900 line-clamp-2">
+                      {consultation.chief_complaint}
+                    </p>
+                  </div>
+
+                  {/* Diagnosis Column */}
+                  <div>
+                    <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Diagnostic</p>
+                    {consultation.diagnosis ? (
+                      <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
+                        {consultation.diagnosis}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </div>
+
+                  {/* Actions Column */}
+                  <div className="md:text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/dashboard/consultations/${consultation.id}`)
+                      }}
+                      className="inline-flex items-center gap-1 text-violet-600 hover:text-violet-900 text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Voir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4">
+              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-4 mt-6 rounded-lg">
                 <div className="flex flex-1 justify-between sm:hidden">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
