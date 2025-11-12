@@ -46,7 +46,16 @@ export function PrescriptionCard({
 }: PrescriptionCardProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      {/* Header */}
+      {/* Patient Name - Top Header */}
+      {patient_name && (
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {patient_name}
+          </h2>
+        </div>
+      )}
+
+      {/* Header - Date and Prescription ID */}
       <div className="mb-4">
         <p className="text-sm text-gray-600">{formatDate(prescription_date)}</p>
         <h3 className="mt-1 text-lg font-semibold text-gray-900">
@@ -78,15 +87,6 @@ export function PrescriptionCard({
             Instructions:
           </p>
           <p className="text-sm text-gray-700">{instructions}</p>
-        </div>
-      )}
-
-      {/* Patient Section */}
-      {patient_name && (
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Patient: <span className="font-medium text-gray-900">{patient_name}</span>
-          </p>
         </div>
       )}
 
