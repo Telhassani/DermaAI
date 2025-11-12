@@ -15,7 +15,8 @@ import {
   Edit2,
   Trash2,
 } from 'lucide-react'
-import { listPrescriptions } from '@/lib/api/prescriptions'
+import { listPrescriptions, deletePrescription, PrescriptionResponse } from '@/lib/api/prescriptions'
+import { PrescriptionQuickEditModal } from '@/components/prescriptions/PrescriptionQuickEditModal'
 
 interface Prescription {
   id: number
@@ -56,6 +57,10 @@ export default function PrescriptionsPage() {
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionResponse | null>(null)
+
   useEffect(() => {
     fetchPrescriptions()
   }, [currentPage])
@@ -89,6 +94,35 @@ export default function PrescriptionsPage() {
     setEndDate('')
     setCurrentPage(1)
     fetchPrescriptions()
+  }
+
+  const handleEditClick = (prescription: Prescription) => {
+    setSelectedPrescription(prescription as PrescriptionResponse)
+    setShowEditModal(true)
+  }
+
+  const handleEditSave = (updatedPrescription: PrescriptionResponse) => {
+    // Update the prescription in the list
+    setPrescriptions(
+      prescriptions.map((p) =>
+        p.id === updatedPrescription.id ? (updatedPrescription as Prescription) : p
+      )
+    )
+    setShowEditModal(false)
+    setSelectedPrescription(null)
+  }
+
+  const handleDelete = async (prescriptionId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette ordonnance?')) return
+
+    try {
+      await deletePrescription(prescriptionId)
+      setPrescriptions(prescriptions.filter((p) => p.id !== prescriptionId))
+      setTotal(total - 1)
+    } catch (error) {
+      console.error('Error deleting prescription:', error)
+      alert('Erreur lors de la suppression de l\'ordonnance')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -278,7 +312,7 @@ export default function PrescriptionsPage() {
                   <div>
                     <p className="md:hidden text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Médicaments</p>
                     <p className="text-sm text-gray-900 text-center md:text-center">
-                      {prescription.medications?.length || 0} médicament{prescription.medications?.length !== 1 ? 's' : ''}
+                      {prescription.medications?.length || 0}
                     </p>
                   </div>
 
@@ -300,19 +334,14 @@ export default function PrescriptionsPage() {
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}/edit`)}
+                      onClick={() => handleEditClick(prescription)}
                       className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                       title="Modifier"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Êtes-vous sûr de vouloir supprimer cette ordonnance?`)) {
-                          // Delete handler would go here
-                          console.log('Delete prescription:', prescription.id)
-                        }
-                      }}
+                      onClick={() => handleDelete(prescription.id)}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                       title="Supprimer"
                     >
@@ -388,6 +417,17 @@ export default function PrescriptionsPage() {
             )}
           </div>
         )}
+
+        {/* Quick Edit Modal */}
+        <PrescriptionQuickEditModal
+          isOpen={showEditModal}
+          prescription={selectedPrescription}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedPrescription(null)
+          }}
+          onSave={handleEditSave}
+        />
       </div>
     </div>
   )
