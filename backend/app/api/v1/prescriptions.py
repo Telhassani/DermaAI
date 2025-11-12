@@ -23,6 +23,7 @@ from app.schemas.prescription import (
 )
 from app.api.deps import get_current_active_user, get_current_doctor
 from app.core.logging import log_audit_event
+from app.api.utils import check_prescription_ownership, check_consultation_ownership
 
 router = APIRouter()
 
@@ -55,6 +56,10 @@ async def list_prescriptions(
     # Build query
     query = db.query(Prescription)
 
+    # Filter by current doctor (authorization check)
+    # Each doctor can only see their own prescriptions
+    query = query.filter(Prescription.doctor_id == current_user.id)
+
     # Apply filters
     if patient_id:
         query = query.filter(Prescription.patient_id == patient_id)
@@ -62,8 +67,9 @@ async def list_prescriptions(
     if consultation_id:
         query = query.filter(Prescription.consultation_id == consultation_id)
 
-    if doctor_id:
-        query = query.filter(Prescription.doctor_id == doctor_id)
+    # Ignore doctor_id filter parameter as each doctor can only see their own
+    # if doctor_id:
+    #     query = query.filter(Prescription.doctor_id == doctor_id)
 
     # Order by prescription date (most recent first)
     query = query.order_by(desc(Prescription.prescription_date), desc(Prescription.created_at))
@@ -107,13 +113,8 @@ async def create_prescription(
     Raises:
         HTTPException: If consultation or patient not found or validation fails
     """
-    # Verify consultation exists
-    consultation = db.query(Consultation).filter(Consultation.id == prescription_data.consultation_id).first()
-    if not consultation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Consultation non trouvée",
-        )
+    # Verify consultation exists and belongs to current doctor (authorization)
+    consultation = check_consultation_ownership(prescription_data.consultation_id, current_user, db)
 
     # Verify patient exists
     patient = db.query(Patient).filter(Patient.id == prescription_data.patient_id).first()
@@ -185,15 +186,10 @@ async def get_prescription(
         Prescription data
 
     Raises:
-        HTTPException: If prescription not found
+        HTTPException: If prescription not found or access denied
     """
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     return prescription
 
@@ -218,16 +214,10 @@ async def update_prescription(
         Updated prescription data
 
     Raises:
-        HTTPException: If prescription not found or validation fails
+        HTTPException: If prescription not found or access denied or validation fails
     """
-    # Get prescription
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     # Update prescription fields
     update_data = prescription_data.model_dump(exclude_unset=True)
@@ -274,16 +264,10 @@ async def delete_prescription(
         current_user: Current authenticated doctor
 
     Raises:
-        HTTPException: If prescription not found
+        HTTPException: If prescription not found or access denied
     """
-    # Get prescription
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     # Store prescription info for logging before deletion
     consultation_id = prescription.consultation_id
@@ -327,15 +311,10 @@ async def mark_prescription_printed(
         Updated prescription data
 
     Raises:
-        HTTPException: If prescription not found
+        HTTPException: If prescription not found or access denied
     """
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     prescription.is_printed = True
     db.commit()
@@ -375,15 +354,10 @@ async def mark_prescription_delivered(
         Updated prescription data
 
     Raises:
-        HTTPException: If prescription not found
+        HTTPException: If prescription not found or access denied
     """
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     prescription.is_delivered = True
     db.commit()
@@ -423,15 +397,10 @@ async def get_prescription_print_data(
         Prescription data formatted for printing
 
     Raises:
-        HTTPException: If prescription not found
+        HTTPException: If prescription not found or access denied
     """
-    prescription = db.query(Prescription).filter(Prescription.id == prescription_id).first()
-
-    if not prescription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ordonnance non trouvée",
-        )
+    # Check prescription ownership (authorization)
+    prescription = check_prescription_ownership(prescription_id, current_user, db)
 
     # Get patient and doctor data
     patient = db.query(Patient).filter(Patient.id == prescription.patient_id).first()

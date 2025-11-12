@@ -9,6 +9,7 @@ from sqlalchemy import desc
 from app.api.deps import get_current_active_user
 from app.db.session import get_db
 from app.models import User, ConsultationImage
+from app.models.consultation import Consultation
 from app.schemas.image import (
     ConsultationImageCreate,
     ConsultationImageResponse,
@@ -16,6 +17,7 @@ from app.schemas.image import (
     ConsultationImageUpdate,
 )
 from app.core.logging import log_audit_event
+from app.api.utils import check_image_ownership
 
 router = APIRouter(prefix="/api/v1/images", tags=["images"])
 
@@ -43,6 +45,17 @@ async def upload_image(
     - **notes**: Optional notes about the image
     """
     try:
+        # Verify consultation exists and belongs to current doctor (authorization)
+        consultation = db.query(Consultation).filter(
+            Consultation.id == image_data.consultation_id
+        ).first()
+
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation non trouvée")
+
+        if consultation.doctor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+
         # Create new image record
         new_image = ConsultationImage(
             consultation_id=image_data.consultation_id,
@@ -58,15 +71,23 @@ async def upload_image(
         db.commit()
         db.refresh(new_image)
 
-        # Audit log
+        # Audit log (using correct signature with keyword args)
         log_audit_event(
-            db,
-            "UPLOAD_IMAGE",
-            current_user.id,
-            f"Uploaded image '{image_data.filename}' to consultation {image_data.consultation_id}",
+            user_id=str(current_user.id),
+            action="UPLOAD_IMAGE",
+            resource="image",
+            details={
+                "image_id": new_image.id,
+                "filename": image_data.filename,
+                "consultation_id": image_data.consultation_id,
+                "file_size": image_data.file_size,
+            },
+            success=True,
         )
 
         return new_image
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error uploading image: {str(e)}")
@@ -92,6 +113,17 @@ async def get_consultation_images(
     - **page_size**: Number of items per page
     """
     try:
+        # Verify consultation exists and belongs to current doctor (authorization)
+        consultation = db.query(Consultation).filter(
+            Consultation.id == consultation_id
+        ).first()
+
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation non trouvée")
+
+        if consultation.doctor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+
         # Get total count
         total = db.query(ConsultationImage).filter(
             ConsultationImage.consultation_id == consultation_id
@@ -140,6 +172,18 @@ async def get_patient_images(
     - **page_size**: Number of items per page
     """
     try:
+        # Import Patient model for authorization check
+        from app.models.patient import Patient
+
+        # Verify patient exists and belongs to current doctor (authorization)
+        patient = db.query(Patient).filter(Patient.id == patient_id).first()
+
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient non trouvé")
+
+        if patient.doctor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Accès refusé à ce patient")
+
         # Get total count
         total = db.query(ConsultationImage).filter(
             ConsultationImage.patient_id == patient_id
@@ -183,10 +227,8 @@ async def get_image(
 
     - **image_id**: ID of the image
     """
-    image = db.query(ConsultationImage).filter(ConsultationImage.id == image_id).first()
-
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found")
+    # Check image ownership (authorization)
+    image = check_image_ownership(image_id, current_user, db)
 
     return image
 
@@ -208,10 +250,8 @@ async def update_image(
     - **image_id**: ID of the image
     - **notes**: Updated notes
     """
-    image = db.query(ConsultationImage).filter(ConsultationImage.id == image_id).first()
-
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found")
+    # Check image ownership (authorization)
+    image = check_image_ownership(image_id, current_user, db)
 
     if image_update.notes is not None:
         image.notes = image_update.notes
@@ -219,11 +259,16 @@ async def update_image(
     db.commit()
     db.refresh(image)
 
+    # Audit log (using correct signature with keyword args)
     log_audit_event(
-        db,
-        "UPDATE_IMAGE",
-        current_user.id,
-        f"Updated image {image_id}",
+        user_id=str(current_user.id),
+        action="UPDATE_IMAGE",
+        resource="image",
+        details={
+            "image_id": image.id,
+            "consultation_id": image.consultation_id,
+        },
+        success=True,
     )
 
     return image
@@ -240,19 +285,27 @@ async def delete_image(
 
     - **image_id**: ID of the image
     """
-    image = db.query(ConsultationImage).filter(ConsultationImage.id == image_id).first()
+    # Check image ownership (authorization)
+    image = check_image_ownership(image_id, current_user, db)
 
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found")
+    # Store image info for logging
+    filename = image.filename
+    consultation_id = image.consultation_id
 
     db.delete(image)
     db.commit()
 
+    # Audit log (using correct signature with keyword args)
     log_audit_event(
-        db,
-        "DELETE_IMAGE",
-        current_user.id,
-        f"Deleted image {image_id} (filename: {image.filename})",
+        user_id=str(current_user.id),
+        action="DELETE_IMAGE",
+        resource="image",
+        details={
+            "image_id": image_id,
+            "filename": filename,
+            "consultation_id": consultation_id,
+        },
+        success=True,
     )
 
     return None

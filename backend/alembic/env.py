@@ -2,7 +2,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
+import os
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -13,6 +13,13 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Load database URL from environment
+database_url = os.getenv(
+    "DATABASE_URL",
+    "postgresql://dermai_user:dermai_pass_dev_only@localhost:5432/dermai_db"
+)
+config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

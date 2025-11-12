@@ -19,6 +19,7 @@ from app.schemas.patient import (
 )
 from app.api.deps import get_current_active_user, get_current_doctor
 from app.core.logging import log_audit_event
+from app.api.utils import check_patient_ownership
 import math
 
 router = APIRouter()
@@ -62,6 +63,10 @@ async def list_patients(
 
     # Exclude soft-deleted records
     query = query.filter(Patient.is_deleted == False)
+
+    # Filter by current doctor (authorization check)
+    # Each doctor can only see their own patients
+    query = query.filter(Patient.doctor_id == current_user.id)
 
     # Apply filters
     if search:
@@ -225,20 +230,10 @@ async def get_patient(
         Patient data
 
     Raises:
-        HTTPException: If patient not found
+        HTTPException: If patient not found or access denied
     """
-    patient = (
-        db.query(Patient)
-        .filter(Patient.id == patient_id)
-        .filter(Patient.is_deleted == False)
-        .first()
-    )
-
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found",
-        )
+    # Check patient ownership (authorization)
+    patient = check_patient_ownership(patient_id, current_user, db)
 
     return patient
 
@@ -263,21 +258,10 @@ async def update_patient(
         Updated patient data
 
     Raises:
-        HTTPException: If patient not found or validation fails
+        HTTPException: If patient not found or access denied or validation fails
     """
-    # Get patient
-    patient = (
-        db.query(Patient)
-        .filter(Patient.id == patient_id)
-        .filter(Patient.is_deleted == False)
-        .first()
-    )
-
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found",
-        )
+    # Check patient ownership (authorization)
+    patient = check_patient_ownership(patient_id, current_user, db)
 
     # Check if email already exists (if being updated)
     if patient_data.email and patient_data.email != patient.email:
@@ -350,18 +334,12 @@ async def delete_patient(
         current_user: Current authenticated doctor
 
     Raises:
-        HTTPException: If patient not found
+        HTTPException: If patient not found or access denied
     """
     from datetime import datetime
 
-    # Get patient
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found",
-        )
+    # Check patient ownership (authorization)
+    patient = check_patient_ownership(patient_id, current_user, db)
 
     # Store patient info for logging before deletion
     patient_name = patient.full_name
@@ -405,16 +383,10 @@ async def get_patient_stats(
         Patient statistics (appointments, prescriptions, etc.)
 
     Raises:
-        HTTPException: If patient not found
+        HTTPException: If patient not found or access denied
     """
-    # Get patient
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found",
-        )
+    # Check patient ownership (authorization)
+    patient = check_patient_ownership(patient_id, current_user, db)
 
     # TODO: Add queries for appointments, prescriptions, images, etc.
     # For now, return basic stats

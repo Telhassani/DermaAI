@@ -21,6 +21,7 @@ from app.schemas.consultation import (
 )
 from app.api.deps import get_current_active_user, get_current_doctor
 from app.core.logging import log_audit_event
+from app.api.utils import check_consultation_ownership, check_patient_ownership
 
 router = APIRouter()
 
@@ -54,12 +55,17 @@ async def list_consultations(
     # Exclude soft-deleted records
     query = query.filter(Consultation.is_deleted == False)
 
+    # Filter by current doctor (authorization check)
+    # Each doctor can only see their own consultations
+    query = query.filter(Consultation.doctor_id == current_user.id)
+
     # Apply filters
     if patient_id:
         query = query.filter(Consultation.patient_id == patient_id)
 
-    if doctor_id:
-        query = query.filter(Consultation.doctor_id == doctor_id)
+    # Ignore doctor_id filter parameter as each doctor can only see their own
+    # if doctor_id:
+    #     query = query.filter(Consultation.doctor_id == doctor_id)
 
     # Order by consultation date (most recent first)
     query = query.order_by(desc(Consultation.consultation_date), desc(Consultation.consultation_time))
@@ -121,6 +127,14 @@ async def create_consultation(
     new_consultation.doctor_id = current_user.id
     new_consultation.consultation_time = datetime.now()
 
+    # Calculate the next consultation_number for this patient
+    last_consultation = db.query(Consultation).filter(
+        Consultation.patient_id == consultation_data.patient_id
+    ).order_by(desc(Consultation.consultation_number)).first()
+
+    next_number = 1 if last_consultation is None else (last_consultation.consultation_number or 0) + 1
+    new_consultation.consultation_number = next_number
+
     db.add(new_consultation)
     db.commit()
     db.refresh(new_consultation)
@@ -159,15 +173,10 @@ async def get_consultation(
         Consultation data
 
     Raises:
-        HTTPException: If consultation not found
+        HTTPException: If consultation not found or access denied
     """
-    consultation = db.query(Consultation).filter(Consultation.id == consultation_id).first()
-
-    if not consultation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Consultation non trouvée",
-        )
+    # Check consultation ownership (authorization)
+    consultation = check_consultation_ownership(consultation_id, current_user, db)
 
     return consultation
 
@@ -192,16 +201,10 @@ async def update_consultation(
         Updated consultation data
 
     Raises:
-        HTTPException: If consultation not found or validation fails
+        HTTPException: If consultation not found or access denied or validation fails
     """
-    # Get consultation
-    consultation = db.query(Consultation).filter(Consultation.id == consultation_id).first()
-
-    if not consultation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Consultation non trouvée",
-        )
+    # Check consultation ownership (authorization)
+    consultation = check_consultation_ownership(consultation_id, current_user, db)
 
     # Update consultation fields
     update_data = consultation_data.model_dump(exclude_unset=True)
@@ -242,16 +245,10 @@ async def delete_consultation(
         current_user: Current authenticated doctor
 
     Raises:
-        HTTPException: If consultation not found
+        HTTPException: If consultation not found or access denied
     """
-    # Get consultation
-    consultation = db.query(Consultation).filter(Consultation.id == consultation_id).first()
-
-    if not consultation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Consultation non trouvée",
-        )
+    # Check consultation ownership (authorization)
+    consultation = check_consultation_ownership(consultation_id, current_user, db)
 
     # Store consultation info for logging before deletion
     patient_id = consultation.patient_id
@@ -299,15 +296,10 @@ async def get_patient_consultation_history(
         Paginated list of consultations for the patient
 
     Raises:
-        HTTPException: If patient not found
+        HTTPException: If patient not found or access denied
     """
-    # Verify patient exists
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient non trouvé",
-        )
+    # Verify patient exists and belongs to current doctor (authorization)
+    patient = check_patient_ownership(patient_id, current_user, db)
 
     # Query consultations for this patient with eager loading
     query = db.query(Consultation).filter(Consultation.patient_id == patient_id).options(joinedload(Consultation.patient_rel))
