@@ -329,110 +329,120 @@ export default function PatientDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{patient.full_name}</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {patient.age} ans • {getGenderLabel(patient.gender)} • Patient depuis le{' '}
-              {formatDate(patient.created_at)}
-            </p>
+      {/* Gradient Header with Patient Info */}
+      <div className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 p-8 text-white shadow-lg">
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex items-start gap-6 flex-1">
+            <button
+              onClick={() => router.back()}
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
+              title="Retour"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold">{patient.full_name}</h1>
+              <p className="mt-2 text-violet-100 text-base">
+                {patient.age} ans • {getGenderLabel(patient.gender)} • Depuis le {formatDate(patient.created_at)}
+              </p>
+              {patient.identification_number && (
+                <p className="mt-1 text-violet-200 text-sm">
+                  {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push(`/dashboard/patients/${patientId}/edit`)}
-            className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Edit2 className="h-4 w-4" />
-            Modifier
-          </button>
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-            Supprimer
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push(`/dashboard/patients/${patientId}/edit`)}
+              className="flex items-center gap-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white transition-all"
+              title="Modifier les informations"
+            >
+              <Edit2 className="h-4 w-4" />
+              Modifier
+            </button>
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-2 rounded-lg bg-red-500/30 hover:bg-red-500/50 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white transition-all"
+              title="Supprimer le patient"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Quick Stats - Always visible */}
-      <div className="grid gap-6 md:grid-cols-4">
+      {/* Quick Stats Grid - Enhanced */}
+      <div className="grid gap-4 md:grid-cols-4">
         {/* Consultations */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-              <FileText className="h-5 w-5 text-blue-600" />
-            </div>
+        <div className="rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{consultationCount}</p>
-              <p className="text-xs text-gray-500">Consultations</p>
+              <p className="text-3xl font-bold text-blue-900">{consultationCount}</p>
+              <p className="mt-1 text-xs font-medium text-blue-700 uppercase tracking-wide">Consultations</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <FileText className="h-6 w-6" />
             </div>
           </div>
         </div>
 
         {/* Ordonnances */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-              <Pill className="h-5 w-5 text-green-600" />
-            </div>
+        <div className="rounded-lg border border-green-100 bg-gradient-to-br from-green-50 to-green-100/50 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{prescriptionCount}</p>
-              <p className="text-xs text-gray-500">Ordonnances</p>
+              <p className="text-3xl font-bold text-green-900">{prescriptionCount}</p>
+              <p className="mt-1 text-xs font-medium text-green-700 uppercase tracking-wide">Ordonnances</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600 text-white">
+              <Pill className="h-6 w-6" />
             </div>
           </div>
         </div>
 
         {/* Images */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-              <ImageIcon className="h-5 w-5 text-purple-600" />
-            </div>
+        <div className="rounded-lg border border-purple-100 bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{imageCount}</p>
-              <p className="text-xs text-gray-500">Images</p>
+              <p className="text-3xl font-bold text-purple-900">{imageCount}</p>
+              <p className="mt-1 text-xs font-medium text-purple-700 uppercase tracking-wide">Images</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600 text-white">
+              <ImageIcon className="h-6 w-6" />
             </div>
           </div>
         </div>
 
         {/* Dernière visite */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-              <Activity className="h-5 w-5 text-orange-600" />
-            </div>
+        <div className="rounded-lg border border-orange-100 bg-gradient-to-br from-orange-50 to-orange-100/50 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{formatLastVisitDate(lastConsultationDate)}</p>
-              <p className="text-xs text-gray-500">Dernière visite</p>
+              <p className="text-2xl font-bold text-orange-900">{formatLastVisitDate(lastConsultationDate)}</p>
+              <p className="mt-1 text-xs font-medium text-orange-700 uppercase tracking-wide">Dernière visite</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-600 text-white">
+              <Activity className="h-6 w-6" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-8">
+      {/* Enhanced Tabs with Icon and Active State */}
+      <div className="border-b-2 border-gray-200">
+        <div className="flex gap-1 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon
+            const isActive = activeTab === tab.id
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 border-b-2 pb-4 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                className={`flex items-center gap-2 px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-0.5 ${
+                  isActive
+                    ? 'border-b-2 border-violet-600 text-violet-600 bg-violet-50/50'
+                    : 'border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -447,10 +457,12 @@ export default function PatientDetailPage() {
       {activeTab === 'overview' && (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Contact Information */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Phone className="h-5 w-5 text-gray-400" />
-              <h2 className="text-lg font-semibold text-gray-900">Coordonnées</h2>
+          <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-blue-50/50 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="mb-6 flex items-center gap-3 pb-4 border-b border-blue-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white">
+                <Phone className="h-5 w-5" />
+              </div>
+              <h2 className="text-lg font-bold text-blue-900">Coordonnées</h2>
             </div>
 
             <div className="space-y-3">
@@ -513,10 +525,12 @@ export default function PatientDetailPage() {
           </div>
 
           {/* Medical Information */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Heart className="h-5 w-5 text-gray-400" />
-              <h2 className="text-lg font-semibold text-gray-900">Informations médicales</h2>
+          <div className="rounded-xl border border-red-100 bg-gradient-to-br from-red-50 to-red-50/50 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="mb-6 flex items-center gap-3 pb-4 border-b border-red-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-600 text-white">
+                <Heart className="h-5 w-5" />
+              </div>
+              <h2 className="text-lg font-bold text-red-900">Informations médicales</h2>
             </div>
 
             <div className="space-y-4">
@@ -552,7 +566,7 @@ export default function PatientDetailPage() {
       )}
 
       {activeTab === 'consultations' && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm">
           <ConsultationHistory patientId={patientId} />
         </div>
       )}
@@ -590,17 +604,22 @@ export default function PatientDetailPage() {
       {/* Images Tab */}
       {activeTab === 'images' && (
         <div className="space-y-4">
-          {/* Upload Area */}
+          {/* Upload Area - Enhanced */}
           <div
-            className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            className="rounded-xl border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/30 p-12 text-center cursor-pointer hover:border-purple-500 hover:from-purple-100 hover:to-purple-100/50 transition-all duration-200 group"
             onClick={() => fileInputRef.current?.click()}
           >
-            <div className="flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-gray-400" />
-              <span className="text-sm font-medium text-gray-700">
-                Glissez-déposez des images ici ou cliquez pour parcourir
-              </span>
-              <span className="text-xs text-gray-500">PNG, JPG, GIF jusqu'à 10MB</span>
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-3 bg-purple-600/10 rounded-lg group-hover:bg-purple-600/20 transition-colors">
+                <Upload className="h-8 w-8 text-purple-600 group-hover:scale-110 transition-transform" />
+              </div>
+              <div>
+                <span className="text-base font-bold text-purple-900 block">
+                  Glissez-déposez des images ici
+                </span>
+                <span className="text-sm text-purple-700 block mt-1">ou cliquez pour parcourir</span>
+              </div>
+              <span className="text-xs text-purple-600 font-medium">PNG, JPG, GIF jusqu'à 10MB</span>
             </div>
             <input
               ref={fileInputRef}
@@ -613,7 +632,7 @@ export default function PatientDetailPage() {
             />
           </div>
 
-          {/* Images Gallery */}
+          {/* Images Gallery - Enhanced */}
           {images.length > 0 && (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {images.map((image) => {
@@ -627,7 +646,7 @@ export default function PatientDetailPage() {
 
                 return (
                   <div key={image.id} className="relative group">
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-md hover:shadow-lg transition-shadow border border-gray-100">
                       <img
                         src={image.image_data}
                         alt={`Patient image ${image.filename}`}
@@ -635,21 +654,21 @@ export default function PatientDetailPage() {
                       />
 
                       {/* Overlay on hover */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                         <button
                           onClick={() => {
                             setSelectedImageForAnnotation(image)
                             setAnnotationModalOpen(true)
                           }}
-                          className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 shadow-md hover:shadow-lg transition-all transform hover:scale-105"
                           title="Modifier les annotations"
                         >
-                          <Edit2 className="h-3 w-3" />
+                          <Edit2 className="h-3.5 w-3.5" />
                           Notes
                         </button>
                         <button
                           onClick={() => handleRemoveImage(image.id)}
-                          className="flex items-center justify-center h-8 w-8 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          className="flex items-center justify-center h-9 w-9 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg transition-all transform hover:scale-105"
                           title="Supprimer l'image"
                         >
                           <X className="h-4 w-4" />
@@ -657,11 +676,11 @@ export default function PatientDetailPage() {
                       </div>
                     </div>
 
-                    {/* Info Badge */}
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-gray-500">{formattedDate}</p>
+                    {/* Info Badge - Enhanced */}
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-600">{formattedDate}</p>
                       {image.notes && (
-                        <div className="text-xs bg-blue-50 text-blue-700 p-1 rounded line-clamp-2">
+                        <div className="text-xs bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700 p-2 rounded-lg border border-violet-100 line-clamp-2 font-medium">
                           {image.notes}
                         </div>
                       )}
@@ -673,24 +692,40 @@ export default function PatientDetailPage() {
           )}
 
           {images.length === 0 && (
-            <div className="text-center py-8">
+            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-12 text-center">
               <ImageIcon className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-2 text-sm text-gray-500">Aucune image téléchargée</p>
+              <p className="mt-3 text-sm font-medium text-gray-600">Aucune image téléchargée</p>
+              <p className="mt-1 text-xs text-gray-500">Téléchargez vos premières images</p>
             </div>
           )}
         </div>
       )}
 
+      {/* Prescriptions Empty State */}
+      {activeTab === 'prescriptions' && prescriptions.length === 0 && (
+        <div className="rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-green-50/50 py-12 text-center shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mx-auto">
+            <Pill className="h-8 w-8 text-green-600" />
+          </div>
+          <h3 className="mt-4 text-lg font-bold text-green-900">
+            Aucune ordonnance
+          </h3>
+          <p className="mt-2 text-sm text-green-700">
+            Les ordonnances de ce patient apparaîtront ici
+          </p>
+        </div>
+      )}
+
       {activeTab !== 'overview' && activeTab !== 'consultations' && activeTab !== 'images' && activeTab !== 'prescriptions' && (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 shadow-sm text-center">
+        <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-blue-50/50 p-12 shadow-sm text-center">
           <div className="mx-auto max-w-md">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-              <FileText className="h-8 w-8 text-gray-400" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+              <FileText className="h-8 w-8 text-blue-600" />
             </div>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">
+            <h3 className="mt-4 text-lg font-bold text-blue-900">
               {tabs.find((t) => t.id === activeTab)?.label}
             </h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-blue-700">
               Cette fonctionnalité sera bientôt disponible
             </p>
           </div>
