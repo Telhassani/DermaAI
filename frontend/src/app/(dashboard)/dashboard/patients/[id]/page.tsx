@@ -559,10 +559,9 @@ export default function PatientDetailPage() {
 
       {/* Prescriptions Tab */}
       {activeTab === 'prescriptions' && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="space-y-4">
-            {prescriptions.length > 0 ? (
-              <div className="space-y-4">
+        <div className="space-y-3">
+          {prescriptions.length > 0 ? (
+            <div className="space-y-3">
                 {prescriptions.map((prescription) => (
                   <PrescriptionCard
                     key={prescription.id}
@@ -581,13 +580,12 @@ export default function PatientDetailPage() {
                   />
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Pill className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                <p className="text-sm text-gray-500">Aucune ordonnance</p>
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="text-center py-8">
+              <Pill className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+              <p className="text-sm text-gray-500">Aucune ordonnance</p>
+            </div>
+          )}
         </div>
       )}
 
