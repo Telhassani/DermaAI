@@ -15,8 +15,10 @@ interface Medication {
 interface PrescriptionCardProps {
   id: number
   prescription_date: string
+  patient_name?: string
   medications: Medication[]
   instructions?: string
+  notes?: string
   onEdit?: () => void
   onPrint?: () => void
   onDelete?: () => void
@@ -34,8 +36,10 @@ const formatDate = (dateString: string) => {
 export function PrescriptionCard({
   id,
   prescription_date,
+  patient_name,
   medications,
   instructions,
+  notes,
   onEdit,
   onPrint,
   onDelete,
@@ -55,7 +59,7 @@ export function PrescriptionCard({
         <h4 className="mb-2 text-xs font-medium uppercase text-gray-500">
           MÉDICAMENTS
         </h4>
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {medications.map((med, idx) => (
             <li key={idx} className="text-sm text-gray-700">
               <span className="font-medium">{med.name}</span>
@@ -74,6 +78,23 @@ export function PrescriptionCard({
             Instructions:
           </p>
           <p className="text-sm text-gray-700">{instructions}</p>
+        </div>
+      )}
+
+      {/* Patient Section */}
+      {patient_name && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Patient: <span className="font-medium text-gray-900">{patient_name}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Notes Section */}
+      {notes && (
+        <div className="mb-4">
+          <p className="text-xs font-medium uppercase text-gray-500 mb-1">Notes:</p>
+          <p className="text-sm text-gray-700">{notes}</p>
         </div>
       )}
 

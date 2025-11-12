@@ -153,25 +153,14 @@ export default function PrescriptionDetailPage() {
         <PrescriptionCard
           id={prescription.id}
           prescription_date={prescription.prescription_date}
+          patient_name={prescription.patient_name}
           medications={prescription.medications}
           instructions={prescription.instructions}
+          notes={prescription.notes}
           onEdit={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
           onPrint={handlePrint}
           onDelete={() => setShowDeleteConfirm(true)}
         />
-
-        {/* Patient and additional info */}
-        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-sm text-gray-600">
-            Patient: <span className="font-medium text-gray-900">{prescription.patient_name}</span>
-          </p>
-          {prescription.notes && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-xs font-medium uppercase text-gray-500 mb-1">Notes:</p>
-              <p className="text-sm text-gray-700">{prescription.notes}</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Delete confirmation modal */}
