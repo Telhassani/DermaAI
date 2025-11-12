@@ -130,7 +130,7 @@ export default function PrescriptionDetailPage() {
 
           {/* Page Title */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
               Ordonnance n°{prescription.id} - {prescription.patient_name || 'Patient'}
             </h1>
           </div>
