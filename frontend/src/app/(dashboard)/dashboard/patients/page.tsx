@@ -93,7 +93,7 @@ export default function PatientsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-6">
+      <div className="mb-8 flex justify-between items-end gap-6">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
             Patients
@@ -104,7 +104,7 @@ export default function PatientsPage() {
         </div>
         <button
           onClick={() => router.push('/dashboard/patients/new')}
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-3 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-3 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg whitespace-nowrap mb-1"
         >
           <Plus className="h-4 w-4" />
           Nouveau patient
