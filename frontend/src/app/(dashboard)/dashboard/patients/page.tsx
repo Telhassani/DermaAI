@@ -155,12 +155,12 @@ export default function PatientsPage() {
       ) : (
         <div className="space-y-3">
           {/* Column Headers - Desktop Only */}
-          <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-200 to-purple-200 rounded-lg border border-violet-300">
-            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient</div>
-            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</div>
-            <div className="text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Âge / Sexe</div>
-            <div className="text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Inscription</div>
-            <div className="text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</div>
+          <div className="hidden md:grid grid-cols-5 gap-4 px-5 py-3 bg-gradient-to-r from-violet-600 to-purple-500 rounded-lg border border-violet-600">
+            <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Patient</div>
+            <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Contact</div>
+            <div className="text-center text-xs font-bold text-white uppercase tracking-wider">Âge / Sexe</div>
+            <div className="text-left text-xs font-bold text-white uppercase tracking-wider">Inscription</div>
+            <div className="text-right text-xs font-bold text-white uppercase tracking-wider">Actions</div>
           </div>
 
           {/* Patient Cards with Spacing */}
@@ -168,7 +168,7 @@ export default function PatientsPage() {
             <div
               key={patient.id}
               onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
-              className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-violet-300 hover:shadow-lg transition-all duration-200 p-5 group"
+              className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-violet-300 hover:shadow-lg transition-all duration-200 p-3 group"
             >
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
                 {/* Patient Column */}
