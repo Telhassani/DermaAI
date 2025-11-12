@@ -15,8 +15,8 @@ import {
   Edit2,
   Trash2,
 } from 'lucide-react'
-import { listPrescriptions, deletePrescription, PrescriptionResponse } from '@/lib/api/prescriptions'
-import { PrescriptionQuickEditModal } from '@/components/prescriptions/PrescriptionQuickEditModal'
+import { listPrescriptions, deletePrescription, getPrescription, PrescriptionResponse } from '@/lib/api/prescriptions'
+import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
 
 interface Prescription {
   id: number
@@ -96,9 +96,16 @@ export default function PrescriptionsPage() {
     fetchPrescriptions()
   }
 
-  const handleEditClick = (prescription: Prescription) => {
-    setSelectedPrescription(prescription as PrescriptionResponse)
-    setShowEditModal(true)
+  const handleEditClick = async (prescription: Prescription) => {
+    try {
+      // Load full prescription data
+      const fullPrescription = await getPrescription(prescription.id)
+      setSelectedPrescription(fullPrescription)
+      setShowEditModal(true)
+    } catch (error) {
+      console.error('Error loading prescription:', error)
+      alert('Erreur lors du chargement de l\'ordonnance')
+    }
   }
 
   const handleEditSave = (updatedPrescription: PrescriptionResponse) => {
@@ -418,8 +425,8 @@ export default function PrescriptionsPage() {
           </div>
         )}
 
-        {/* Quick Edit Modal */}
-        <PrescriptionQuickEditModal
+        {/* Edit Modal */}
+        <PrescriptionEditModal
           isOpen={showEditModal}
           prescription={selectedPrescription}
           onClose={() => {

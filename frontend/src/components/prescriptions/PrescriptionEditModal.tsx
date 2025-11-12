@@ -17,6 +17,8 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
   const [medications, setMedications] = useState<MedicationItem[]>([])
   const [instructions, setInstructions] = useState('')
   const [notes, setNotes] = useState('')
+  const [controlDate, setControlDate] = useState('')
+  const [dateError, setDateError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,7 +28,9 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
       setMedications(prescription.medications || [])
       setInstructions(prescription.instructions || '')
       setNotes(prescription.notes || '')
+      setControlDate(prescription.control_date || '')
       setError(null)
+      setDateError(null)
     }
   }, [isOpen, prescription])
 
@@ -47,8 +51,29 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
     setMedications(newMeds)
   }
 
+  const handleControlDateChange = (value: string) => {
+    setControlDate(value)
+    setDateError(null)
+
+    // Validate that control_date is not before prescription_date
+    if (value && prescription?.prescription_date) {
+      const prescDate = new Date(prescription.prescription_date)
+      const controlDateObj = new Date(value)
+
+      if (controlDateObj < prescDate) {
+        setDateError('La date de contrôle ne peut pas être antérieure à la date de l\'ordonnance')
+      }
+    }
+  }
+
   const handleSave = async () => {
     if (!prescription) return
+
+    // Validate date before saving
+    if (dateError || (controlDate && new Date(controlDate) < new Date(prescription.prescription_date))) {
+      setDateError('La date de contrôle ne peut pas être antérieure à la date de l\'ordonnance')
+      return
+    }
 
     try {
       setIsSaving(true)
@@ -58,6 +83,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
         medications,
         instructions,
         notes,
+        control_date: controlDate ? new Date(controlDate).toISOString().split('T')[0] : null,
         consultation_id: prescription.consultation_id,
         patient_id: prescription.patient_id,
       })
@@ -254,6 +280,33 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
               placeholder="Ex: Éviter l'exposition au soleil, ne pas mélanger avec..."
             />
           </div>
+
+          {/* Control Date */}
+          <div className="bg-violet-50 p-4 rounded-lg border border-violet-200 border-l-4 border-l-violet-500">
+            <label htmlFor="control_date" className="block text-sm font-bold text-violet-900 mb-3 flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-violet-600" />
+              Date de contrôle (suivi)
+            </label>
+            <input
+              type="date"
+              id="control_date"
+              value={controlDate}
+              onChange={(e) => handleControlDateChange(e.target.value)}
+              min={prescription?.prescription_date || ''}
+              className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 transition-all ${
+                dateError
+                  ? 'border-red-300 focus:ring-red-400'
+                  : 'border-violet-300 hover:border-violet-400 focus:ring-violet-400'
+              }`}
+              placeholder="Sélectionner une date"
+            />
+            {dateError && (
+              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-start gap-1">
+                <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                <span>{dateError}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
@@ -266,7 +319,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || dateError !== null}
             className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 active:scale-95 transition-all duration-200 flex items-center gap-2"
           >
             {isSaving && (
