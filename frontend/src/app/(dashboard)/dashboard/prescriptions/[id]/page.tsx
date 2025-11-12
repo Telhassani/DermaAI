@@ -3,46 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
-import { getPrescription, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
+import { getPrescription, deletePrescription, markPrescriptionPrinted, PrescriptionResponse } from '@/lib/api/prescriptions'
 import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
-
-interface Medication {
-  name: string
-  dosage: string
-  duration?: string
-  quantity?: string
-  frequency?: string
-  route?: string
-  instructions?: string
-}
-
-interface Prescription {
-  id: number
-  consultation_id: number
-  patient_id: number
-  prescription_date: string
-  valid_until: string
-  medications: Medication[]
-  instructions: string
-  notes: string
-  is_printed: boolean
-  is_delivered: boolean
-  created_at: string
-  updated_at: string
-  patient_name?: string
-  doctor_name?: string
-}
+import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
 
 export default function PrescriptionDetailPage() {
   const router = useRouter()
   const params = useParams()
   const prescriptionId = params.id as string
 
-  const [prescription, setPrescription] = useState<Prescription | null>(null)
+  const [prescription, setPrescription] = useState<PrescriptionResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     loadPrescription()
@@ -88,6 +63,11 @@ export default function PrescriptionDetailPage() {
       setDeleting(false)
       setShowDeleteConfirm(false)
     }
+  }
+
+  const handleSavePrescription = (updatedPrescription: PrescriptionResponse) => {
+    setPrescription(updatedPrescription)
+    setShowEditModal(false)
   }
 
   const formatDate = (dateString: string) => {
@@ -157,11 +137,19 @@ export default function PrescriptionDetailPage() {
           medications={prescription.medications}
           instructions={prescription.instructions}
           notes={prescription.notes}
-          onEdit={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
+          onEdit={() => setShowEditModal(true)}
           onPrint={handlePrint}
           onDelete={() => setShowDeleteConfirm(true)}
         />
       </div>
+
+      {/* Edit modal */}
+      <PrescriptionEditModal
+        isOpen={showEditModal}
+        prescription={prescription}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSavePrescription}
+      />
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (

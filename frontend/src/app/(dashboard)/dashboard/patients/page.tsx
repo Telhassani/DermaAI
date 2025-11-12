@@ -102,7 +102,7 @@ export default function PatientsPage() {
         </div>
         <button
           onClick={() => router.push('/dashboard/patients/new')}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
         >
           <Plus className="h-4 w-4" />
           Nouveau patient
@@ -121,7 +121,7 @@ export default function PatientsPage() {
               setPage(1) // Reset to first page on search
             }}
             placeholder="Rechercher un patient (nom, email, téléphone...)"
-            className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
         <button className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
@@ -134,7 +134,7 @@ export default function PatientsPage() {
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
           </div>
         ) : patients.length === 0 ? (
           <div className="text-center py-12">
@@ -145,7 +145,7 @@ export default function PatientsPage() {
             {!search && (
               <button
                 onClick={() => router.push('/dashboard/patients/new')}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                className="mt-4 text-sm text-violet-600 hover:text-violet-700"
               >
                 Ajouter votre premier patient
               </button>
@@ -178,12 +178,12 @@ export default function PatientsPage() {
                   {patients.map((patient) => (
                     <tr
                       key={patient.id}
-                      className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                      className="hover:bg-violet-50 transition-colors cursor-pointer group"
                       onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                          <div className="text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors">
                             {patient.full_name}
                           </div>
                           {patient.identification_number && (
@@ -227,7 +227,7 @@ export default function PatientsPage() {
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => router.push(`/dashboard/patients/${patient.id}?tab=consultations`)}
-                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            className="p-1 text-gray-400 hover:text-violet-600 transition-colors"
                             title="Voir les consultations"
                           >
                             <Eye className="h-4 w-4" />

@@ -78,7 +78,7 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
               <Stethoscope className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold">
-              Derm<span className="text-blue-600">AI</span>
+              Derm<span className="text-violet-600">AI</span>
             </span>
           </Link>
         )}
@@ -123,8 +123,8 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
                       className={cn(
                         'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
                         isActive
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-700 hover:bg-blue-50 hover:text-gray-900 group-hover:text-blue-600',
+                          ? 'bg-violet-50 text-violet-700'
+                          : 'text-gray-700 hover:bg-violet-50 hover:text-gray-900 group-hover:text-violet-600',
                         collapsed && 'justify-center'
                       )}
                       title={collapsed ? item.label : undefined}
@@ -132,7 +132,7 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
                       <Icon
                         className={cn(
                           'h-5 w-5 flex-shrink-0',
-                          isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'
+                          isActive ? 'text-violet-600' : 'text-gray-400 group-hover:text-violet-600'
                         )}
                       />
                       {!collapsed && (

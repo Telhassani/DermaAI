@@ -129,7 +129,7 @@ export default function PrescriptionsPage() {
             </div>
             <button
               onClick={() => router.push('/dashboard/consultations/new')}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
             >
               <Plus className="h-4 w-4" />
               Nouvelle ordonnance
@@ -159,7 +159,7 @@ export default function PrescriptionsPage() {
                 placeholder="Rechercher par nom de patient..."
                 value={searchPatient}
                 onChange={(e) => setSearchPatient(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
             {hasActiveFilters && (
@@ -184,7 +184,7 @@ export default function PrescriptionsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
               <div>
@@ -195,7 +195,7 @@ export default function PrescriptionsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
             </div>
@@ -212,7 +212,7 @@ export default function PrescriptionsPage() {
         {/* Prescriptions list */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
           </div>
         ) : filteredPrescriptions.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
@@ -223,7 +223,7 @@ export default function PrescriptionsPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                className="mt-4 text-sm text-violet-600 hover:text-violet-700"
               >
                 Effacer les filtres
               </button>
@@ -257,7 +257,7 @@ export default function PrescriptionsPage() {
                     <tr
                       key={prescription.id}
                       onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
+                      className="cursor-pointer hover:bg-violet-50 transition-colors hover:shadow-md"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm">
@@ -339,7 +339,7 @@ export default function PrescriptionsPage() {
                             onClick={() => setCurrentPage(page)}
                             className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                               currentPage === page
-                                ? 'z-10 bg-blue-600 text-white focus:z-20'
+                                ? 'z-10 bg-violet-600 text-white focus:z-20'
                                 : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20'
                             }`}
                           >

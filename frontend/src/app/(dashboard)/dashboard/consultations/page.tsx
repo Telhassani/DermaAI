@@ -98,7 +98,7 @@ export default function ConsultationsPage() {
             </div>
             <button
               onClick={() => router.push('/dashboard/consultations/new')}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
             >
               <Plus className="h-4 w-4" />
               Nouvelle consultation
@@ -128,12 +128,12 @@ export default function ConsultationsPage() {
                 placeholder="Rechercher par nom de patient..."
                 value={searchName}
                 onChange={(e) => setSearchName(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
             <button
               onClick={handleSearch}
-              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
             >
               Rechercher
             </button>
@@ -160,7 +160,7 @@ export default function ConsultationsPage() {
                   placeholder="CIN ou Passeport"
                   value={searchIdentifier}
                   onChange={(e) => setSearchIdentifier(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
               <div>
@@ -171,7 +171,7 @@ export default function ConsultationsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
               <div>
@@ -182,7 +182,7 @@ export default function ConsultationsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
             </div>
@@ -199,7 +199,7 @@ export default function ConsultationsPage() {
         {/* Consultations list */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
           </div>
         ) : consultations.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
@@ -210,7 +210,7 @@ export default function ConsultationsPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                className="mt-4 text-sm text-violet-600 hover:text-violet-700"
               >
                 Effacer les filtres
               </button>
@@ -243,7 +243,7 @@ export default function ConsultationsPage() {
                   {consultations.map((consultation) => (
                     <tr
                       key={consultation.id}
-                      className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                      className="hover:bg-violet-50 transition-colors cursor-pointer group"
                       onClick={() => router.push(`/dashboard/consultations/${consultation.id}`)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -263,7 +263,7 @@ export default function ConsultationsPage() {
                         <div className="flex items-center gap-2">
                           <UserIcon className="h-4 w-4 text-gray-400" />
                           <div className="text-sm">
-                            <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                            <div className="font-medium text-gray-900 group-hover:text-violet-600 transition-colors">
                               {consultation.patient_name || 'N/A'}
                             </div>
                           </div>
@@ -278,7 +278,7 @@ export default function ConsultationsPage() {
                       </td>
                       <td className="px-6 py-4">
                         {consultation.diagnosis ? (
-                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                          <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
                             {consultation.diagnosis}
                           </span>
                         ) : (
@@ -291,7 +291,7 @@ export default function ConsultationsPage() {
                             e.stopPropagation()
                             router.push(`/dashboard/consultations/${consultation.id}`)
                           }}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900"
+                          className="inline-flex items-center gap-1 text-violet-600 hover:text-violet-900"
                         >
                           <Eye className="h-4 w-4" />
                           Voir
@@ -346,7 +346,7 @@ export default function ConsultationsPage() {
                             onClick={() => setCurrentPage(page)}
                             className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                               currentPage === page
-                                ? 'z-10 bg-blue-600 text-white focus:z-20'
+                                ? 'z-10 bg-violet-600 text-white focus:z-20'
                                 : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20'
                             }`}
                           >

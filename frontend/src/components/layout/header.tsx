@@ -32,7 +32,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 transition-all duration-300"
+      className="fixed top-0 right-0 z-30 flex h-16 items-center justify-between border-b border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 px-6 transition-all duration-300"
       style={{ left: sidebarCollapsed ? '4rem' : '16rem' }}
     >
       {/* Search bar */}
@@ -42,7 +42,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
           <Input
             type="search"
             placeholder="Rechercher un patient, rendez-vous..."
-            className="pl-10 pr-4 focus-visible:ring-blue-500"
+            className="pl-10 pr-4 focus-visible:ring-violet-500"
           />
         </div>
       </div>
@@ -58,8 +58,8 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-gray-600" />
           <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500"></span>
           </span>
         </Button>
 

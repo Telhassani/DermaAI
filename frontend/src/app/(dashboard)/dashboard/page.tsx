@@ -36,7 +36,7 @@ export default function DashboardPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-violet-600 border-r-transparent"></div>
           <p className="text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function DashboardPage() {
                 <span>+0% ce mois</span>
               </p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-100 text-violet-600 transition-colors group-hover:bg-violet-200">
               <Users className="h-6 w-6" />
             </div>
           </div>
@@ -134,8 +134,8 @@ export default function DashboardPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Actions rapides</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <button className="flex items-center gap-4 rounded-lg border border-gray-200 p-4 text-left transition-all hover:border-blue-300 hover:bg-blue-50">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <button className="flex items-center gap-4 rounded-lg border border-gray-200 p-4 text-left transition-all hover:border-violet-300 hover:bg-violet-50">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
                   <Users className="h-5 w-5" />
                 </div>
                 <div>
