@@ -2,14 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import {
-  ArrowLeft,
-  Edit,
-  Printer,
-  Trash2,
-  AlertCircle,
-} from 'lucide-react'
+import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { getPrescription, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
+import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
 
 interface Medication {
   name: string
@@ -141,10 +136,10 @@ export default function PrescriptionDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 print:bg-white print:p-0">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-3xl">
         {/* Header with back button */}
-        <div className="mb-6 print:hidden">
+        <div className="mb-6">
           <button
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-900 transition-colors"
@@ -154,92 +149,28 @@ export default function PrescriptionDetailPage() {
           </button>
         </div>
 
-        {/* Main content card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm print:border-0 print:p-0 print:shadow-none">
-          {/* Prescription header */}
-          <div className="mb-8 border-b border-gray-200 pb-6 print:mb-6">
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                {formatDate(prescription.prescription_date)}
-              </p>
-              <h1 className="mt-1 text-2xl font-bold text-gray-900">
-                Ordonnance #{prescription.id}
-              </h1>
-            </div>
-            <p className="text-sm text-gray-600">
-              Patient: <span className="font-medium text-gray-900">{prescription.patient_name}</span>
-            </p>
-          </div>
+        {/* Prescription Card */}
+        <PrescriptionCard
+          id={prescription.id}
+          prescription_date={prescription.prescription_date}
+          medications={prescription.medications}
+          instructions={prescription.instructions}
+          onEdit={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
+          onPrint={handlePrint}
+          onDelete={() => setShowDeleteConfirm(true)}
+        />
 
-          {/* Medications section */}
-          <div className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">MÉDICAMENTS</h2>
-            <div className="space-y-4">
-              {prescription.medications.map((med, index) => (
-                <div key={index} className="rounded-lg bg-gray-50 p-4 print:bg-white print:border print:border-gray-200">
-                  <p className="font-medium text-gray-900">
-                    {med.name}
-                    {med.dosage && ` - ${med.dosage}`}
-                    {med.frequency && ` (${med.frequency})`}
-                    {med.duration && `, ${med.duration}`}
-                  </p>
-                  {med.quantity && (
-                    <p className="mt-1 text-sm text-gray-600">Quantité: {med.quantity}</p>
-                  )}
-                  {med.route && (
-                    <p className="text-sm text-gray-600">Voie: {med.route}</p>
-                  )}
-                  {med.instructions && (
-                    <p className="mt-2 text-sm italic text-gray-700">{med.instructions}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Instructions section */}
-          {prescription.instructions && (
-            <div className="mb-8 border-t border-gray-200 pt-6 print:border-t print:pt-4">
-              <h3 className="mb-2 font-semibold text-gray-900">Instructions:</h3>
-              <p className="text-gray-700">{prescription.instructions}</p>
-            </div>
-          )}
-
-          {/* Notes section */}
+        {/* Patient and additional info */}
+        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-sm text-gray-600">
+            Patient: <span className="font-medium text-gray-900">{prescription.patient_name}</span>
+          </p>
           {prescription.notes && (
-            <div className="mb-8 border-t border-gray-200 pt-6 print:border-t print:pt-4">
-              <h3 className="mb-2 font-semibold text-gray-900">Notes:</h3>
-              <p className="text-gray-700">{prescription.notes}</p>
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs font-medium uppercase text-gray-500 mb-1">Notes:</p>
+              <p className="text-sm text-gray-700">{prescription.notes}</p>
             </div>
           )}
-
-          {/* Action buttons */}
-          <div className="mt-8 flex gap-4 border-t border-gray-200 pt-6 print:hidden">
-            <button
-              onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
-              title="Éditer l'ordonnance"
-            >
-              <Edit className="h-5 w-5" />
-              Éditer
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors"
-              title="Imprimer l'ordonnance"
-            >
-              <Printer className="h-5 w-5" />
-              Imprimer
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
-              title="Supprimer l'ordonnance"
-            >
-              <Trash2 className="h-5 w-5" />
-              Supprimer
-            </button>
-          </div>
         </div>
       </div>
 
