@@ -47,9 +47,6 @@ class Consultation(BaseModel):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
-    # Per-patient consultation number (sequential for each patient)
-    consultation_number = Column(Integer, nullable=True, default=0)
-
     # Consultation Details
     consultation_date = Column(Date, nullable=False, index=True, default=datetime.now)
     consultation_time = Column(DateTime, nullable=False, default=datetime.now)
@@ -94,8 +91,8 @@ class Consultation(BaseModel):
     biopsy_results = Column(Text, nullable=True)
 
     # Relationships
-    # patient = relationship("Patient", back_populates="consultations")
-    # doctor = relationship("User", back_populates="consultations")
+    patient_rel = relationship("Patient")
+    doctor = relationship("User")
     # prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
     # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")
 

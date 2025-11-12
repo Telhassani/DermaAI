@@ -4,7 +4,7 @@ Consultation endpoints - CRUD operations for medical consultations
 
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from datetime import datetime
 import math
@@ -48,8 +48,8 @@ async def list_consultations(
     Returns:
         Paginated list of consultations
     """
-    # Build query
-    query = db.query(Consultation)
+    # Build query with eager loading to avoid N+1 problem
+    query = db.query(Consultation).options(joinedload(Consultation.patient_rel))
 
     # Apply filters
     if patient_id:
@@ -71,11 +71,10 @@ async def list_consultations(
     # Calculate total pages
     total_pages = math.ceil(total / page_size) if total > 0 else 0
 
-    # Enrich consultations with patient names
+    # Enrich consultations with patient names from eager-loaded relationship
     for consultation in consultations:
-        patient = db.query(Patient).filter(Patient.id == consultation.patient_id).first()
-        if patient:
-            consultation.patient_name = patient.full_name
+        if consultation.patient_rel:
+            consultation.patient_name = consultation.patient_rel.full_name
 
     return ConsultationListResponse(
         consultations=consultations,
@@ -114,20 +113,10 @@ async def create_consultation(
             detail="Patient non trouvé",
         )
 
-    # Get the next consultation number for this patient
-    last_consultation = (
-        db.query(Consultation)
-        .filter(Consultation.patient_id == consultation_data.patient_id)
-        .order_by(desc(Consultation.consultation_number))
-        .first()
-    )
-    next_consultation_number = (last_consultation.consultation_number or 0) + 1 if last_consultation else 1
-
     # Create new consultation
     new_consultation = Consultation(**consultation_data.model_dump())
     new_consultation.doctor_id = current_user.id
     new_consultation.consultation_time = datetime.now()
-    new_consultation.consultation_number = next_consultation_number
 
     db.add(new_consultation)
     db.commit()
@@ -315,8 +304,8 @@ async def get_patient_consultation_history(
             detail="Patient non trouvé",
         )
 
-    # Query consultations for this patient
-    query = db.query(Consultation).filter(Consultation.patient_id == patient_id)
+    # Query consultations for this patient with eager loading
+    query = db.query(Consultation).filter(Consultation.patient_id == patient_id).options(joinedload(Consultation.patient_rel))
 
     # Order by date (most recent first)
     query = query.order_by(desc(Consultation.consultation_date), desc(Consultation.consultation_time))
@@ -331,9 +320,12 @@ async def get_patient_consultation_history(
     # Calculate total pages
     total_pages = math.ceil(total / page_size) if total > 0 else 0
 
-    # Enrich consultations with patient name (we already have the patient object)
+    # Enrich consultations with patient name (from eager-loaded relationship or fallback)
     for consultation in consultations:
-        consultation.patient_name = patient.full_name
+        if consultation.patient_rel:
+            consultation.patient_name = consultation.patient_rel.full_name
+        else:
+            consultation.patient_name = patient.full_name
 
     return ConsultationListResponse(
         consultations=consultations,
