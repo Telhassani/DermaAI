@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getConsultation, ConsultationResponse } from '@/lib/api/consultations'
-import { listPrescriptions, PrescriptionResponse, createPrescription, updatePrescription, deletePrescription } from '@/lib/api/prescriptions'
+import { listPrescriptions, PrescriptionResponse, createPrescription, updatePrescription, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
 import { getPatient, PatientResponse } from '@/lib/api/patients'
 import { uploadImage, getConsultationImages, deleteImage, validateImageFile, updateImage, ImageResponse } from '@/lib/api/images'
 import { useAuthStore } from '@/lib/stores/auth-store'
@@ -325,6 +325,18 @@ export default function ConsultationDetailPage() {
       setPrescriptions(updatedData.prescriptions)
     } catch (error) {
       console.error('Error deleting prescription:', error)
+    }
+  }
+
+  const handlePrintPrescription = async (prescription: PrescriptionResponse) => {
+    try {
+      // Mark as printed
+      await markPrescriptionPrinted(prescription.id)
+      // Navigate to print page
+      router.push(`/print-prescription/${prescription.id}`)
+    } catch (error) {
+      console.error('Error marking prescription as printed:', error)
+      alert('Erreur lors du marquage de l\'ordonnance')
     }
   }
 
@@ -885,12 +897,36 @@ export default function ConsultationDetailPage() {
                       </div>
                     )}
 
-                    <button
-                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      <Download className="h-4 w-4" />
-                      Imprimer
-                    </button>
+                    {/* Action buttons - Below prescription content */}
+                    <div className="pt-3 border-t border-gray-200 flex gap-3">
+                      <button
+                        onClick={() => handlePrintPrescription(prescription)}
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        <Download className="h-4 w-4" />
+                        Imprimer
+                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => handleEditPrescription(prescription)}
+                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            title="Modifier l'ordonnance"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                            Éditer
+                          </button>
+                          <button
+                            onClick={() => handleDeletePrescription(prescription.id)}
+                            className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-700 font-medium"
+                            title="Supprimer l'ordonnance"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Supprimer
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )
               })}

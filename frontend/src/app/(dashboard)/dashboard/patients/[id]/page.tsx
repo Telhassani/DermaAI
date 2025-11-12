@@ -27,7 +27,6 @@ import { getPatientImages, deleteImage, updateImage, ImageResponse } from '@/lib
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
 import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
-import { PrescriptionPrintView } from '@/components/prescriptions/PrescriptionPrintView'
 
 export default function PatientDetailPage() {
   const router = useRouter()
@@ -49,7 +48,6 @@ export default function PatientDetailPage() {
   const [selectedImageForAnnotation, setSelectedImageForAnnotation] = useState<ImageResponse | null>(null)
   const [editingPrescription, setEditingPrescription] = useState<PrescriptionResponse | null>(null)
   const [prescriptionEditModalOpen, setPrescriptionEditModalOpen] = useState(false)
-  const [printingPrescription, setPrintingPrescription] = useState<PrescriptionResponse | null>(null)
   const [consultationNumbers, setConsultationNumbers] = useState<{ [key: number]: number | undefined }>({})
 
   const fetchPatient = useCallback(async () => {
@@ -226,7 +224,8 @@ export default function PatientDetailPage() {
     try {
       // Mark as printed
       await markPrescriptionPrinted(prescription.id)
-      setPrintingPrescription(prescription)
+      // Navigate to print page (within the same dashboard layout group)
+      router.push(`/print-prescription/${prescription.id}`)
     } catch (error) {
       console.error('Error marking prescription as printed:', error)
       alert('Erreur lors du marquage de l\'ordonnance')
@@ -591,71 +590,69 @@ export default function PatientDetailPage() {
                   return (
                     <div
                       key={prescription.id}
-                      className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex flex-col p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="flex-1">
-                        {/* Header with Consultation Reference and Dates */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            {prescription.consultation_id && (
-                              <p className="text-sm font-semibold text-gray-900">
-                                Consultation #{prescription.consultation_id}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            {prescriptionDate && (
-                              <p className="text-xs text-gray-600 font-medium">
-                                Prescription: <span className="text-gray-900">{prescriptionDate}</span>
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-500">
-                              Créée le: {createdDate}
+                      {/* Header with Consultation Reference and Dates */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          {prescription.consultation_id && (
+                            <p className="text-sm font-semibold text-gray-900">
+                              Consultation #{prescription.consultation_id}
                             </p>
-                            {validUntilDate && (
-                              <p className="text-xs text-orange-600">
-                                Valide jusqu'au: {validUntilDate}
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
-
-                        {/* Medications */}
-                        {prescription.medications && prescription.medications.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-sm font-semibold text-gray-900 mb-2">Médicaments</p>
-                            <ul className="space-y-1">
-                              {prescription.medications.map((med, idx) => (
-                                <li key={idx} className="text-sm text-gray-700">
-                                  <span className="font-medium">{med.name}</span>
-                                  {med.dosage && <span> - {med.dosage}</span>}
-                                  {med.frequency && <span> - {med.frequency}</span>}
-                                  {med.duration && <span> - {med.duration}</span>}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Instructions */}
-                        {prescription.instructions && (
-                          <div className="mb-3 p-2 bg-blue-50 rounded">
-                            <p className="text-xs font-medium text-blue-700 mb-1">Instructions:</p>
-                            <p className="text-sm text-blue-900">{prescription.instructions}</p>
-                          </div>
-                        )}
-
-                        {/* Notes */}
-                        {prescription.notes && (
-                          <div className="p-2 bg-gray-50 rounded">
-                            <p className="text-xs font-medium text-gray-600 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-800">{prescription.notes}</p>
-                          </div>
-                        )}
+                        <div className="text-right">
+                          {prescriptionDate && (
+                            <p className="text-xs text-gray-600 font-medium">
+                              Prescription: <span className="text-gray-900">{prescriptionDate}</span>
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Créée le: {createdDate}
+                          </p>
+                          {validUntilDate && (
+                            <p className="text-xs text-orange-600">
+                              Valide jusqu'au: {validUntilDate}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                      {/* Medications */}
+                      {prescription.medications && prescription.medications.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-gray-900 mb-2">Médicaments</p>
+                          <ul className="space-y-1">
+                            {prescription.medications.map((med, idx) => (
+                              <li key={idx} className="text-sm text-gray-700">
+                                <span className="font-medium">{med.name}</span>
+                                {med.dosage && <span> - {med.dosage}</span>}
+                                {med.frequency && <span> - {med.frequency}</span>}
+                                {med.duration && <span> - {med.duration}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Instructions */}
+                      {prescription.instructions && (
+                        <div className="mb-3 p-2 bg-blue-50 rounded">
+                          <p className="text-xs font-medium text-blue-700 mb-1">Instructions:</p>
+                          <p className="text-sm text-blue-900">{prescription.instructions}</p>
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {prescription.notes && (
+                        <div className="mb-3 p-2 bg-gray-50 rounded">
+                          <p className="text-xs font-medium text-gray-600 mb-1">Notes:</p>
+                          <p className="text-sm text-gray-800">{prescription.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Action Buttons - Below prescription content */}
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200">
                         <button
                           onClick={() => handleEditPrescription(prescription)}
                           className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -827,17 +824,6 @@ export default function PatientDetailPage() {
         }}
         onSave={handleSavePrescription}
       />
-
-      {/* Prescription Print View */}
-      {printingPrescription && (
-        <div>
-          <PrescriptionPrintView
-            prescription={printingPrescription}
-            patientName={patient?.full_name || 'Patient'}
-            doctorName={patient?.doctor_id ? `Docteur` : undefined}
-          />
-        </div>
-      )}
     </div>
   )
 }
