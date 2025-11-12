@@ -60,6 +60,9 @@ async def list_patients(
     # Build query
     query = db.query(Patient)
 
+    # Exclude soft-deleted records
+    query = query.filter(Patient.is_deleted == False)
+
     # Apply filters
     if search:
         search_filter = or_(
@@ -142,6 +145,7 @@ async def create_patient(
     existing_patient = (
         db.query(Patient)
         .filter(Patient.identification_number == patient_data.identification_number)
+        .filter(Patient.is_deleted == False)
         .first()
     )
     if existing_patient:
@@ -153,7 +157,10 @@ async def create_patient(
     # Check if email already exists (if provided)
     if patient_data.email:
         existing_patient = (
-            db.query(Patient).filter(Patient.email == patient_data.email).first()
+            db.query(Patient)
+            .filter(Patient.email == patient_data.email)
+            .filter(Patient.is_deleted == False)
+            .first()
         )
         if existing_patient:
             raise HTTPException(
@@ -220,7 +227,12 @@ async def get_patient(
     Raises:
         HTTPException: If patient not found
     """
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    patient = (
+        db.query(Patient)
+        .filter(Patient.id == patient_id)
+        .filter(Patient.is_deleted == False)
+        .first()
+    )
 
     if not patient:
         raise HTTPException(
@@ -254,7 +266,12 @@ async def update_patient(
         HTTPException: If patient not found or validation fails
     """
     # Get patient
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    patient = (
+        db.query(Patient)
+        .filter(Patient.id == patient_id)
+        .filter(Patient.is_deleted == False)
+        .first()
+    )
 
     if not patient:
         raise HTTPException(
@@ -267,6 +284,7 @@ async def update_patient(
         existing_patient = (
             db.query(Patient)
             .filter(Patient.email == patient_data.email)
+            .filter(Patient.is_deleted == False)
             .filter(Patient.id != patient_id)
             .first()
         )
@@ -324,7 +342,7 @@ async def delete_patient(
     current_user: User = Depends(get_current_doctor),
 ):
     """
-    Delete a patient (soft delete by setting is_active=False in future)
+    Delete a patient (soft delete for HIPAA compliance)
 
     Args:
         patient_id: Patient ID
@@ -334,6 +352,8 @@ async def delete_patient(
     Raises:
         HTTPException: If patient not found
     """
+    from datetime import datetime
+
     # Get patient
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
 
@@ -346,8 +366,9 @@ async def delete_patient(
     # Store patient info for logging before deletion
     patient_name = patient.full_name
 
-    # Hard delete for now (consider soft delete in production)
-    db.delete(patient)
+    # Soft delete: mark as deleted instead of removing from database
+    patient.is_deleted = True
+    patient.deleted_at = datetime.now()
     db.commit()
 
     # Log audit event
@@ -358,6 +379,7 @@ async def delete_patient(
         details={
             "patient_id": patient_id,
             "patient_name": patient_name,
+            "soft_delete": True,
         },
         success=True,
     )

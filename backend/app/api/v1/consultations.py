@@ -51,6 +51,9 @@ async def list_consultations(
     # Build query with eager loading to avoid N+1 problem
     query = db.query(Consultation).options(joinedload(Consultation.patient_rel))
 
+    # Exclude soft-deleted records
+    query = query.filter(Consultation.is_deleted == False)
+
     # Apply filters
     if patient_id:
         query = query.filter(Consultation.patient_id == patient_id)
@@ -231,7 +234,7 @@ async def delete_consultation(
     current_user: User = Depends(get_current_doctor),
 ):
     """
-    Delete a consultation
+    Delete a consultation (soft delete for HIPAA compliance)
 
     Args:
         consultation_id: Consultation ID
@@ -253,8 +256,9 @@ async def delete_consultation(
     # Store consultation info for logging before deletion
     patient_id = consultation.patient_id
 
-    # Delete consultation
-    db.delete(consultation)
+    # Soft delete: mark as deleted instead of removing from database
+    consultation.is_deleted = True
+    consultation.deleted_at = datetime.now()
     db.commit()
 
     # Log audit event
@@ -265,6 +269,7 @@ async def delete_consultation(
         details={
             "consultation_id": consultation_id,
             "patient_id": patient_id,
+            "soft_delete": True,
         },
         success=True,
     )
@@ -306,6 +311,9 @@ async def get_patient_consultation_history(
 
     # Query consultations for this patient with eager loading
     query = db.query(Consultation).filter(Consultation.patient_id == patient_id).options(joinedload(Consultation.patient_rel))
+
+    # Exclude soft-deleted records
+    query = query.filter(Consultation.is_deleted == False)
 
     # Order by date (most recent first)
     query = query.order_by(desc(Consultation.consultation_date), desc(Consultation.consultation_time))
