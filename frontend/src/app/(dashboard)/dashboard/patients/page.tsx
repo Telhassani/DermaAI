@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
-import { listPatients, deletePatient, PatientResponse } from '@/lib/api/patients'
+import { listPatients, deletePatient, getPatient, PatientResponse } from '@/lib/api/patients'
+import { PatientEditModal } from '@/components/patients/PatientEditModal'
 
 export default function PatientsPage() {
   const router = useRouter()
@@ -28,6 +29,8 @@ export default function PatientsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const pageSize = 20
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<PatientResponse | null>(null)
 
   // Fetch patients
   const fetchPatients = async () => {
@@ -63,6 +66,23 @@ export default function PatientsPage() {
       console.error('Error deleting patient:', error)
       alert('Erreur lors de la suppression du patient')
     }
+  }
+
+  // Handle edit
+  const handleEditClick = async (patient: PatientResponse) => {
+    try {
+      const fullPatient = await getPatient(patient.id)
+      setSelectedPatient(fullPatient)
+      setShowEditModal(true)
+    } catch (error) {
+      console.error('Error loading patient:', error)
+      alert('Erreur lors du chargement du patient')
+    }
+  }
+
+  // Handle save
+  const handleSavePatient = (updatedPatient: PatientResponse) => {
+    setPatients(patients.map((p) => (p.id === updatedPatient.id ? updatedPatient : p)))
   }
 
   // Format date
@@ -232,7 +252,7 @@ export default function PatientsPage() {
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => router.push(`/dashboard/patients/${patient.id}/edit`)}
+                    onClick={() => handleEditClick(patient)}
                     className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                     title="Modifier"
                   >
@@ -278,6 +298,17 @@ export default function PatientsPage() {
           )}
         </div>
       )}
+
+      {/* Patient Edit Modal */}
+      <PatientEditModal
+        isOpen={showEditModal}
+        patient={selectedPatient}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedPatient(null)
+        }}
+        onSave={handleSavePatient}
+      />
     </div>
   )
 }
