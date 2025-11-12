@@ -11,13 +11,18 @@ import {
   X,
   User as UserIcon,
   Calendar,
+  Edit2,
+  Printer,
+  Trash2,
 } from 'lucide-react'
-import { listPrescriptions } from '@/lib/api/prescriptions'
+import { listPrescriptions, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 interface Prescription {
   id: number
   consultation_id: number
   patient_id: number
+  doctor_id: number
   prescription_date: string
   valid_until: string
   medications: any[]
@@ -40,11 +45,14 @@ interface PrescriptionListResponse {
 
 export default function PrescriptionsPage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [deleting, setDeleting] = useState<number | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
 
   // Search filters
   const [searchPatient, setSearchPatient] = useState('')
@@ -85,6 +93,37 @@ export default function PrescriptionsPage() {
     setEndDate('')
     setCurrentPage(1)
     fetchPrescriptions()
+  }
+
+  const handleEditPrescription = (prescription: Prescription) => {
+    router.push(`/dashboard/prescriptions/${prescription.id}`)
+  }
+
+  const handlePrintPrescription = async (prescription: Prescription) => {
+    try {
+      // Mark as printed
+      await markPrescriptionPrinted(prescription.id)
+      // Navigate to print page
+      router.push(`/print-prescription/${prescription.id}`)
+    } catch (error) {
+      console.error('Error marking prescription as printed:', error)
+      alert('Erreur lors du marquage de l\'ordonnance')
+    }
+  }
+
+  const handleDeletePrescription = async (prescriptionId: number) => {
+    try {
+      setDeleting(prescriptionId)
+      await deletePrescription(prescriptionId)
+      // Refresh prescriptions
+      setPrescriptions(prev => prev.filter(p => p.id !== prescriptionId))
+      setShowDeleteConfirm(null)
+    } catch (error) {
+      console.error('Error deleting prescription:', error)
+      alert('Erreur lors de la suppression de l\'ordonnance')
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -230,71 +269,82 @@ export default function PrescriptionsPage() {
             )}
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Médicaments
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Validité
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredPrescriptions.map((prescription) => (
-                    <tr
-                      key={prescription.id}
-                      onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
+          <div className="space-y-3">
+            {filteredPrescriptions.map((prescription) => {
+              const isDoctorOwner = user?.id === prescription.doctor_id
+              const canEdit = user?.role === 'doctor' && isDoctorOwner
+
+              return (
+                <div key={prescription.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {prescription.prescription_date && formatDate(prescription.prescription_date)}
+                      </p>
+                      <p className="text-xs text-gray-500">Ordonnance #{prescription.id}</p>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex gap-1">
+                        {prescription.is_delivered && (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                            Remise
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Medications List */}
+                  <div className="mb-3">
+                    <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Médicaments</h4>
+                    <ul className="space-y-1 text-sm text-gray-700">
+                      {prescription.medications.map((med: any, idx: number) => (
+                        <li key={idx}>
+                          {med.name} - {med.dosage} ({med.frequency}, {med.duration})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {prescription.instructions && (
+                    <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded mb-2">
+                      <p className="text-xs font-medium text-gray-500 mb-1">Instructions:</p>
+                      <p>{prescription.instructions}</p>
+                    </div>
+                  )}
+
+                  {/* Action buttons - Below prescription content */}
+                  <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => handleEditPrescription(prescription)}
+                      className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Éditer l'ordonnance"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <div className="font-medium text-gray-900">
-                            {formatDate(prescription.prescription_date)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-gray-400" />
-                          <div className="text-sm font-medium text-gray-900">
-                            {prescription.patient_name || 'N/A'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="max-w-xs">
-                          <p className="text-sm text-gray-900">
-                            {prescription.medications?.length || 0} médicament{prescription.medications?.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(prescription.valid_until)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {/* Actions are accessed from detail page */}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      <Edit2 className="h-4 w-4" />
+                      Éditer
+                    </button>
+                    <button
+                      onClick={() => handlePrintPrescription(prescription)}
+                      className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded transition-colors"
+                      title="Imprimer l'ordonnance"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimer
+                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(prescription.id)}
+                        className="flex items-center gap-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Supprimer l'ordonnance"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -361,6 +411,36 @@ export default function PrescriptionsPage() {
             )}
           </div>
         )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="mx-4 rounded-xl border border-red-200 bg-white p-6 shadow-lg sm:max-w-md">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              Supprimer cette ordonnance ?
+            </h3>
+            <p className="mb-6 text-gray-600">
+              Cette action est irréversible. L'ordonnance sera définitivement supprimée.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                disabled={deleting === showDeleteConfirm}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDeletePrescription(showDeleteConfirm)}
+                disabled={deleting === showDeleteConfirm}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting === showDeleteConfirm ? 'Suppression...' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )
