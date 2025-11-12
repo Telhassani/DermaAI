@@ -106,7 +106,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                  <Pill className="h-5 w-5 text-blue-600" />
+                  <Pill className="h-5 w-5 text-violet-600" />
                   Médicaments
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">{medications.length} médicament(s)</p>
@@ -139,7 +139,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                     </div>
                     <button
                       onClick={() => handleRemoveMedication(idx)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-100 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
                       title="Supprimer"
                     >
                       <Trash2 className="h-5 w-5" />
@@ -149,7 +149,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                   {/* Medication Name - Full Width */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
-                      <Pill className="h-3.5 w-3.5 text-blue-600" />
+                      <Pill className="h-3.5 w-3.5 text-violet-600" />
                       Nom du médicament
                     </label>
                     <input
@@ -157,7 +157,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                       placeholder="Ex: Amoxicilline, Paracétamol..."
                       value={med.name}
                       onChange={(e) => handleMedicationChange(idx, 'name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200"
                     />
                   </div>
 
@@ -166,7 +166,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                     {/* Dosage */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
-                        <Beaker className="h-3.5 w-3.5 text-green-600" />
+                        <Beaker className="h-3.5 w-3.5 text-violet-600" />
                         Dosage
                       </label>
                       <input
@@ -174,14 +174,14 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                         placeholder="Ex: 500mg, 10%..."
                         value={med.dosage}
                         onChange={(e) => handleMedicationChange(idx, 'dosage', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all duration-200"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200"
                       />
                     </div>
 
                     {/* Frequency */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-orange-600" />
+                        <Clock className="h-3.5 w-3.5 text-violet-600" />
                         Fréquence
                       </label>
                       <input
@@ -189,14 +189,14 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                         placeholder="Ex: 2x/jour, 1x soir..."
                         value={med.frequency || ''}
                         onChange={(e) => handleMedicationChange(idx, 'frequency', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all duration-200"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200"
                       />
                     </div>
 
                     {/* Duration */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-purple-600" />
+                        <Calendar className="h-3.5 w-3.5 text-violet-600" />
                         Durée
                       </label>
                       <input
@@ -204,7 +204,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                         placeholder="Ex: 7 jours, 2 semaines..."
                         value={med.duration || ''}
                         onChange={(e) => handleMedicationChange(idx, 'duration', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-200"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200"
                       />
                     </div>
 
@@ -216,7 +216,7 @@ export function PrescriptionEditModal({ isOpen, prescription, onClose, onSave }:
                         placeholder="Ex: 1 boîte, 30 comprimés..."
                         value={med.quantity || ''}
                         onChange={(e) => handleMedicationChange(idx, 'quantity', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200"
                       />
                     </div>
                   </div>
