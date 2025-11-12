@@ -51,112 +51,113 @@ export function PrescriptionCard({
   canDelete = true,
 }: PrescriptionCardProps) {
   return (
-    <div className="rounded-xl border-2 border-violet-200 bg-white p-6 shadow-sm hover:shadow-md transition-all">
-      {/* Header Background Bar */}
-      <div className="mb-6 pb-4 border-b-2 border-violet-100">
-        {/* Date and Prescription ID / Consultation Reference */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-sm font-medium text-gray-600">
-              {prescription_date && formatDate(prescription_date)}
-            </p>
+    <div className="rounded-xl border border-violet-200 bg-white shadow-sm hover:shadow-md transition-all overflow-hidden">
+      {/* Header with gradient violet background */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-violet-100">
+            {prescription_date && formatDate(prescription_date)}
+          </p>
+          <div className="flex items-center gap-3 mt-1">
             {consultation_id ? (
-              <p className="text-xs font-semibold text-violet-600">Consultation n°{consultation_id}</p>
+              <p className="text-lg font-bold text-white">Consultation n°{consultation_id}</p>
             ) : (
-              <p className="text-xs font-semibold text-violet-600">Ordonnance n°{id}</p>
+              <p className="text-lg font-bold text-white">Ordonnance n°{id}</p>
             )}
           </div>
-        {/* Right side - only show is_delivered badge if present */}
+        </div>
         {is_delivered && (
           <div className="text-right">
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-              Remise
+            <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              ✓ Remise
             </span>
           </div>
         )}
-        </div>
       </div>
 
-      {/* Patient Name - Prominent Display */}
-      {patient_name && (
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {patient_name}
-          </h2>
-        </div>
-      )}
+      {/* Main content area */}
+      <div className="p-6 space-y-5">
+        {/* Patient Name - Prominent and Violet */}
+        {patient_name && (
+          <div className="border-b border-violet-100 pb-4">
+            <h2 className="text-2xl font-bold text-violet-900">
+              {patient_name}
+            </h2>
+          </div>
+        )}
 
-      {/* Medications Section */}
-      {medications && medications.length > 0 && (
-        <div className="mb-6">
-          <h4 className="mb-3 text-sm font-bold uppercase tracking-wider text-violet-700 flex items-center gap-2">
-            <span className="h-1 w-1 rounded-full bg-violet-600"></span>
-            Médicaments
-          </h4>
-          <ul className="space-y-1">
-            {medications.map((med, idx) => (
-              <li key={idx} className="text-sm text-gray-700">
-                <span className="font-medium">{med.name}</span>
-                {med.dosage && ` - ${med.dosage}`}
-                {med.frequency && ` (${med.frequency})`}
-                {med.duration && `, ${med.duration}`}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {/* Medications Section */}
+        {medications && medications.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-violet-700">
+              Médicaments
+            </h3>
+            <ul className="space-y-2">
+              {medications.map((med, idx) => (
+                <li key={idx} className="flex gap-3 text-sm text-gray-700">
+                  <span className="text-violet-600 font-bold min-w-fit">•</span>
+                  <span>
+                    <span className="font-medium text-gray-900">{med.name}</span>
+                    {med.dosage && <span className="text-gray-600"> - {med.dosage}</span>}
+                    {med.frequency && <span className="text-gray-600"> ({med.frequency})</span>}
+                    {med.duration && <span className="text-gray-600">, {med.duration}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {/* Instructions Section */}
-      {instructions && (
-        <div className="mb-5 p-4 bg-gradient-to-r from-blue-50 to-blue-50/50 rounded-lg border-l-4 border-l-blue-500">
-          <p className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-2 flex items-center gap-2">
-            <span className="h-1 w-1 rounded-full bg-blue-600"></span>
-            Instructions
-          </p>
-          <p className="text-sm text-gray-800 leading-relaxed">{instructions}</p>
-        </div>
-      )}
+        {/* Instructions Section */}
+        {instructions && (
+          <div className="p-4 bg-violet-50 rounded-lg border-l-4 border-l-violet-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-violet-700 mb-2">
+              Instructions
+            </p>
+            <p className="text-sm text-gray-800 leading-relaxed">{instructions}</p>
+          </div>
+        )}
 
-      {/* Notes Section */}
-      {notes && (
-        <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-purple-50/50 rounded-lg border-l-4 border-l-purple-500">
-          <p className="text-xs font-bold uppercase tracking-wider text-purple-700 mb-2 flex items-center gap-2">
-            <span className="h-1 w-1 rounded-full bg-purple-600"></span>
-            Notes
-          </p>
-          <p className="text-sm text-gray-800 leading-relaxed">{notes}</p>
-        </div>
-      )}
+        {/* Notes Section */}
+        {notes && (
+          <div className="p-4 bg-violet-50 rounded-lg border-l-4 border-l-violet-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-violet-700 mb-2">
+              Notes
+            </p>
+            <p className="text-sm text-gray-800 leading-relaxed">{notes}</p>
+          </div>
+        )}
+      </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3 mt-6 pt-6 border-t-2 border-violet-100">
+      {/* Footer with gradient violet background and action buttons */}
+      <div className="bg-gradient-to-r from-violet-50 to-purple-50 px-6 py-4 border-t border-violet-200 flex flex-wrap items-center gap-3">
         {onEdit && (
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-lg border-2 border-violet-200 hover:border-violet-300 transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 hover:text-violet-900 hover:bg-violet-100 rounded-lg transition-all duration-200"
             title="Éditer l'ordonnance"
           >
-            <Edit2 className="h-5 w-5" />
+            <Edit2 className="h-4 w-4" />
             Éditer
           </button>
         )}
         {onPrint && (
           <button
             onClick={onPrint}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 hover:text-violet-900 hover:bg-violet-100 rounded-lg transition-all duration-200"
             title="Imprimer l'ordonnance"
           >
-            <Printer className="h-5 w-5" />
+            <Printer className="h-4 w-4" />
             Imprimer
           </button>
         )}
         {onDelete && canDelete && (
           <button
             onClick={onDelete}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-300 transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
             title="Supprimer l'ordonnance"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-4 w-4" />
             Supprimer
           </button>
         )}
