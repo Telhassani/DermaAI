@@ -124,7 +124,7 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
                         'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
                         isActive
                           ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
+                          : 'text-gray-700 hover:bg-blue-50 hover:text-gray-900 group-hover:text-blue-600',
                         collapsed && 'justify-center'
                       )}
                       title={collapsed ? item.label : undefined}
@@ -132,7 +132,7 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
                       <Icon
                         className={cn(
                           'h-5 w-5 flex-shrink-0',
-                          isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                          isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'
                         )}
                       />
                       {!collapsed && (
