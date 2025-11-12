@@ -59,8 +59,23 @@ class Prescription(BaseModel):
 
     # Relationships
     # consultation = relationship("Consultation", back_populates="prescriptions")
-    # patient = relationship("Patient", back_populates="prescriptions")
+    patient = relationship("Patient")
+    doctor = relationship("User")
     # doctor = relationship("User", back_populates="prescriptions")
+
+    @property
+    def patient_name(self) -> str:
+        """Get the patient's full name"""
+        if self.patient:
+            return self.patient.full_name
+        return "N/A"
+
+    @property
+    def doctor_name(self) -> str:
+        """Get the doctor's full name"""
+        if self.doctor:
+            return self.doctor.full_name
+        return "N/A"
 
     def __repr__(self):
         return f"<Prescription(id={self.id}, patient_id={self.patient_id}, date={self.prescription_date})>"

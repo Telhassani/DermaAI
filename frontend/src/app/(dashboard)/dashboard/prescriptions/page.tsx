@@ -6,11 +6,9 @@ import {
   Pill,
   Search,
   Plus,
-  Eye,
   Download,
   Filter,
   X,
-  FileText,
   User as UserIcon,
   Calendar,
 } from 'lucide-react'
@@ -50,6 +48,8 @@ export default function PrescriptionsPage() {
 
   // Search filters
   const [searchPatient, setSearchPatient] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
@@ -75,11 +75,14 @@ export default function PrescriptionsPage() {
 
   const handleSearch = () => {
     setCurrentPage(1)
-    fetchPrescriptions()
+    // Apply client-side filtering based on patient name and dates
+    // This filters the fetched data
   }
 
   const clearFilters = () => {
     setSearchPatient('')
+    setStartDate('')
+    setEndDate('')
     setCurrentPage(1)
     fetchPrescriptions()
   }
@@ -93,29 +96,24 @@ export default function PrescriptionsPage() {
     })
   }
 
-  const getStatusBadge = (prescription: Prescription) => {
-    if (prescription.is_delivered) {
-      return (
-        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-          Livrée
-        </span>
-      )
-    }
-    if (prescription.is_printed) {
-      return (
-        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-          Imprimée
-        </span>
-      )
-    }
-    return (
-      <span className="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700">
-        En attente
-      </span>
-    )
+  const formatDateForInput = (date: string) => {
+    if (!date) return ''
+    return new Date(date).toISOString().split('T')[0]
   }
 
-  const hasActiveFilters = searchPatient
+  // Filter prescriptions based on search criteria
+  const filteredPrescriptions = prescriptions.filter((prescription) => {
+    const matchesName = !searchPatient ||
+      (prescription.patient_name?.toLowerCase() || '').includes(searchPatient.toLowerCase())
+
+    const prescriptionDate = new Date(prescription.prescription_date)
+    const matchesStartDate = !startDate || prescriptionDate >= new Date(startDate)
+    const matchesEndDate = !endDate || prescriptionDate <= new Date(endDate)
+
+    return matchesName && matchesStartDate && matchesEndDate
+  })
+
+  const hasActiveFilters = searchPatient || startDate || endDate
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -153,7 +151,7 @@ export default function PrescriptionsPage() {
           </div>
 
           {/* Quick search bar */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
@@ -164,12 +162,6 @@ export default function PrescriptionsPage() {
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
-            <button
-              onClick={handleSearch}
-              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-            >
-              Rechercher
-            </button>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
@@ -180,12 +172,40 @@ export default function PrescriptionsPage() {
               </button>
             )}
           </div>
+
+          {/* Date range filters */}
+          {showFilters && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date de début
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date de fin
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Results summary */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            {total} ordonnance{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
+            {filteredPrescriptions.length} ordonnance{filteredPrescriptions.length > 1 ? 's' : ''} trouvée{filteredPrescriptions.length > 1 ? 's' : ''}
           </p>
         </div>
 
@@ -194,7 +214,7 @@ export default function PrescriptionsPage() {
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
           </div>
-        ) : prescriptions.length === 0 ? (
+        ) : filteredPrescriptions.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
             <Pill className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-4 text-sm text-gray-500">
@@ -225,9 +245,6 @@ export default function PrescriptionsPage() {
                       Médicaments
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Validité
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -236,10 +253,11 @@ export default function PrescriptionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {prescriptions.map((prescription) => (
+                  {filteredPrescriptions.map((prescription) => (
                     <tr
                       key={prescription.id}
-                      className="hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/print-prescription/${prescription.id}`)}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors hover:shadow-md"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm">
@@ -265,25 +283,15 @@ export default function PrescriptionsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(prescription)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {formatDate(prescription.valid_until)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => router.push(`/dashboard/consultations/${prescription.consultation_id}`)}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900"
-                            title="Voir la consultation"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => router.push(`/print-prescription/${prescription.id}`)}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded transition-colors"
                             title="Imprimer l'ordonnance"
                           >
                             <Download className="h-4 w-4" />
