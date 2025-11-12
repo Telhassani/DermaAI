@@ -572,8 +572,6 @@ export default function PatientDetailPage() {
                     instructions={prescription.instructions}
                     notes={prescription.notes}
                     consultation_id={prescription.consultation_id}
-                    created_at={prescription.created_at}
-                    valid_until={prescription.valid_until}
                     onEdit={() => handleEditPrescription(prescription)}
                     onPrint={() => handlePrintPrescription(prescription)}
                     onDelete={() => handleDeletePrescription(prescription.id)}
