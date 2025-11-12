@@ -158,35 +158,13 @@ export default function PrescriptionDetailPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm print:border-0 print:p-0 print:shadow-none">
           {/* Prescription header */}
           <div className="mb-8 border-b border-gray-200 pb-6 print:mb-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600">
-                  {formatDate(prescription.prescription_date)}
-                </p>
-                <h1 className="mt-1 text-2xl font-bold text-gray-900">
-                  Ordonnance #{prescription.id}
-                </h1>
-              </div>
-              <div className="text-right print:hidden">
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePrint}
-                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    title="Imprimer l'ordonnance"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Imprimer
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                    title="Supprimer l'ordonnance"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Supprimer
-                  </button>
-                </div>
-              </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                {formatDate(prescription.prescription_date)}
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-gray-900">
+                Ordonnance #{prescription.id}
+              </h1>
             </div>
             <p className="text-sm text-gray-600">
               Patient: <span className="font-medium text-gray-900">{prescription.patient_name}</span>
@@ -235,19 +213,28 @@ export default function PrescriptionDetailPage() {
             </div>
           )}
 
-
-          {/* Action buttons for print view */}
-          <div className="mt-8 hidden gap-2 border-t border-gray-200 pt-6 print:flex print:flex-row">
+          {/* Action buttons */}
+          <div className="mt-8 flex gap-4 border-t border-gray-200 pt-6 print:hidden">
+            <button
+              onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+              title="Éditer l'ordonnance"
+            >
+              <Edit className="h-5 w-5" />
+              Éditer
+            </button>
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 text-green-600 hover:text-green-900"
+              className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors"
+              title="Imprimer l'ordonnance"
             >
               <Printer className="h-5 w-5" />
               Imprimer
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="inline-flex items-center gap-2 text-red-600 hover:text-red-900"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
+              title="Supprimer l'ordonnance"
             >
               <Trash2 className="h-5 w-5" />
               Supprimer
