@@ -110,7 +110,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Search and filters */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 p-6 mb-6 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
@@ -155,9 +155,9 @@ export default function PatientsPage() {
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-violet-100 to-purple-100 border-b border-violet-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Patient
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
