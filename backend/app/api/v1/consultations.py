@@ -71,6 +71,12 @@ async def list_consultations(
     # Calculate total pages
     total_pages = math.ceil(total / page_size) if total > 0 else 0
 
+    # Enrich consultations with patient names
+    for consultation in consultations:
+        patient = db.query(Patient).filter(Patient.id == consultation.patient_id).first()
+        if patient:
+            consultation.patient_name = patient.full_name
+
     return ConsultationListResponse(
         consultations=consultations,
         total=total,
@@ -324,6 +330,10 @@ async def get_patient_consultation_history(
 
     # Calculate total pages
     total_pages = math.ceil(total / page_size) if total > 0 else 0
+
+    # Enrich consultations with patient name (we already have the patient object)
+    for consultation in consultations:
+        consultation.patient_name = patient.full_name
 
     return ConsultationListResponse(
         consultations=consultations,
