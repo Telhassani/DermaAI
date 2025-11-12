@@ -1,0 +1,74 @@
+# Render.com Blueprint for DermaAI
+# This file defines all services for one-click deployment
+
+services:
+  # Backend API (FastAPI)
+  - type: web
+    name: dermai-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: frankfurt  # Change to your preferred region
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dermai-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: dermai-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set manually in Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: KANTESTI_API_KEY
+        sync: false  # Set manually in Render dashboard
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Frontend (Next.js)
+  - type: web
+    name: dermai-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    region: frankfurt  # Change to your preferred region
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: dermai-backend
+          type: web
+          property: host
+      - key: NEXT_PUBLIC_APP_ENV
+        value: production
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+
+databases:
+  # PostgreSQL Database
+  - name: dermai-postgres
+    databaseName: dermai_db
+    user: dermai_user
+    plan: free
+    region: frankfurt  # Change to your preferred region
+
+  # Redis Cache
+  - name: dermai-redis
+    plan: free
+    region: frankfurt  # Change to your preferred region
