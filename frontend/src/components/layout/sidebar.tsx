@@ -18,7 +18,7 @@ import {
   BarChart3,
   Pill,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/cn'
 
 interface SidebarProps {
   className?: string
@@ -39,7 +39,7 @@ const menuItems = [
     items: [
       { icon: Users, label: 'Patients', href: '/dashboard/patients', badge: null },
       { icon: FileText, label: 'Consultations', href: '/dashboard/consultations', badge: null },
-      { icon: Calendar, label: 'Rendez-vous', href: '/dashboard/appointments', badge: '3' },
+      { icon: Calendar, label: 'Calendrier', href: '/dashboard/calendar', badge: null },
       { icon: Pill, label: 'Ordonnances', href: '/dashboard/prescriptions', badge: null },
     ],
   },
