@@ -94,13 +94,13 @@ async def api_v1_root():
 
 
 # Include routers
-from app.api.v1 import auth, patients, consultations, prescriptions
+from app.api.v1 import auth, patients, consultations, prescriptions, appointments
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(patients.router, prefix=f"{settings.API_V1_PREFIX}/patients", tags=["Patients"])
 app.include_router(consultations.router, prefix=f"{settings.API_V1_PREFIX}/consultations", tags=["Consultations"])
 app.include_router(prescriptions.router, prefix=f"{settings.API_V1_PREFIX}/prescriptions", tags=["Prescriptions"])
-# app.include_router(appointments.router, prefix="/api/v1/appointments", tags=["Appointments"])
+app.include_router(appointments.router, prefix=f"{settings.API_V1_PREFIX}/appointments", tags=["Appointments"])
 # app.include_router(ai_analysis.router, prefix="/api/v1/ai-analysis", tags=["AI Analysis"])
 # app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 
