@@ -3,9 +3,10 @@
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Calendar as CalendarIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
 import { Appointment } from '@/lib/hooks/use-appointments'
-import { AppointmentCard } from './appointment-card'
+import { AnimatedAppointmentCard } from './animated-appointment-card'
 
 interface CalendarAgendaViewProps {
   appointments: Appointment[]
@@ -84,15 +85,24 @@ export function CalendarAgendaView({
           </div>
         ) : (
           <div className="space-y-6">
-            {days.map((day) => {
+            {days.map((day, dayIndex) => {
               const date = new Date(day)
               const dayAppointments = appointmentsByDay[day]
               const isCurrentDay = isToday(date)
 
               return (
-                <div key={day} className="space-y-3">
+                <motion.div
+                  key={day}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: dayIndex * 0.1, duration: 0.3 }}
+                  className="space-y-3"
+                >
                   {/* Day header */}
-                  <div
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: dayIndex * 0.1 + 0.1, duration: 0.3 }}
                     className={cn(
                       'sticky top-0 z-10 border-l-4 bg-white py-2 pl-3',
                       isCurrentDay ? 'border-l-blue-600' : 'border-l-gray-200'
@@ -109,23 +119,24 @@ export function CalendarAgendaView({
                     <p className="text-xs text-gray-500">
                       {dayAppointments.length} rendez-vous
                     </p>
-                  </div>
+                  </motion.div>
 
                   {/* Appointments list */}
                   <div className="space-y-2 pl-4">
-                    {dayAppointments.map((appointment) => (
-                      <AppointmentCard
+                    {dayAppointments.map((appointment, index) => (
+                      <AnimatedAppointmentCard
                         key={appointment.id}
                         appointment={appointment}
                         onClick={() => onAppointmentClick?.(appointment)}
                         onEdit={() => onAppointmentEdit?.(appointment)}
-                        onDelete={() => onAppointmentDelete?.(appointment)}
+                        onDelete={() => onAppointmentDelete?.(appointment.id)}
                         compact={false}
                         showActions={true}
+                        animationDelay={dayIndex * 0.1 + index * 0.05}
                       />
                     ))}
                   </div>
-                </div>
+                </motion.div>
               )
             })}
           </div>

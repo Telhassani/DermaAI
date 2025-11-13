@@ -156,7 +156,7 @@ export function useCreateAppointment() {
   })
 }
 
-// Hook: Update appointment
+// Hook: Update appointment (with optimistic updates)
 export function useUpdateAppointment() {
   const queryClient = useQueryClient()
 
@@ -165,13 +165,48 @@ export function useUpdateAppointment() {
       const response = await api.appointments.update(id, data)
       return response.data
     },
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: appointmentKeys.lists() })
+      await queryClient.cancelQueries({ queryKey: appointmentKeys.detail(id) })
+
+      // Snapshot previous values
+      const previousAppointments = queryClient.getQueryData(appointmentKeys.lists())
+      const previousAppointment = queryClient.getQueryData(appointmentKeys.detail(id))
+
+      // Optimistically update lists
+      queryClient.setQueriesData({ queryKey: appointmentKeys.lists() }, (old: any) => {
+        if (!old?.appointments) return old
+        return {
+          ...old,
+          appointments: old.appointments.map((apt: Appointment) =>
+            apt.id === id ? { ...apt, ...data } : apt
+          ),
+        }
+      })
+
+      // Optimistically update detail
+      queryClient.setQueryData(appointmentKeys.detail(id), (old: any) => {
+        if (!old) return old
+        return { ...old, ...data }
+      })
+
+      return { previousAppointments, previousAppointment }
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
       queryClient.invalidateQueries({ queryKey: appointmentKeys.detail(data.id) })
       queryClient.invalidateQueries({ queryKey: appointmentKeys.stats() })
       toast.success('Rendez-vous modifié avec succès')
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousAppointments) {
+        queryClient.setQueryData(appointmentKeys.lists(), context.previousAppointments)
+      }
+      if (context?.previousAppointment) {
+        queryClient.setQueryData(appointmentKeys.detail(variables.id), context.previousAppointment)
+      }
       console.error('Update appointment error:', error)
     },
   })
@@ -206,7 +241,7 @@ export function useUpdateAppointmentStatus() {
   })
 }
 
-// Hook: Delete appointment
+// Hook: Delete appointment (with optimistic updates)
 export function useDeleteAppointment() {
   const queryClient = useQueryClient()
 
@@ -215,13 +250,37 @@ export function useDeleteAppointment() {
       await api.appointments.delete(id)
       return id
     },
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: appointmentKeys.lists() })
+
+      // Snapshot previous value
+      const previousAppointments = queryClient.getQueryData(appointmentKeys.lists())
+
+      // Optimistically remove from lists
+      queryClient.setQueriesData({ queryKey: appointmentKeys.lists() }, (old: any) => {
+        if (!old?.appointments) return old
+        return {
+          ...old,
+          appointments: old.appointments.filter((apt: Appointment) => apt.id !== id),
+          total: old.total - 1,
+        }
+      })
+
+      return { previousAppointments }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
       queryClient.invalidateQueries({ queryKey: appointmentKeys.stats() })
       toast.success('Rendez-vous supprimé avec succès')
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // Rollback on error
+      if (context?.previousAppointments) {
+        queryClient.setQueryData(appointmentKeys.lists(), context.previousAppointments)
+      }
       console.error('Delete appointment error:', error)
+      toast.error('Erreur lors de la suppression')
     },
   })
 }
