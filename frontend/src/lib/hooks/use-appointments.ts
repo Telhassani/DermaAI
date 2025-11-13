@@ -226,7 +226,7 @@ export function useDeleteAppointment() {
   })
 }
 
-// Hook: Check conflicts
+// Hook: Check conflicts (mutation version)
 export function useCheckAppointmentConflicts() {
   return useMutation({
     mutationFn: async (data: {
@@ -238,5 +238,27 @@ export function useCheckAppointmentConflicts() {
       const response = await api.appointments.checkConflicts(data)
       return response.data
     },
+  })
+}
+
+// Hook: Check conflicts (query version for real-time detection)
+export function useCheckAppointmentConflictsQuery(
+  data?: {
+    doctor_id: number
+    start_time: string
+    end_time: string
+    exclude_appointment_id?: number
+  }
+) {
+  return useQuery({
+    queryKey: ['conflicts', data],
+    queryFn: async () => {
+      if (!data) throw new Error('Data is required')
+      const response = await api.appointments.checkConflicts(data)
+      return response.data
+    },
+    enabled: !!data,
+    staleTime: 0, // Always refetch for real-time detection
+    retry: false,
   })
 }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PatientSearchSelect } from './patient-search-select'
+import { ConflictDetector } from './conflict-detector'
 import { AppointmentType, AppointmentStatus, Appointment } from '@/lib/hooks/use-appointments'
 import { Patient } from '@/lib/hooks/use-patients'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -123,6 +124,23 @@ export function AppointmentForm({
     }
   }
 
+  // Calculate start and end times for conflict detection
+  const getCalculatedTimes = (): { start: Date | null; end: Date | null } => {
+    if (!watchDate || !watchStartTime || !watchDuration) {
+      return { start: null, end: null }
+    }
+
+    try {
+      const start = new Date(`${watchDate}T${watchStartTime}:00`)
+      const end = addMinutes(start, watchDuration)
+      return { start, end }
+    } catch {
+      return { start: null, end: null }
+    }
+  }
+
+  const calculatedTimes = getCalculatedTimes()
+
   // Handle form submission
   const handleFormSubmit = (data: AppointmentFormData) => {
     // Combine date and time
@@ -141,6 +159,12 @@ export function AppointmentForm({
     }
 
     onSubmit(payload)
+  }
+
+  // Handle suggestion selection from conflict detector
+  const handleSuggestionSelect = (newStartTime: Date) => {
+    setValue('date', format(newStartTime, 'yyyy-MM-dd'))
+    setValue('start_time', format(newStartTime, 'HH:mm'))
   }
 
   return (
@@ -297,6 +321,17 @@ export function AppointmentForm({
           className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
+      {/* Conflict Detection */}
+      {user && calculatedTimes.start && calculatedTimes.end && (
+        <ConflictDetector
+          startTime={calculatedTimes.start}
+          endTime={calculatedTimes.end}
+          doctorId={user.id}
+          excludeAppointmentId={appointment?.id}
+          onSuggestionSelect={handleSuggestionSelect}
+        />
+      )}
 
       {/* Actions */}
       <div className="flex justify-end gap-3 border-t pt-4">
