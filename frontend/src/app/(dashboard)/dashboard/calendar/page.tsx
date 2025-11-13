@@ -4,14 +4,20 @@ import { useState } from 'react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { CalendarToolbar, CalendarView } from '@/components/calendar/calendar-toolbar'
 import { CalendarGrid } from '@/components/calendar/calendar-grid'
-import { CalendarWeekView } from '@/components/calendar/calendar-week-view'
-import { CalendarDayView } from '@/components/calendar/calendar-day-view'
+import { CalendarWeekViewDnd } from '@/components/calendar/calendar-week-view-dnd'
+import { CalendarDayViewDnd } from '@/components/calendar/calendar-day-view-dnd'
 import { CalendarAgendaView } from '@/components/calendar/calendar-agenda-view'
 import { AppointmentCreateModal } from '@/components/calendar/appointment-create-modal'
 import { AppointmentDetailsModal } from '@/components/calendar/appointment-details-modal'
 import {
+  CalendarFiltersPanel,
+  CalendarFilters,
+} from '@/components/calendar/calendar-filters-panel'
+import {
   useAppointments,
+  useUpdateAppointment,
   useDeleteAppointment,
+  useCheckAppointmentConflicts,
   Appointment,
 } from '@/lib/hooks/use-appointments'
 import { toast } from 'sonner'
@@ -21,6 +27,15 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>('month')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Filters state
+  const [filters, setFilters] = useState<CalendarFilters>({
+    types: [],
+    statuses: [],
+    searchQuery: '',
+    showCancelled: true,
+    showCompleted: true,
+  })
 
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -73,8 +88,10 @@ export default function CalendarPage() {
     sort_order: 'asc',
   })
 
-  // Delete mutation
+  // Mutations
   const deleteMutation = useDeleteAppointment()
+  const updateMutation = useUpdateAppointment()
+  const { mutateAsync: checkConflicts } = useCheckAppointmentConflicts()
 
   // Handlers
   const handleDateChange = (date: Date) => {
@@ -118,8 +135,82 @@ export default function CalendarPage() {
     setCreateModalOpen(true)
   }
 
+  const handleAppointmentReschedule = async (
+    appointmentId: number,
+    newStartTime: Date,
+    newEndTime: Date
+  ) => {
+    try {
+      // Check for conflicts first
+      const conflictData = await checkConflicts({
+        start_time: newStartTime.toISOString(),
+        end_time: newEndTime.toISOString(),
+        doctor_id: appointments.find((a) => a.id === appointmentId)?.doctor_id || 0,
+        exclude_appointment_id: appointmentId,
+      })
+
+      if (conflictData.has_conflict) {
+        toast.error(
+          `Conflit détecté avec ${conflictData.conflicts?.length || 0} rendez-vous existant(s)`
+        )
+        return
+      }
+
+      // No conflicts, proceed with rescheduling
+      await updateMutation.mutateAsync({
+        id: appointmentId,
+        data: {
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString(),
+        },
+      })
+
+      toast.success('Rendez-vous reprogrammé avec succès')
+    } catch (error) {
+      toast.error('Erreur lors de la reprogrammation du rendez-vous')
+      console.error('Rescheduling error:', error)
+    }
+  }
+
   // Get appointments from data
-  const appointments = appointmentsData?.appointments || []
+  const allAppointments = appointmentsData?.appointments || []
+
+  // Apply filters to appointments
+  const appointments = allAppointments.filter((appointment) => {
+    // Filter by type
+    if (filters.types.length > 0 && !filters.types.includes(appointment.type)) {
+      return false
+    }
+
+    // Filter by status
+    if (filters.statuses.length > 0 && !filters.statuses.includes(appointment.status)) {
+      return false
+    }
+
+    // Filter by search query (patient ID or reason)
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase()
+      const matchesPatient = appointment.patient_id.toString().includes(query)
+      const matchesReason = appointment.reason?.toLowerCase().includes(query)
+      const matchesNotes = appointment.notes?.toLowerCase().includes(query)
+
+      if (!matchesPatient && !matchesReason && !matchesNotes) {
+        return false
+      }
+    }
+
+    // Filter cancelled appointments
+    if (!filters.showCancelled && appointment.status === 'CANCELLED') {
+      return false
+    }
+
+    // Filter completed appointments
+    if (!filters.showCompleted && appointment.status === 'COMPLETED') {
+      return false
+    }
+
+    return true
+  })
 
   return (
     <div className="flex h-full flex-col gap-4 p-6">
@@ -195,24 +286,26 @@ export default function CalendarPage() {
 
           {view === 'week' && (
             <div style={{ height: 'calc(100vh - 300px)' }}>
-              <CalendarWeekView
+              <CalendarWeekViewDnd
                 currentDate={currentDate}
                 appointments={appointments}
                 onAppointmentClick={handleAppointmentClick}
                 onTimeSlotClick={handleTimeSlotClick}
+                onAppointmentReschedule={handleAppointmentReschedule}
               />
             </div>
           )}
 
           {view === 'day' && (
             <div style={{ height: 'calc(100vh - 300px)' }}>
-              <CalendarDayView
+              <CalendarDayViewDnd
                 currentDate={currentDate}
                 appointments={appointments}
                 onAppointmentClick={handleAppointmentClick}
                 onAppointmentEdit={handleAppointmentEdit}
                 onAppointmentDelete={handleAppointmentDelete}
                 onTimeSlotClick={handleTimeSlotClick}
+                onAppointmentReschedule={handleAppointmentReschedule}
               />
             </div>
           )}
@@ -272,6 +365,14 @@ export default function CalendarPage() {
           setDetailsModalOpen(false)
           setSelectedAppointment(null)
         }}
+      />
+
+      {/* Filters Panel */}
+      <CalendarFiltersPanel
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
       />
     </div>
   )
