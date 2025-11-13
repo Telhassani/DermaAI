@@ -7,6 +7,8 @@ import { CalendarGrid } from '@/components/calendar/calendar-grid'
 import { CalendarWeekView } from '@/components/calendar/calendar-week-view'
 import { CalendarDayView } from '@/components/calendar/calendar-day-view'
 import { CalendarAgendaView } from '@/components/calendar/calendar-agenda-view'
+import { AppointmentCreateModal } from '@/components/calendar/appointment-create-modal'
+import { AppointmentDetailsModal } from '@/components/calendar/appointment-details-modal'
 import {
   useAppointments,
   useDeleteAppointment,
@@ -19,6 +21,13 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>('month')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Modal state
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createModalDate, setCreateModalDate] = useState<Date | undefined>()
+  const [createModalHour, setCreateModalHour] = useState<number | undefined>()
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
 
   // Calculate date range based on view
   const getDateRange = () => {
@@ -77,18 +86,19 @@ export default function CalendarPage() {
   }
 
   const handleCreateAppointment = () => {
-    // TODO: Open create appointment modal
-    toast.info('Fonctionnalité de création en développement (Phase 3)')
+    setCreateModalDate(undefined)
+    setCreateModalHour(undefined)
+    setCreateModalOpen(true)
   }
 
   const handleAppointmentClick = (appointment: Appointment) => {
-    // TODO: Open appointment details modal
-    toast.info(`Rendez-vous #${appointment.id} - Détails à venir (Phase 3)`)
+    setSelectedAppointment(appointment)
+    setDetailsModalOpen(true)
   }
 
   const handleAppointmentEdit = (appointment: Appointment) => {
-    // TODO: Open edit appointment modal
-    toast.info(`Édition du rendez-vous #${appointment.id} à venir (Phase 3)`)
+    setSelectedAppointment(appointment)
+    setDetailsModalOpen(true)
   }
 
   const handleAppointmentDelete = (appointment: Appointment) => {
@@ -103,8 +113,9 @@ export default function CalendarPage() {
   }
 
   const handleTimeSlotClick = (date: Date, hour: number) => {
-    // TODO: Open create appointment modal with pre-filled date and time
-    toast.info(`Créer un rendez-vous le ${format(date, 'dd/MM/yyyy')} à ${hour}:00`)
+    setCreateModalDate(date)
+    setCreateModalHour(hour)
+    setCreateModalOpen(true)
   }
 
   // Get appointments from data
@@ -245,6 +256,23 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <AppointmentCreateModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        initialDate={createModalDate}
+        initialHour={createModalHour}
+      />
+
+      <AppointmentDetailsModal
+        appointment={selectedAppointment}
+        isOpen={detailsModalOpen}
+        onClose={() => {
+          setDetailsModalOpen(false)
+          setSelectedAppointment(null)
+        }}
+      />
     </div>
   )
 }
