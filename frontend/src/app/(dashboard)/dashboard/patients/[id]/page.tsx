@@ -330,7 +330,7 @@ export default function PatientDetailPage() {
   return (
     <div className="space-y-6">
       {/* Gradient Header with Patient Info */}
-      <div className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 p-8 text-white shadow-lg">
+      <div className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-white shadow-lg">
         <div className="flex items-start gap-6">
           <button
             onClick={() => router.back()}
@@ -341,11 +341,11 @@ export default function PatientDetailPage() {
           </button>
           <div>
             <h1 className="text-4xl font-bold">{patient.full_name}</h1>
-            <p className="mt-2 text-violet-100 text-base">
+            <p className="mt-2 text-blue-100 text-base">
               {patient.age} ans • {getGenderLabel(patient.gender)} • Depuis le {formatDate(patient.created_at)}
             </p>
             {patient.identification_number && (
-              <p className="mt-1 text-violet-200 text-sm">
+              <p className="mt-1 text-blue-200 text-sm">
                 {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
               </p>
             )}
