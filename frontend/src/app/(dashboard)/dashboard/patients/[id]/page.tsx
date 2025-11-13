@@ -331,45 +331,24 @@ export default function PatientDetailPage() {
     <div className="space-y-6">
       {/* Gradient Header with Patient Info */}
       <div className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 p-8 text-white shadow-lg">
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-start gap-6 flex-1">
-            <button
-              onClick={() => router.back()}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
-              title="Retour"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-4xl font-bold">{patient.full_name}</h1>
-              <p className="mt-2 text-violet-100 text-base">
-                {patient.age} ans • {getGenderLabel(patient.gender)} • Depuis le {formatDate(patient.created_at)}
+        <div className="flex items-start gap-6">
+          <button
+            onClick={() => router.back()}
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm flex-shrink-0"
+            title="Retour"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-4xl font-bold">{patient.full_name}</h1>
+            <p className="mt-2 text-violet-100 text-base">
+              {patient.age} ans • {getGenderLabel(patient.gender)} • Depuis le {formatDate(patient.created_at)}
+            </p>
+            {patient.identification_number && (
+              <p className="mt-1 text-violet-200 text-sm">
+                {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
               </p>
-              {patient.identification_number && (
-                <p className="mt-1 text-violet-200 text-sm">
-                  {getIdentificationTypeLabel(patient.identification_type)}: {patient.identification_number}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/dashboard/patients/${patientId}/edit`)}
-              className="flex items-center gap-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white transition-all"
-              title="Modifier les informations"
-            >
-              <Edit2 className="h-4 w-4" />
-              Modifier
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 rounded-lg bg-red-500/30 hover:bg-red-500/50 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white transition-all"
-              title="Supprimer le patient"
-            >
-              <Trash2 className="h-4 w-4" />
-              Supprimer
-            </button>
+            )}
           </div>
         </div>
       </div>

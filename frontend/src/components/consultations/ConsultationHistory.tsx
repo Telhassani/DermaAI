@@ -67,7 +67,7 @@ export default function ConsultationHistory({ patientId }: ConsultationHistoryPr
         <p className="mt-4 text-sm text-gray-500">Aucune consultation enregistrée</p>
         <button
           onClick={() => router.push(`/dashboard/patients/${patientId}/consultation/new`)}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
         >
           <Plus className="h-4 w-4" />
           Nouvelle consultation
@@ -85,7 +85,7 @@ export default function ConsultationHistory({ patientId }: ConsultationHistoryPr
         </p>
         <button
           onClick={() => router.push(`/dashboard/patients/${patientId}/consultation/new`)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
         >
           <Plus className="h-4 w-4" />
           Nouvelle consultation
