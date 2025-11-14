@@ -29,7 +29,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/theme'
 
 export default function DashboardPage() {
-  const { user, refetchUser } = useAuth()
+  const { user, checkAuth, isAuthenticated } = useAuth()
   const router = useRouter()
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -45,11 +45,14 @@ export default function DashboardPage() {
 
     // Fetch user data if not loaded
     if (!user) {
-      refetchUser()
+      checkAuth().then(() => {
+        // User data loaded, now fetch dashboard
+        fetchDashboardData()
+      })
     } else {
       fetchDashboardData()
     }
-  }, [user, router, refetchUser])
+  }, [user, router])
 
   const fetchDashboardData = async () => {
     try {
