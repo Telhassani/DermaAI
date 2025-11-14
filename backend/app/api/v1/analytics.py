@@ -8,8 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.core.security import get_current_active_user
+from app.db.session import get_db
+from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.services.analytics import AnalyticsService
 from app.schemas.analytics import (
