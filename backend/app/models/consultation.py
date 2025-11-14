@@ -96,7 +96,7 @@ class Consultation(BaseModel):
     doctor = relationship("User", foreign_keys=[doctor_id], back_populates="consultations")
     appointment = relationship("Appointment", foreign_keys=[appointment_id], back_populates="consultations")
     prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
-    # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")  # To be added later
+    images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Consultation(id={self.id}, patient_id={self.patient_id}, date={self.consultation_date})>"
