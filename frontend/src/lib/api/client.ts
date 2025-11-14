@@ -179,6 +179,52 @@ export const api = {
         responseType: 'blob',
       }),
   },
+
+  // Analytics
+  analytics: {
+    // Global statistics
+    globalStats: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/global-stats', { params }),
+
+    // Consultation analytics
+    consultationTimeline: (params?: {
+      start_date?: string
+      end_date?: string
+      granularity?: 'day' | 'week' | 'month'
+    }) => apiClient.get('/analytics/consultation-timeline', { params }),
+
+    consultationByType: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/consultation-by-type', { params }),
+
+    // Diagnosis analytics
+    topDiagnoses: (params?: { limit?: number; start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/top-diagnoses', { params }),
+
+    // Appointment analytics
+    appointmentStats: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/appointment-stats', { params }),
+
+    appointmentTimeline: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/appointment-timeline', { params }),
+
+    // Patient analytics
+    patientGrowth: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/patient-growth', { params }),
+
+    patientAgeDistribution: () => apiClient.get('/analytics/patient-age-distribution'),
+
+    // Prescription analytics
+    prescriptionStats: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/prescription-stats', { params }),
+
+    // Recent activity
+    recentActivity: (params?: { limit?: number }) =>
+      apiClient.get('/analytics/recent-activity', { params }),
+
+    // Complete dashboard (single request)
+    dashboard: (params?: { start_date?: string; end_date?: string }) =>
+      apiClient.get('/analytics/dashboard', { params }),
+  },
 }
 
 export default apiClient
