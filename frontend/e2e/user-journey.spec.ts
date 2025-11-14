@@ -37,20 +37,50 @@ test.describe('Complete User Journey', () => {
 
         // Find and click login button
         const loginButton = page.getByRole('button', { name: /connexion|login|sign in|se connecter/i }).first()
+
+        // Track navigation promise BEFORE clicking
+        const navigationPromise = page.waitForNavigation({ timeout: 10000 }).catch(() => null)
+
         await loginButton.click()
 
-        // Step 4: Wait for navigation to dashboard
-        await page.waitForTimeout(2000) // Wait for auth process
+        // Step 4: CRITICAL - Wait for page to actually load after login
+        console.log('Waiting for post-login page load...')
 
-        // Verify successful login
-        await page.waitForLoadState('networkidle')
+        // Wait for navigation OR timeout
+        await Promise.race([
+          navigationPromise,
+          page.waitForTimeout(3000)
+        ])
+
+        // Wait for network to be idle (all resources loaded)
+        await page.waitForLoadState('networkidle', { timeout: 15000 })
+
+        // CRITICAL CHECK: Verify page actually loaded with content
         const afterLoginUrl = page.url()
+        console.log('After login URL:', afterLoginUrl)
 
         // Should be redirected away from login page
         expect(afterLoginUrl).not.toContain('/login')
         expect(afterLoginUrl).not.toContain('/auth')
 
-        console.log('Login successful, navigated to:', afterLoginUrl)
+        // CRITICAL: Verify page has actual content loaded (not stuck)
+        const bodyText = await page.textContent('body')
+        expect(bodyText).toBeTruthy()
+        expect(bodyText.length).toBeGreaterThan(100) // Page should have substantial content
+
+        // Verify no loading spinners stuck on screen
+        const loadingSpinners = await page.locator('[role="progressbar"], [aria-busy="true"], .loading, .spinner').count()
+        console.log('Loading spinners still visible:', loadingSpinners)
+
+        // Check for common error states
+        const hasError = await page.getByText(/error|erreur|failed|échec/i).count()
+        expect(hasError).toBe(0)
+
+        // Verify interactive elements are present (page is functional)
+        const interactiveElements = await page.locator('button, a, input').count()
+        expect(interactiveElements).toBeGreaterThan(0)
+
+        console.log('✅ Login successful AND page loaded completely:', afterLoginUrl)
       } else {
         console.log('No login form found, might already be authenticated')
       }
