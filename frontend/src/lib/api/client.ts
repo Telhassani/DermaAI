@@ -161,6 +161,24 @@ export const api = {
     downloadPdf: (id: number) =>
       apiClient.get(`/prescriptions/${id}/pdf`, { responseType: 'blob' }),
   },
+
+  // Consultation Images
+  consultationImages: {
+    upload: (consultationId: number, formData: FormData) =>
+      apiClient.post(`/consultations/${consultationId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    list: (consultationId: number, params?: any) =>
+      apiClient.get(`/consultations/${consultationId}/images`, { params }),
+    get: (imageId: number) => apiClient.get(`/consultations/images/${imageId}`),
+    update: (imageId: number, data: any) =>
+      apiClient.patch(`/consultations/images/${imageId}`, data),
+    delete: (imageId: number) => apiClient.delete(`/consultations/images/${imageId}`),
+    downloadAll: (consultationId: number) =>
+      apiClient.get(`/consultations/${consultationId}/images/download-all`, {
+        responseType: 'blob',
+      }),
+  },
 }
 
 export default apiClient
