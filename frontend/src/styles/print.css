@@ -1,0 +1,162 @@
+/**
+ * Print Styles
+ * Optimized for A5 prescription printing
+ */
+
+@media print {
+  /* Reset for print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Page setup for A5 */
+  @page {
+    size: A5 portrait;
+    margin: 0;
+  }
+
+  /* Hide everything except prescription */
+  body * {
+    visibility: hidden;
+  }
+
+  .prescription-template,
+  .prescription-template * {
+    visibility: visible;
+  }
+
+  .prescription-template {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 148mm !important;
+    min-height: 210mm !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide UI elements */
+  .no-print,
+  header:not(.prescription-template header),
+  nav,
+  aside,
+  footer:not(.prescription-template footer),
+  button,
+  .modal-header,
+  .modal-footer {
+    display: none !important;
+  }
+
+  /* Ensure colors print */
+  .prescription-template {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Background colors and gradients */
+  .prescription-template .bg-gradient-to-r,
+  .prescription-template .bg-gradient-to-br,
+  .prescription-template .bg-mono-50,
+  .prescription-template .bg-accent-50,
+  .prescription-template .bg-accent-100 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Borders */
+  .prescription-template .border,
+  .prescription-template .border-2,
+  .prescription-template .border-l-4,
+  .prescription-template .border-t-2,
+  .prescription-template .border-b-2 {
+    border-color: rgb(228, 228, 231) !important;
+  }
+
+  /* Text colors */
+  .prescription-template .text-mono-900 {
+    color: rgb(24, 24, 27) !important;
+  }
+
+  .prescription-template .text-mono-700 {
+    color: rgb(63, 63, 70) !important;
+  }
+
+  .prescription-template .text-mono-600 {
+    color: rgb(82, 82, 91) !important;
+  }
+
+  .prescription-template .text-accent-700,
+  .prescription-template .text-accent-900 {
+    color: rgb(51, 65, 85) !important;
+  }
+
+  /* Icons should be visible */
+  .prescription-template svg {
+    display: inline-block !important;
+  }
+
+  /* Ensure proper spacing */
+  .prescription-template .mb-8 {
+    margin-bottom: 2rem !important;
+  }
+
+  .prescription-template .mb-6 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .prescription-template .mb-4 {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Prevent page breaks inside sections */
+  .prescription-template section {
+    page-break-inside: avoid;
+  }
+
+  .prescription-template .rounded-xl {
+    border-radius: 0.75rem !important;
+  }
+
+  /* Ensure gradients are visible */
+  .prescription-template .bg-gradient-to-r {
+    background-image: linear-gradient(to right, rgb(100, 116, 139), rgb(71, 85, 105), rgb(100, 116, 139)) !important;
+  }
+
+  /* Shadows */
+  .prescription-template .shadow-soft,
+  .prescription-template .hover\:shadow-soft:hover {
+    box-shadow: none !important;
+  }
+
+  /* Remove transitions and transforms for print */
+  .prescription-template * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Watermark */
+  .prescription-template .opacity-\[0\.02\] {
+    opacity: 0.02 !important;
+  }
+}
+
+/* Print button helpers */
+@media screen {
+  .print\:block {
+    display: none;
+  }
+}
+
+@media print {
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+}
