@@ -12,19 +12,21 @@ import {
   FileText,
   User as UserIcon
 } from 'lucide-react'
-import { listConsultations, ConsultationResponse } from '@/lib/api/consultations'
+import { api } from '@/lib/api/client'
+import { Consultation, ConsultationListResponse } from '@/types/consultation'
+import { toast } from 'sonner'
 
 export default function ConsultationsPage() {
   const router = useRouter()
-  const [consultations, setConsultations] = useState<ConsultationResponse[]>([])
+  const [consultations, setConsultations] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
 
   // Search filters
-  const [searchIdentifier, setSearchIdentifier] = useState('')
-  const [searchName, setSearchName] = useState('')
+  const [searchPatientId, setSearchPatientId] = useState('')
+  const [searchDoctorId, setSearchDoctorId] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -36,15 +38,25 @@ export default function ConsultationsPage() {
   const fetchConsultations = async () => {
     try {
       setLoading(true)
-      const data = await listConsultations({
+      const params: any = {
         page: currentPage,
         page_size: 20
-      })
+      }
+
+      if (searchPatientId) params.patient_id = parseInt(searchPatientId)
+      if (searchDoctorId) params.doctor_id = parseInt(searchDoctorId)
+      if (startDate) params.start_date = startDate
+      if (endDate) params.end_date = endDate
+
+      const response = await api.consultations.list(params)
+      const data: ConsultationListResponse = response.data
+
       setConsultations(data.consultations)
       setTotal(data.total)
       setTotalPages(data.total_pages)
     } catch (error) {
       console.error('Error fetching consultations:', error)
+      toast.error('Erreur lors du chargement des consultations')
     } finally {
       setLoading(false)
     }
@@ -57,8 +69,8 @@ export default function ConsultationsPage() {
   }
 
   const clearFilters = () => {
-    setSearchIdentifier('')
-    setSearchName('')
+    setSearchPatientId('')
+    setSearchDoctorId('')
     setStartDate('')
     setEndDate('')
     setCurrentPage(1)
@@ -82,7 +94,7 @@ export default function ConsultationsPage() {
     })
   }
 
-  const hasActiveFilters = searchIdentifier || searchName || startDate || endDate
+  const hasActiveFilters = searchPatientId || searchDoctorId || startDate || endDate
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -125,9 +137,9 @@ export default function ConsultationsPage() {
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher par nom de patient..."
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
+                placeholder="ID Patient..."
+                value={searchPatientId}
+                onChange={(e) => setSearchPatientId(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -153,13 +165,13 @@ export default function ConsultationsPage() {
             <div className="mt-4 grid grid-cols-1 gap-4 pt-4 border-t border-gray-200 md:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Identifiant patient
+                  ID Médecin
                 </label>
                 <input
                   type="text"
-                  placeholder="CIN ou Passeport"
-                  value={searchIdentifier}
-                  onChange={(e) => setSearchIdentifier(e.target.value)}
+                  placeholder="ID Médecin"
+                  value={searchDoctorId}
+                  onChange={(e) => setSearchDoctorId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
