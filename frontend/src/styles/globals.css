@@ -53,8 +53,24 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+
+  /* Dark mode background */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Smooth theme transitions */
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
 }
 

@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/theme'
-import { Button, Badge, Avatar } from '@/components/ui/modern'
+import { Button, Badge, Avatar, ThemeToggle } from '@/components/ui/modern'
 
 interface QuickAction {
   icon: LucideIcon
@@ -190,14 +190,17 @@ export default function ModernHeader({
             </AnimatePresence>
           </div>
 
+          {/* Theme Toggle */}
+          <ThemeToggle variant="icon" />
+
           {/* Settings */}
           <button
             className={cn(
               'rounded-xl p-2.5 transition-colors',
-              'hover:bg-mono-100'
+              'hover:bg-mono-100 dark:hover:bg-mono-700'
             )}
           >
-            <Settings className="h-5 w-5 text-mono-600" />
+            <Settings className="h-5 w-5 text-mono-600 dark:text-mono-300" />
           </button>
 
           {/* User Avatar */}
