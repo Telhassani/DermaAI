@@ -28,6 +28,7 @@ vi.mock('@/lib/hooks/use-appointments', () => ({
   useUpdateAppointment: vi.fn(),
   useUpdateAppointmentStatus: vi.fn(),
   useDeleteAppointment: vi.fn(),
+  useCheckAppointmentConflictsQuery: vi.fn(),
   AppointmentType: {
     CONSULTATION: 'CONSULTATION',
     FOLLOW_UP: 'FOLLOW_UP',
@@ -115,6 +116,12 @@ describe('AppointmentCreateModal', () => {
     vi.mocked(useAppointments.useCreateAppointment).mockReturnValue({
       mutateAsync: mockMutateAsync,
       isPending: false,
+    } as any)
+
+    vi.mocked(useAppointments.useCheckAppointmentConflictsQuery).mockReturnValue({
+      data: { has_conflict: false, conflicting_appointments: [] },
+      isLoading: false,
+      refetch: vi.fn(),
     } as any)
   })
 
