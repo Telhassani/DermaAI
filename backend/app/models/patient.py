@@ -75,9 +75,10 @@ class Patient(BaseModel):
 
     # Relationships
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # doctor = relationship("User", back_populates="patients")
-    # appointments = relationship("Appointment", back_populates="patient")
-    # prescriptions = relationship("Prescription", back_populates="patient")
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="patients")
+    appointments = relationship("Appointment", foreign_keys="Appointment.patient_id", back_populates="patient", cascade="all, delete-orphan")
+    consultations = relationship("Consultation", foreign_keys="Consultation.patient_id", back_populates="patient", cascade="all, delete-orphan")
+    prescriptions = relationship("Prescription", foreign_keys="Prescription.patient_id", back_populates="patient", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Patient(id={self.id}, name={self.full_name})>"

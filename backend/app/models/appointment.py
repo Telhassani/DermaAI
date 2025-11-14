@@ -76,9 +76,9 @@ class Appointment(BaseModel):
     reminder_sent = Column(Boolean, default=False, nullable=False)
 
     # Relationships
-    # patient = relationship("Patient", back_populates="appointments")
-    # doctor = relationship("User", back_populates="appointments")
-    # prescriptions = relationship("Prescription", back_populates="appointment")
+    patient = relationship("Patient", foreign_keys=[patient_id], back_populates="appointments")
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="appointments")
+    consultations = relationship("Consultation", back_populates="appointment", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Appointment(id={self.id}, patient_id={self.patient_id}, date={self.start_time})>"

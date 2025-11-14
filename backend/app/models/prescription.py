@@ -58,9 +58,9 @@ class Prescription(BaseModel):
     is_delivered = Column(Boolean, default=False)
 
     # Relationships
-    # consultation = relationship("Consultation", back_populates="prescriptions")
-    # patient = relationship("Patient", back_populates="prescriptions")
-    # doctor = relationship("User", back_populates="prescriptions")
+    consultation = relationship("Consultation", foreign_keys=[consultation_id], back_populates="prescriptions")
+    patient = relationship("Patient", foreign_keys=[patient_id], back_populates="prescriptions")
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="prescriptions")
 
     def __repr__(self):
         return f"<Prescription(id={self.id}, patient_id={self.patient_id}, date={self.prescription_date})>"

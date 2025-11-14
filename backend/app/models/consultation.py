@@ -46,6 +46,7 @@ class Consultation(BaseModel):
     # Foreign Keys
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)  # Optional: link to appointment
 
     # Consultation Details
     consultation_date = Column(Date, nullable=False, index=True, default=datetime.now)
@@ -91,10 +92,11 @@ class Consultation(BaseModel):
     biopsy_results = Column(Text, nullable=True)
 
     # Relationships
-    # patient = relationship("Patient", back_populates="consultations")
-    # doctor = relationship("User", back_populates="consultations")
-    # prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
-    # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")
+    patient = relationship("Patient", foreign_keys=[patient_id], back_populates="consultations")
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="consultations")
+    appointment = relationship("Appointment", foreign_keys=[appointment_id], back_populates="consultations")
+    prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
+    # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")  # To be added later
 
     def __repr__(self):
         return f"<Consultation(id={self.id}, patient_id={self.patient_id}, date={self.consultation_date})>"

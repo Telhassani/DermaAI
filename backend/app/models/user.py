@@ -52,9 +52,11 @@ class User(BaseModel):
     mfa_enabled = Column(Boolean, default=False, nullable=False)
     mfa_secret = Column(String(255), nullable=True)
 
-    # Relationships (to be added later)
-    # patients = relationship("Patient", back_populates="doctor")
-    # appointments = relationship("Appointment", back_populates="user")
+    # Relationships
+    patients = relationship("Patient", foreign_keys="Patient.doctor_id", back_populates="doctor")
+    appointments = relationship("Appointment", foreign_keys="Appointment.doctor_id", back_populates="doctor")
+    consultations = relationship("Consultation", foreign_keys="Consultation.doctor_id", back_populates="doctor")
+    prescriptions = relationship("Prescription", foreign_keys="Prescription.doctor_id", back_populates="doctor")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"
