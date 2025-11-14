@@ -43,14 +43,14 @@ describe('Button Component', () => {
     it('renders outline variant with correct classes', () => {
       render(<Button variant="outline">Outline</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('border')
+      expect(button).toHaveClass('border-2')
     })
 
-    it('renders danger variant with correct classes', () => {
-      render(<Button variant="danger">Danger</Button>)
+    it('renders destructive variant with correct classes', () => {
+      render(<Button variant="destructive">Destructive</Button>)
       const button = screen.getByRole('button')
       expect(button).toHaveClass('bg-gradient-to-r')
-      expect(button.className).toContain('danger')
+      expect(button.className).toContain('from-danger-600')
     })
   })
 

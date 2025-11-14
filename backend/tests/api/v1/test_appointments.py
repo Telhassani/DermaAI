@@ -71,12 +71,14 @@ def test_user(db):
 @pytest.fixture(scope="function")
 def test_patient(db, test_user):
     """Create test patient"""
+    from datetime import date
+
     patient = Patient(
-        identification_type=IdentificationType.CNI,
+        identification_type=IdentificationType.CIN,
         identification_number="ABC123",
         first_name="John",
         last_name="Doe",
-        date_of_birth="1990-01-01",
+        date_of_birth=date(1990, 1, 1),
         gender=Gender.MALE,
         phone="0612345678",
         doctor_id=test_user.id,
