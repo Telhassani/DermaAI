@@ -16,11 +16,16 @@ import {
   Heart,
   Eye,
   FileImage,
-  TestTube
+  TestTube,
+  Plus,
+  Image as ImageIcon
 } from 'lucide-react'
 import { api } from '@/lib/api/client'
 import { Consultation } from '@/types/consultation'
+import { ConsultationImage } from '@/types/consultation-image'
 import { toast } from 'sonner'
+import ImageUpload from '@/components/consultation-images/ImageUpload'
+import ImageGallery from '@/components/consultation-images/ImageGallery'
 
 export default function ConsultationDetailPage() {
   const router = useRouter()
@@ -31,9 +36,15 @@ export default function ConsultationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
 
+  // Images state
+  const [images, setImages] = useState<ConsultationImage[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+
   useEffect(() => {
     if (consultationId) {
       fetchConsultation()
+      fetchImages()
     }
   }, [consultationId])
 
@@ -49,6 +60,28 @@ export default function ConsultationDetailPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchImages = async () => {
+    try {
+      setImagesLoading(true)
+      const response = await api.consultationImages.list(consultationId)
+      setImages(response.data.images)
+    } catch (error) {
+      console.error('Error fetching images:', error)
+      // Don't show error toast here as images are optional
+    } finally {
+      setImagesLoading(false)
+    }
+  }
+
+  const handleUploadSuccess = () => {
+    fetchImages()
+    setShowUploadModal(false)
+  }
+
+  const handleImageDeleted = () => {
+    fetchImages()
   }
 
   const handleDelete = async () => {
@@ -320,6 +353,34 @@ export default function ConsultationDetailPage() {
               </div>
             )}
 
+            {/* Medical Images */}
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center text-lg font-semibold text-gray-900">
+                  <ImageIcon className="mr-2 h-5 w-5 text-blue-600" />
+                  Images médicales ({images.length})
+                </h2>
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Ajouter
+                </button>
+              </div>
+
+              {imagesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                </div>
+              ) : (
+                <ImageGallery
+                  images={images}
+                  onImageDeleted={handleImageDeleted}
+                />
+              )}
+            </div>
+
             {/* Notes */}
             {consultation.notes && (
               <div className="rounded-lg bg-white p-6 shadow">
@@ -473,6 +534,29 @@ export default function ConsultationDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowUploadModal(false)}
+          >
+            <div
+              className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="mb-6 text-xl font-bold text-gray-900">
+                Ajouter des images médicales
+              </h2>
+
+              <ImageUpload
+                consultationId={consultationId}
+                onUploadSuccess={handleUploadSuccess}
+                onClose={() => setShowUploadModal(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
