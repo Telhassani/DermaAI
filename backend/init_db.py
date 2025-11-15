@@ -25,7 +25,7 @@ def create_tables():
 
 
 def seed_data():
-    """Seed initial data (admin user, etc.)"""
+    """Seed initial data (admin user, demo users, and sample patients)"""
     print("🌱 Seeding initial data...")
 
     db = Session(bind=engine)
@@ -75,15 +75,81 @@ def seed_data():
         db.add(secretary_user)
         db.commit()
 
-        print("✅ Seed data created successfully!")
+        print("✅ Users created successfully!")
         print("\n📝 Demo accounts created:")
         print("   🔐 Admin: admin@dermai.com / Admin123!")
         print("   👨‍⚕️ Doctor: doctor@dermai.com / Doctor123!")
         print("   📋 Secretary: secretary@dermai.com / Secretary123!")
+
+        # Create sample patients for the doctor
+        from datetime import date
+        sample_patients = [
+            Patient(
+                first_name="Marie",
+                last_name="Dupuis",
+                email="marie.dupuis@email.com",
+                phone="+33612345678",
+                date_of_birth=date(1990, 5, 15),
+                gender="F",
+                address="123 Rue de Paris",
+                city="Paris",
+                postal_code="75001",
+                country="France",
+                identification_type="passport",
+                identification_number="FR123456789",
+                medical_history="Allergic to penicillin",
+                allergies="Penicillin",
+                doctor_id=doctor_user.id,
+                is_deleted=False,
+            ),
+            Patient(
+                first_name="Jean",
+                last_name="Bernard",
+                email="jean.bernard@email.com",
+                phone="+33687654321",
+                date_of_birth=date(1985, 3, 20),
+                gender="M",
+                address="456 Avenue des Champs",
+                city="Lyon",
+                postal_code="69001",
+                country="France",
+                identification_type="id_card",
+                identification_number="FR987654321",
+                medical_history="Diabetic",
+                allergies="Sulfonamides",
+                doctor_id=doctor_user.id,
+                is_deleted=False,
+            ),
+            Patient(
+                first_name="Sophie",
+                last_name="Laurent",
+                email="sophie.laurent@email.com",
+                phone="+33699999999",
+                date_of_birth=date(1992, 8, 10),
+                gender="F",
+                address="789 Boulevard Saint-Germain",
+                city="Paris",
+                postal_code="75005",
+                country="France",
+                identification_type="passport",
+                identification_number="FR555666777",
+                medical_history="Eczema history",
+                allergies="Latex",
+                doctor_id=doctor_user.id,
+                is_deleted=False,
+            ),
+        ]
+
+        db.add_all(sample_patients)
+        db.commit()
+
+        print(f"✅ Sample patients created successfully! ({len(sample_patients)} patients)")
         print("\n⚠️  IMPORTANT: Change these passwords in production!")
 
     except Exception as e:
         print(f"❌ Error seeding data: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()

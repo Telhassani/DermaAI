@@ -54,7 +54,10 @@ class Settings(BaseSettings):
     # =====================================
     SECRET_KEY: str = "your-super-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Token expiry: 1 hour for access token, 7 days for refresh token
+    # NOTE: This is TOTAL token lifetime, not inactivity timeout
+    # Inactivity timeout (if not using token) is handled on frontend
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # =====================================

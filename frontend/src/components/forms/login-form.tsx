@@ -57,8 +57,9 @@ export function LoginForm() {
             <Input
               id="email"
               type="email"
-              placeholder="docteur@exemple.com"
+              placeholder="doctor@dermai.com"
               autoComplete="email"
+              required
               {...register('email')}
               className="mt-1"
             />
@@ -82,8 +83,9 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
+                placeholder="Doctor123!"
                 autoComplete="current-password"
+                required
                 {...register('password')}
               />
               <button

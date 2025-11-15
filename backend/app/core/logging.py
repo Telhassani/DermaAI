@@ -10,6 +10,9 @@ from pythonjsonlogger import jsonlogger
 
 from app.core.config import settings
 
+# Module-level logger instance
+logger = logging.getLogger("app")
+
 
 def setup_logging():
     """Configure logging for the application"""

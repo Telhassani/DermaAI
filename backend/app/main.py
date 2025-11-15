@@ -107,6 +107,7 @@ async def api_v1_root():
 # Include routers
 from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments
 
+# Enable real authentication router with database
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(patients.router, prefix=f"{settings.API_V1_PREFIX}/patients", tags=["Patients"])
 app.include_router(consultations.router, prefix=f"{settings.API_V1_PREFIX}/consultations", tags=["Consultations"])

@@ -21,20 +21,55 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+class MockDatabaseSession:
+    """Mock database session that raises errors to trigger fallback to mock data"""
+    def __init__(self, error: Exception = None):
+        self.error = error
+
+    def query(self, *args, **kwargs):
+        raise Exception(f"Database unavailable: {self.error if self.error else 'Unknown error'}")
+
+    def close(self):
+        pass
+
+    def add(self, *args, **kwargs):
+        raise Exception(f"Database unavailable: {self.error if self.error else 'Unknown error'}")
+
+    def commit(self):
+        raise Exception(f"Database unavailable: {self.error if self.error else 'Unknown error'}")
+
+    def refresh(self, *args, **kwargs):
+        raise Exception(f"Database unavailable: {self.error if self.error else 'Unknown error'}")
+
+    def flush(self):
+        raise Exception(f"Database unavailable: {self.error if self.error else 'Unknown error'}")
+
+
 def get_db() -> Generator[Session, None, None]:
     """
     Dependency to get database session
 
     Yields:
-        Database session
+        Database session or MockDatabaseSession
 
     Example:
         @app.get("/users")
         def get_users(db: Session = Depends(get_db)):
             return db.query(User).all()
     """
-    db = SessionLocal()
+    db = None
+    try:
+        db = SessionLocal()
+    except Exception as e:
+        # Database connection failed - return mock session
+        print(f"[get_db] Database connection error: {type(e).__name__}: {e}. Falling back to mock data mode.")
+        db = MockDatabaseSession(e)
+    
     try:
         yield db
     finally:
-        db.close()
+        if db and hasattr(db, 'close'):
+            try:
+                db.close()
+            except:
+                pass

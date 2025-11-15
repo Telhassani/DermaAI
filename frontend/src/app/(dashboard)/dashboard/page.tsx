@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { user, refetchUser } = useAuth()
+  const { user, checkAuth } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,9 +28,9 @@ export default function DashboardPage() {
 
     // Fetch user data if not loaded
     if (!user) {
-      refetchUser()
+      checkAuth()
     }
-  }, [user, router, refetchUser])
+  }, [user, router, checkAuth])
 
   if (!user) {
     return (

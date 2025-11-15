@@ -27,6 +27,9 @@ apiClient.interceptors.request.use(
     // Add token to headers if it exists
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log(`[API] Sending request to ${config.url} with token:`, token.substring(0, 20) + '...')
+    } else {
+      console.log(`[API] No token found in localStorage for request to ${config.url}`)
     }
 
     return config
@@ -53,7 +56,7 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('access_token')
           localStorage.removeItem('user')
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth/login'
+            window.location.href = '/login'
           }
           toast.error('Session expirée. Veuillez vous reconnecter.')
           break
@@ -109,10 +112,16 @@ apiClient.interceptors.response.use(
 export const api = {
   // Authentication
   auth: {
-    login: (data: { username: string; password: string }) =>
-      apiClient.post('/auth/login', data, {
+    login: (data: { username: string; password: string }) => {
+      // Convert to FormData for OAuth2PasswordRequestForm
+      const formData = new URLSearchParams()
+      formData.append('username', data.username)
+      formData.append('password', data.password)
+
+      return apiClient.post('/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      }),
+      })
+    },
     register: (data: any) => apiClient.post('/auth/register', data),
     me: () => apiClient.get('/auth/me'),
     refreshToken: (refresh_token: string) =>
@@ -160,6 +169,15 @@ export const api = {
     delete: (id: number) => apiClient.delete(`/prescriptions/${id}`),
     downloadPdf: (id: number) =>
       apiClient.get(`/prescriptions/${id}/pdf`, { responseType: 'blob' }),
+  },
+
+  // Images
+  images: {
+    list: (params?: any) => apiClient.get('/images', { params }),
+    get: (id: number) => apiClient.get(`/images/${id}`),
+    create: (data: any) => apiClient.post('/images', data),
+    delete: (id: number) => apiClient.delete(`/images/${id}`),
+    analyze: (id: number) => apiClient.post(`/images/${id}/analyze`, {}),
   },
 }
 

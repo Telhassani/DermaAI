@@ -4,6 +4,10 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
+import { useAppointmentDragDrop } from '@/lib/hooks/use-appointment-drag-drop'
+import { useAppointmentResize } from '@/lib/hooks/use-appointment-resize'
+import { AppointmentTooltip } from './appointment-tooltip'
+import { GripVertical } from 'lucide-react'
 
 interface CalendarGridProps {
   currentDate: Date
@@ -18,6 +22,8 @@ export function CalendarGrid({
   onDayClick,
   onAppointmentClick,
 }: CalendarGridProps) {
+  const dragDrop = useAppointmentDragDrop(appointments)
+  const resize = useAppointmentResize(appointments)
   // Get month boundaries
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -117,24 +123,37 @@ export function CalendarGrid({
                 {dayAppointments.slice(0, 3).map((appointment) => {
                   const startTime = format(new Date(appointment.start_time), 'HH:mm')
                   return (
-                    <div
-                      key={appointment.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAppointmentClick?.(appointment)
-                      }}
-                      className={cn(
-                        'group/item rounded px-2 py-1 text-xs transition-colors hover:shadow-sm',
-                        typeColors[appointment.type].replace('bg-', 'bg-opacity-10 hover:bg-opacity-20 bg-')
-                      )}
-                    >
-                      <div className="flex items-center gap-1">
-                        <div className={cn('h-1.5 w-1.5 rounded-full', typeColors[appointment.type])} />
-                        <span className="truncate font-medium text-gray-700">
-                          {startTime}
-                        </span>
+                    <AppointmentTooltip key={appointment.id} appointment={appointment}>
+                      <div
+                        draggable
+                        onDragStart={dragDrop.handleDragStart(appointment, 'month-view')}
+                        onDragOver={dragDrop.handleDragOver}
+                        onDrop={dragDrop.handleDrop(day)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAppointmentClick?.(appointment)
+                        }}
+                        className={cn(
+                          'group/item cursor-grab active:cursor-grabbing rounded px-2 py-1 text-xs transition-colors hover:shadow-sm relative',
+                          dragDrop.isDraggingAppointment && dragDrop.dragState.draggedAppointment?.id === appointment.id && 'opacity-50',
+                          typeColors[appointment.type].replace('bg-', 'bg-opacity-10 hover:bg-opacity-20 bg-')
+                        )}
+                      >
+                        <div className="flex items-center gap-1">
+                          <GripVertical className="h-3 w-3 text-gray-400 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                          <div className={cn('h-1.5 w-1.5 rounded-full', typeColors[appointment.type])} />
+                          <span className="truncate font-medium text-gray-700">
+                            {startTime}
+                          </span>
+                        </div>
+                        {/* Resize handle */}
+                        <div
+                          onMouseDown={resize.handleResizeStart(appointment)}
+                          className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-t from-gray-400 to-transparent opacity-0 group-hover/item:opacity-100 cursor-ns-resize transition-opacity"
+                          title="Glisser pour redimensionner"
+                        />
                       </div>
-                    </div>
+                    </AppointmentTooltip>
                   )
                 })}
 
