@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/use-auth'
 import {
   Users,
   Calendar,
@@ -13,24 +10,13 @@ import {
   Activity,
   AlertCircle
 } from 'lucide-react'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 export default function DashboardPage() {
-  const { user, checkAuth } = useAuth()
-  const router = useRouter()
+  const { user } = useAuth()
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-
-    // Fetch user data if not loaded
-    if (!user) {
-      checkAuth()
-    }
-  }, [user, router, checkAuth])
+  // AuthGuard component (in layout) handles all auth checks and redirects
+  // No need for redundant checks here
 
   if (!user) {
     return (
