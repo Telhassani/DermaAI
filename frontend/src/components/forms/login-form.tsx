@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,6 +20,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
+  const router = useRouter()
   const { login, isLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
 
@@ -30,11 +32,19 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = (data: LoginFormData) => {
-    login({
-      username: data.email,
-      password: data.password,
-    })
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      await login({
+        username: data.email,
+        password: data.password,
+      })
+      // After successful login, navigate to dashboard
+      // Using router.push() instead of window.location.href preserves Zustand state
+      router.push('/dashboard')
+    } catch (error) {
+      // Error is already handled by the login function
+      // which displays toast notifications
+    }
   }
 
   return (
