@@ -16,7 +16,7 @@ interface AppointmentCardProps {
   appointment: Appointment
   onClick?: () => void
   onEdit?: () => void
-  onDelete?: () => void
+  onDelete?: (id: number) => void
   onStatusChange?: (status: AppointmentStatus) => void
   compact?: boolean
   showActions?: boolean
@@ -160,7 +160,7 @@ export function AppointmentCard({
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    onClick={(e) => { e.stopPropagation(); onDelete(appointment.id); }}
                     className="text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
