@@ -6,12 +6,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.core.security import (
     verify_password,
     get_password_hash,
     create_access_token,
     create_refresh_token,
+    decode_token,
+    verify_token_type,
 )
 from app.core.logging import log_audit_event
 from app.core.rate_limiter import limiter
@@ -19,6 +22,12 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token, UserLogin
 from app.api.deps import get_current_active_user
+
+
+class RefreshTokenRequest(BaseModel):
+    """Schema for refresh token request"""
+    refresh_token: str
+
 
 router = APIRouter()
 
@@ -162,6 +171,83 @@ async def get_current_user_info(
         Current user data
     """
     return current_user
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("20/hour")
+async def refresh_token(
+    request: Request,
+    token_request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Refresh an access token using a valid refresh token
+
+    Args:
+        token_request: RefreshTokenRequest containing the refresh_token
+        db: Database session
+
+    Returns:
+        New access token and refresh token
+
+    Raises:
+        HTTPException: If refresh token is invalid or expired
+    """
+    # Decode the refresh token
+    token_data = decode_token(token_request.refresh_token)
+
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify it's a refresh token (not an access token)
+    if not verify_token_type(token_data, "refresh"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Get user from token data
+    user_id = token_data.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token data",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify user still exists and is active
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create new tokens
+    new_token_data = {"user_id": user.id, "email": user.email, "role": user.role.value}
+    access_token = create_access_token(new_token_data)
+    refresh_token = create_refresh_token(new_token_data)
+
+    # Log token refresh
+    log_audit_event(
+        user_id=str(user.id),
+        action="REFRESH",
+        resource="auth",
+        details={"email": user.email},
+        success=True,
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
 
 
 @router.post("/logout")
