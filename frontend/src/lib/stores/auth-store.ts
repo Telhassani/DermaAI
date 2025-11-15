@@ -87,11 +87,8 @@ export const useAuthStore = create<AuthStoreState>()(
       login: async (credentials) => {
         try {
           set({ isLoading: true })
-          const formData = new URLSearchParams()
-          formData.append('username', credentials.username)
-          formData.append('password', credentials.password)
-
-          const response = await api.auth.login(formData as any)
+          // Pass credentials directly - api.auth.login handles FormData conversion
+          const response = await api.auth.login(credentials)
           const { access_token, refresh_token } = response.data
 
           get().setToken(access_token)
