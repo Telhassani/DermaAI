@@ -39,12 +39,31 @@ apiClient.interceptors.request.use(
   }
 )
 
+// Track if we're already attempting to refresh token to avoid infinite loops
+let isRefreshing = false
+let failedQueue: any[] = []
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+
+  isRefreshing = false
+  failedQueue = []
+}
+
 // Response interceptor - Handle errors globally
 apiClient.interceptors.response.use(
   (response) => {
     return response
   },
   (error: AxiosError) => {
+    const originalRequest: any = error.config
+
     // Handle different error status codes
     if (error.response) {
       const status = error.response.status
@@ -52,14 +71,60 @@ apiClient.interceptors.response.use(
 
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('user')
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/login'
+          // Unauthorized - Try to refresh token first
+          if (!isRefreshing) {
+            isRefreshing = true
+            const refresh_token = localStorage.getItem('refresh_token')
+
+            if (refresh_token && originalRequest.url !== '/auth/refresh') {
+              // Try to refresh token
+              apiClient
+                .post('/auth/refresh', { refresh_token })
+                .then((res) => {
+                  const { access_token } = res.data
+                  localStorage.setItem('access_token', access_token)
+                  apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+                  originalRequest.headers['Authorization'] = `Bearer ${access_token}`
+
+                  // Retry original request
+                  processQueue(null, access_token)
+                  return apiClient(originalRequest)
+                })
+                .catch((err) => {
+                  // Refresh failed - logout
+                  localStorage.removeItem('access_token')
+                  localStorage.removeItem('refresh_token')
+                  localStorage.removeItem('user')
+                  processQueue(err, null)
+                  if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+                    window.location.href = '/login'
+                  }
+                  toast.error('Session expirée. Veuillez vous reconnecter.')
+                })
+            } else {
+              // No refresh token or already refreshing - logout
+              localStorage.removeItem('access_token')
+              localStorage.removeItem('refresh_token')
+              localStorage.removeItem('user')
+              processQueue(error, null)
+              if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+                window.location.href = '/login'
+              }
+              toast.error('Session expirée. Veuillez vous reconnecter.')
+            }
           }
-          toast.error('Session expirée. Veuillez vous reconnecter.')
-          break
+
+          // Queue the request for retry
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject })
+          })
+            .then((token) => {
+              originalRequest.headers['Authorization'] = `Bearer ${token}`
+              return apiClient(originalRequest)
+            })
+            .catch((err) => {
+              return Promise.reject(err)
+            })
 
         case 403:
           // Forbidden - insufficient permissions
