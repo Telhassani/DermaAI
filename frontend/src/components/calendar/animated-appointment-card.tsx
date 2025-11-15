@@ -9,7 +9,7 @@ interface AnimatedAppointmentCardProps {
   onClick?: (appointment: Appointment) => void
   onEdit?: (appointment: Appointment) => void
   onDelete?: (id: number) => void
-  onStatusChange?: (id: number, status: string) => void
+  onStatusChange?: (status: string) => void
   compact?: boolean
   showActions?: boolean
   animationDelay?: number
