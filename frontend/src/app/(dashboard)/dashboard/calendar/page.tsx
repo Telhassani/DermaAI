@@ -142,10 +142,11 @@ export default function CalendarPage() {
   ) => {
     try {
       // Check for conflicts first
+      const currentAppointment = allAppointments.find((a) => a.id === appointmentId)
       const conflictData = await checkConflicts({
         start_time: newStartTime.toISOString(),
         end_time: newEndTime.toISOString(),
-        doctor_id: appointments.find((a) => a.id === appointmentId)?.doctor_id || 0,
+        doctor_id: currentAppointment?.doctor_id || 0,
         exclude_appointment_id: appointmentId,
       })
 
