@@ -88,6 +88,9 @@ export default function CalendarPage() {
     sort_order: 'asc',
   })
 
+  // Get appointments from data - MUST be defined before handlers that use it
+  const allAppointments = appointmentsData?.appointments || []
+
   // Mutations
   const deleteMutation = useDeleteAppointment()
   const updateMutation = useUpdateAppointment()
@@ -172,9 +175,6 @@ export default function CalendarPage() {
       console.error('Rescheduling error:', error)
     }
   }
-
-  // Get appointments from data
-  const allAppointments = appointmentsData?.appointments || []
 
   // Apply filters to appointments
   const appointments = allAppointments.filter((appointment) => {
