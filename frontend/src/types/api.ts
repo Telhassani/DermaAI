@@ -47,14 +47,25 @@ export interface RefreshTokenRequest {
 
 export interface Patient {
   id: number
-  user_id: number
+  user_id?: number
+  doctor_id?: number
+  first_name: string
+  last_name: string
+  full_name: string
+  email?: string
+  phone: string
   date_of_birth: string
-  gender?: 'M' | 'F' | 'Other'
-  phone?: string
+  gender?: 'male' | 'female' | 'other'
+  age?: number
   address?: string
+  city?: string
+  postal_code?: string
+  country?: string
+  identification_type?: string
+  identification_number?: string
+  insurance_number?: string
   medical_history?: string
   allergies?: string
-  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -126,6 +137,9 @@ export interface Appointment {
   duration_minutes: number
   is_upcoming: boolean
   is_past: boolean
+  recurrence_rule?: Record<string, unknown> | null
+  recurring_series_id?: number | null
+  is_recurring?: boolean
 }
 
 export interface AppointmentCreateData {
@@ -216,35 +230,75 @@ export interface AppointmentStats {
 
 export interface Consultation {
   id: number
-  appointment_id: number
   patient_id: number
   doctor_id: number
+  consultation_date: string
+  consultation_time: string
   chief_complaint: string
-  findings?: string
-  assessment?: string
-  plan?: string
-  follow_up_date?: string
+  symptoms?: string
+  duration_symptoms?: string
+  medical_history_notes?: string
+  clinical_examination?: string
+  dermatological_examination?: string
+  lesion_type?: string
+  lesion_location?: string
+  lesion_size?: string
+  lesion_color?: string
+  lesion_texture?: string
+  diagnosis?: string | null
+  differential_diagnosis?: string
+  treatment_plan?: string
+  follow_up_required: boolean
+  follow_up_date?: string | null
+  notes?: string
+  private_notes?: string
+  images_taken: boolean
+  biopsy_performed: boolean
+  biopsy_results?: string
   created_at: string
   updated_at: string
 }
 
 export interface ConsultationCreateData {
-  appointment_id: number
   patient_id: number
   doctor_id: number
+  consultation_date: string
+  consultation_time: string
   chief_complaint: string
-  findings?: string
-  assessment?: string
-  plan?: string
+  symptoms?: string
+  duration_symptoms?: string
+  medical_history_notes?: string
+  clinical_examination?: string
+  dermatological_examination?: string
+  lesion_type?: string
+  lesion_location?: string
+  lesion_size?: string
+  lesion_color?: string
+  lesion_texture?: string
+  diagnosis?: string
+  differential_diagnosis?: string
+  treatment_plan?: string
+  follow_up_required?: boolean
   follow_up_date?: string
+  notes?: string
+  private_notes?: string
+  images_taken?: boolean
+  biopsy_performed?: boolean
+  biopsy_results?: string
 }
 
 export interface ConsultationUpdateData {
   chief_complaint?: string
-  findings?: string
-  assessment?: string
-  plan?: string
+  symptoms?: string
+  diagnosis?: string
+  differential_diagnosis?: string
+  treatment_plan?: string
+  follow_up_required?: boolean
   follow_up_date?: string
+  notes?: string
+  private_notes?: string
+  biopsy_performed?: boolean
+  biopsy_results?: string
 }
 
 export interface ConsultationListParams {
@@ -267,20 +321,29 @@ export interface ConsultationListResponse {
 // PRESCRIPTION TYPES
 // ============================================================================
 
-export interface Prescription {
-  id: number
-  patient_id: number
-  doctor_id: number
-  medication_name: string
+export interface MedicationItem {
+  name: string
   dosage: string
   frequency: string
   duration: string
   quantity: number
+  route?: string
   instructions?: string
-  refills: number
-  issued_date: string
-  expiry_date: string
-  is_active: boolean
+}
+
+export interface Prescription {
+  id: number
+  patient_id: number
+  doctor_id: number
+  consultation_id: number
+  medications: MedicationItem[]
+  prescription_date: string
+  valid_until?: string | null
+  control_date?: string | null
+  instructions?: string
+  notes?: string
+  is_printed: boolean
+  is_delivered: boolean
   created_at: string
   updated_at: string
 }
@@ -288,37 +351,32 @@ export interface Prescription {
 export interface PrescriptionCreateData {
   patient_id: number
   doctor_id: number
-  medication_name: string
-  dosage: string
-  frequency: string
-  duration: string
-  quantity: number
+  consultation_id: number
+  medications: MedicationItem[]
+  prescription_date: string
+  valid_until?: string
+  control_date?: string
   instructions?: string
-  refills?: number
-  issued_date: string
-  expiry_date: string
+  notes?: string
 }
 
 export interface PrescriptionUpdateData {
-  medication_name?: string
-  dosage?: string
-  frequency?: string
-  duration?: string
-  quantity?: number
+  medications?: MedicationItem[]
+  prescription_date?: string
+  valid_until?: string | null
+  control_date?: string | null
   instructions?: string
-  refills?: number
-  issued_date?: string
-  expiry_date?: string
-  is_active?: boolean
+  notes?: string
+  is_printed?: boolean
+  is_delivered?: boolean
 }
 
 export interface PrescriptionListParams {
   patient_id?: number
   doctor_id?: number
-  is_active?: boolean
   page?: number
   page_size?: number
-  sort_by?: 'issued_date' | 'expiry_date' | 'created_at'
+  sort_by?: 'prescription_date' | 'valid_until' | 'created_at'
   sort_order?: 'asc' | 'desc'
 }
 
@@ -335,17 +393,16 @@ export interface PrescriptionListResponse {
 
 export interface Image {
   id: number
+  consultation_id: number
   patient_id: number
-  doctor_id: number
-  file_url: string
-  file_name: string
+  filename: string
   file_size: number
   mime_type: string
-  description?: string
-  analysis?: ImageAnalysis
+  image_data: string
+  notes?: string
   uploaded_at: string
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ImageAnalysis {
