@@ -45,3 +45,11 @@ export async function updateConsultation(
 export async function deleteConsultation(id: number) {
   await api.consultations.delete(id)
 }
+
+/**
+ * Get consultation history for a specific patient
+ */
+export async function getPatientConsultationHistory(patientId: number, params?: any) {
+  const response = await api.consultations.list({ patient_id: patientId, ...params })
+  return response.data
+}

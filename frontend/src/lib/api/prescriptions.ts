@@ -62,3 +62,11 @@ export async function downloadPrescriptionPdf(id: number) {
   const response = await api.prescriptions.downloadPdf(id)
   return response.data
 }
+
+/**
+ * Mark a prescription as printed
+ */
+export async function markPrescriptionPrinted(id: number) {
+  const response = await api.prescriptions.update(id, { is_printed: true })
+  return response.data
+}

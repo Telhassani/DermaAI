@@ -92,3 +92,11 @@ export async function getPatientStats(id: number) {
   const response = await api.patients.stats(id)
   return response.data
 }
+
+/**
+ * Search patients by name or email
+ */
+export async function searchPatients(query: string, params?: ListPatientsParams) {
+  const response = await api.patients.list({ search: query, ...params })
+  return response.data
+}
