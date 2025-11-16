@@ -36,6 +36,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Enable sending httpOnly cookies with cross-origin requests
 })
 
 // Type for failed request queue

@@ -96,38 +96,27 @@ def create_refresh_token(data: dict) -> str:
 
 def decode_token(token: str) -> Optional[dict]:
     """
-    Decode and verify a JWT token
+    Decode and verify a JWT token.
+
+    Strictly verifies token signature. Never accepts unverified tokens
+    even in development mode to prevent token forgery attacks.
 
     Args:
         token: JWT token to decode
 
     Returns:
-        Decoded token data or None if invalid
+        Decoded token data or None if invalid/expired
     """
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
-    except JWTError as e:
-        # For development: try to decode without verification
-        # This allows frontend-generated tokens to work
-        try:
-            # Decode without verification (development only)
-            unverified = jwt.decode(
-                token,
-                settings.SECRET_KEY,
-                algorithms=[settings.ALGORITHM],
-                options={"verify_signature": False}
-            )
-            # Check if it has the expected demo claims
-            if unverified.get("user_id") and unverified.get("email"):
-                return unverified
-        except Exception as ex:
-            # Invalid token, can't decode even without verification
-            print(f"[decode_token] Failed to decode token: {ex}")
-            return None
-
+    except JWTError:
+        # Token verification failed - return None instead of accepting unverified token
+        return None
+    except Exception:
+        # Any other error during token processing
         return None
 
 

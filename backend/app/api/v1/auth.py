@@ -4,6 +4,7 @@ Authentication endpoints - Register, Login, Logout, Token refresh
 
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -92,14 +93,14 @@ async def login(
     db: Session = Depends(get_db),
 ):
     """
-    Login user and return JWT tokens
+    Login user and return JWT tokens via httpOnly cookies.
 
     Args:
         form_data: OAuth2 form with username (email) and password
         db: Database session
 
     Returns:
-        Access token and refresh token
+        Access token and refresh token (set via httpOnly secure cookies)
 
     Raises:
         HTTPException: If credentials are invalid
@@ -150,11 +151,36 @@ async def login(
         success=True,
     )
 
-    return {
+    # Create response with tokens in httpOnly cookies and in body for compatibility
+    response_data = {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
+
+    response = JSONResponse(content=response_data)
+
+    # Set httpOnly secure cookies (tokens are not accessible via JavaScript)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,  # Requires HTTPS in production
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,  # Requires HTTPS in production
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/",
+    )
+
+    return response
 
 
 @router.get("/me", response_model=UserResponse)
@@ -181,20 +207,25 @@ async def refresh_token(
     db: Session = Depends(get_db),
 ):
     """
-    Refresh an access token using a valid refresh token
+    Refresh an access token using a valid refresh token.
+
+    Accepts refresh token from httpOnly cookie or request body for compatibility.
 
     Args:
         token_request: RefreshTokenRequest containing the refresh_token
         db: Database session
 
     Returns:
-        New access token and refresh token
+        New access token and refresh token (set via httpOnly secure cookies)
 
     Raises:
         HTTPException: If refresh token is invalid or expired
     """
+    # Try to get refresh token from cookies first, fallback to request body
+    refresh_token_value = request.cookies.get("refresh_token") or token_request.refresh_token
+
     # Decode the refresh token
-    token_data = decode_token(token_request.refresh_token)
+    token_data = decode_token(refresh_token_value)
 
     if not token_data:
         raise HTTPException(
@@ -232,7 +263,7 @@ async def refresh_token(
     # Create new tokens
     new_token_data = {"user_id": user.id, "email": user.email, "role": user.role.value}
     access_token = create_access_token(new_token_data)
-    refresh_token = create_refresh_token(new_token_data)
+    new_refresh_token = create_refresh_token(new_token_data)
 
     # Log token refresh
     log_audit_event(
@@ -243,28 +274,52 @@ async def refresh_token(
         success=True,
     )
 
-    return {
+    # Create response with tokens in httpOnly cookies and in body for compatibility
+    response_data = {
         "access_token": access_token,
-        "refresh_token": refresh_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
     }
+
+    response = JSONResponse(content=response_data)
+
+    # Set httpOnly secure cookies (tokens are not accessible via JavaScript)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,  # Requires HTTPS in production
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=True,  # Requires HTTPS in production
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/",
+    )
+
+    return response
 
 
 @router.post("/logout")
 async def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
     """
-    Logout user (client should delete tokens)
+    Logout user and clear httpOnly cookies.
 
     Args:
         current_user: Current active user from JWT token
 
     Returns:
-        Success message
+        Success message with cleared cookies
 
     Note:
-        With JWT, we can't invalidate tokens server-side.
-        The client should delete the tokens.
-        For production, consider using a token blacklist in Redis.
+        Clears httpOnly cookies server-side. JWT tokens remain valid until expiration,
+        so for production consider implementing a token blacklist in Redis.
     """
     log_audit_event(
         user_id=str(current_user.id),
@@ -274,4 +329,26 @@ async def logout(current_user: Annotated[User, Depends(get_current_active_user)]
         success=True,
     )
 
-    return {"message": "Successfully logged out"}
+    response = JSONResponse(content={"message": "Successfully logged out"})
+
+    # Clear httpOnly cookies by setting max_age=0
+    response.set_cookie(
+        key="access_token",
+        value="",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=0,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value="",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=0,
+        path="/",
+    )
+
+    return response
