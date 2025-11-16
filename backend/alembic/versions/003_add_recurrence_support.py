@@ -1,7 +1,7 @@
 """Add recurrence support to appointments table
 
 Revision ID: 003_recurrence
-Revises: None
+Revises: 61ec4a5df7bd
 Create Date: 2025-11-15
 
 This migration adds support for recurring appointments and optimizes
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '003_recurrence'
-down_revision = None
+down_revision = '61ec4a5df7bd'
 branch_labels = None
 depends_on = None
 
