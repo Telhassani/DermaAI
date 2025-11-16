@@ -54,19 +54,39 @@ export const useAuthStore = create<AuthStoreState>()(
       },
 
       setToken: (token) => {
+        // Prefer httpOnly cookies set by backend
+        // Keep localStorage as fallback for backward compatibility with older deployments
         if (token) {
-          localStorage.setItem('access_token', token)
+          try {
+            localStorage.setItem('access_token', token)
+          } catch {
+            // localStorage may be disabled or full; httpOnly cookies will handle auth
+          }
         } else {
-          localStorage.removeItem('access_token')
+          try {
+            localStorage.removeItem('access_token')
+          } catch {
+            // Ignore localStorage errors
+          }
         }
         set({ token })
       },
 
       setRefreshToken: (refreshToken) => {
+        // Prefer httpOnly cookies set by backend
+        // Keep localStorage as fallback for backward compatibility
         if (refreshToken) {
-          localStorage.setItem('refresh_token', refreshToken)
+          try {
+            localStorage.setItem('refresh_token', refreshToken)
+          } catch {
+            // localStorage may be disabled; httpOnly cookies will handle auth
+          }
         } else {
-          localStorage.removeItem('refresh_token')
+          try {
+            localStorage.removeItem('refresh_token')
+          } catch {
+            // Ignore localStorage errors
+          }
         }
         set({ refreshToken })
       },
@@ -115,31 +135,38 @@ export const useAuthStore = create<AuthStoreState>()(
 
       // Logout method
       logout: () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
+        // Clear localStorage as fallback
+        try {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user')
+        } catch {
+          // Ignore localStorage errors
+        }
+        // Clear state
         set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isInitialized: true })
+        // Backend will clear httpOnly cookies via /logout endpoint
         window.location.href = '/auth/login'
       },
 
       // Check authentication status
       checkAuth: async () => {
         try {
-          const token = localStorage.getItem('access_token')
-
-          if (!token) {
-            set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
-            return
-          }
-
+          // Try to get user info - if httpOnly cookies are valid, this will work
+          // If not, the backend will return 401 and we'll catch it
           const response = await api.auth.me()
           const user = response.data
-
-          set({ user, token, isAuthenticated: true, isInitialized: true })
+          // Treat httpOnly cookie as valid if /me endpoint succeeds
+          set({ user, isAuthenticated: true, isInitialized: true })
         } catch (error) {
+          // Auth failed - clear local state but trust httpOnly cookie clearing
           console.error('Auth check failed:', error)
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('user')
+          try {
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('user')
+          } catch {
+            // Ignore localStorage errors
+          }
           set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
         }
       },
