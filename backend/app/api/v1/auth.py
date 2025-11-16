@@ -85,7 +85,7 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
     return new_user
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 @limiter.limit("10/hour")
 async def login(
     request: Request,
@@ -199,7 +199,7 @@ async def get_current_user_info(
     return current_user
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh")
 @limiter.limit("20/hour")
 async def refresh_token(
     request: Request,
