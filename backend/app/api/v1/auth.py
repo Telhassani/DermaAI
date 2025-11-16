@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.security import (
     verify_password,
     get_password_hash,
