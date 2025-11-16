@@ -19,8 +19,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add control_date column to prescriptions table
-    op.add_column('prescriptions', sa.Column('control_date', sa.Date(), nullable=True))
+    # Add control_date column to prescriptions table (if not already present)
+    # Check if column exists before adding
+    from sqlalchemy import inspect
+    from alembic.migration import MigrationContext
+
+    ctx = MigrationContext.configure(op.get_context().bind)
+    inspector = inspect(ctx.bind)
+    columns = [c['name'] for c in inspector.get_columns('prescriptions')]
+
+    if 'control_date' not in columns:
+        op.add_column('prescriptions', sa.Column('control_date', sa.Date(), nullable=True))
 
 
 def downgrade() -> None:
