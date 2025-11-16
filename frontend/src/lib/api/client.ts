@@ -3,8 +3,28 @@
  * Handles authentication, interceptors, and error handling
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
+import type {
+  LoginRequest,
+  PatientListParams,
+  PatientCreateData,
+  PatientUpdateData,
+  AppointmentListParams,
+  AppointmentCreateData,
+  AppointmentUpdateData,
+  AppointmentStatusUpdateData,
+  ConflictCheckData,
+  AppointmentStatsParams,
+  ConsultationListParams,
+  ConsultationCreateData,
+  ConsultationUpdateData,
+  PrescriptionListParams,
+  PrescriptionCreateData,
+  PrescriptionUpdateData,
+  ImageListParams,
+  ErrorResponse,
+} from '@/types/api'
 
 // API base URL from environment variables
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -18,6 +38,29 @@ export const apiClient = axios.create({
   },
 })
 
+// Type for failed request queue
+interface FailedQueueItem {
+  resolve: (token: string) => void
+  reject: (error: unknown) => void
+}
+
+// Track if we're already attempting to refresh token to avoid infinite loops
+let isRefreshing = false
+let failedQueue: FailedQueueItem[] = []
+
+const processQueue = (error: unknown | null, token: string | null = null): void => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else if (token) {
+      prom.resolve(token)
+    }
+  })
+
+  isRefreshing = false
+  failedQueue = []
+}
+
 // Request interceptor - Add auth token to requests
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -27,9 +70,14 @@ apiClient.interceptors.request.use(
     // Add token to headers if it exists
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log(`[API] Sending request to ${config.url} with token:`, token.substring(0, 20) + '...')
+      // Only log in development mode to avoid security issues in production
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[API] Request to ${config.url}`)
+      }
     } else {
-      console.log(`[API] No token found in localStorage for request to ${config.url}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[API] No token found for request to ${config.url}`)
+      }
     }
 
     return config
@@ -38,23 +86,6 @@ apiClient.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-
-// Track if we're already attempting to refresh token to avoid infinite loops
-let isRefreshing = false
-let failedQueue: any[] = []
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
-
-  isRefreshing = false
-  failedQueue = []
-}
 
 // Response interceptor - Handle errors globally
 apiClient.interceptors.response.use(
@@ -173,11 +204,11 @@ apiClient.interceptors.response.use(
   }
 )
 
-// API endpoints
+// API endpoints with proper TypeScript types
 export const api = {
   // Authentication
   auth: {
-    login: (data: { username: string; password: string }) => {
+    login: (data: LoginRequest) => {
       // Convert to FormData for OAuth2PasswordRequestForm
       const formData = new URLSearchParams()
       formData.append('username', data.username)
@@ -187,7 +218,7 @@ export const api = {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
     },
-    register: (data: any) => apiClient.post('/auth/register', data),
+    register: (data: PatientCreateData) => apiClient.post('/auth/register', data),
     me: () => apiClient.get('/auth/me'),
     refreshToken: (refresh_token: string) =>
       apiClient.post('/auth/refresh', { refresh_token }),
@@ -195,42 +226,54 @@ export const api = {
 
   // Patients
   patients: {
-    list: (params?: any) => apiClient.get('/patients', { params }),
+    list: (params?: PatientListParams) => apiClient.get('/patients', { params }),
     get: (id: number) => apiClient.get(`/patients/${id}`),
-    create: (data: any) => apiClient.post('/patients', data),
-    update: (id: number, data: any) => apiClient.put(`/patients/${id}`, data),
+    create: (data: PatientCreateData) => apiClient.post('/patients', data),
+    update: (id: number, data: PatientUpdateData) =>
+      apiClient.put(`/patients/${id}`, data),
     delete: (id: number) => apiClient.delete(`/patients/${id}`),
     stats: (id: number) => apiClient.get(`/patients/${id}/stats`),
   },
 
   // Appointments
   appointments: {
-    list: (params?: any) => apiClient.get('/appointments', { params }),
+    list: (params?: AppointmentListParams) =>
+      apiClient.get('/appointments', { params }),
     get: (id: number) => apiClient.get(`/appointments/${id}`),
-    create: (data: any) => apiClient.post('/appointments', data),
-    update: (id: number, data: any) => apiClient.put(`/appointments/${id}`, data),
-    updateStatus: (id: number, data: any) =>
+    create: (data: AppointmentCreateData) =>
+      apiClient.post('/appointments', data),
+    update: (id: number, data: AppointmentUpdateData) =>
+      apiClient.put(`/appointments/${id}`, data),
+    updateStatus: (id: number, data: AppointmentStatusUpdateData) =>
       apiClient.patch(`/appointments/${id}/status`, data),
     delete: (id: number) => apiClient.delete(`/appointments/${id}`),
-    checkConflicts: (data: any) => apiClient.post('/appointments/check-conflicts', data),
-    stats: (params?: any) => apiClient.get('/appointments/stats/overview', { params }),
+    checkConflicts: (data: ConflictCheckData) =>
+      apiClient.post('/appointments/check-conflicts', data),
+    stats: (params?: AppointmentStatsParams) =>
+      apiClient.get('/appointments/stats/overview', { params }),
   },
 
   // Consultations
   consultations: {
-    list: (params?: any) => apiClient.get('/consultations', { params }),
+    list: (params?: ConsultationListParams) =>
+      apiClient.get('/consultations', { params }),
     get: (id: number) => apiClient.get(`/consultations/${id}`),
-    create: (data: any) => apiClient.post('/consultations', data),
-    update: (id: number, data: any) => apiClient.put(`/consultations/${id}`, data),
+    create: (data: ConsultationCreateData) =>
+      apiClient.post('/consultations', data),
+    update: (id: number, data: ConsultationUpdateData) =>
+      apiClient.put(`/consultations/${id}`, data),
     delete: (id: number) => apiClient.delete(`/consultations/${id}`),
   },
 
   // Prescriptions
   prescriptions: {
-    list: (params?: any) => apiClient.get('/prescriptions', { params }),
+    list: (params?: PrescriptionListParams) =>
+      apiClient.get('/prescriptions', { params }),
     get: (id: number) => apiClient.get(`/prescriptions/${id}`),
-    create: (data: any) => apiClient.post('/prescriptions', data),
-    update: (id: number, data: any) => apiClient.put(`/prescriptions/${id}`, data),
+    create: (data: PrescriptionCreateData) =>
+      apiClient.post('/prescriptions', data),
+    update: (id: number, data: PrescriptionUpdateData) =>
+      apiClient.put(`/prescriptions/${id}`, data),
     delete: (id: number) => apiClient.delete(`/prescriptions/${id}`),
     downloadPdf: (id: number) =>
       apiClient.get(`/prescriptions/${id}/pdf`, { responseType: 'blob' }),
@@ -238,9 +281,9 @@ export const api = {
 
   // Images
   images: {
-    list: (params?: any) => apiClient.get('/images', { params }),
+    list: (params?: ImageListParams) => apiClient.get('/images', { params }),
     get: (id: number) => apiClient.get(`/images/${id}`),
-    create: (data: any) => apiClient.post('/images', data),
+    create: (data: FormData) => apiClient.post('/images', data),
     delete: (id: number) => apiClient.delete(`/images/${id}`),
     analyze: (id: number) => apiClient.post(`/images/${id}/analyze`, {}),
   },

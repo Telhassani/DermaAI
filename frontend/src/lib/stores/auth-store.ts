@@ -103,11 +103,10 @@ export const useAuthStore = create<AuthStoreState>()(
           toast.success(`Bienvenue ${user.full_name} !`)
           // Return success - caller will handle navigation with Next.js router
           return
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Login error:', error)
-          toast.error(
-            error.response?.data?.detail || 'Erreur de connexion. Vérifiez vos identifiants.'
-          )
+          const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion. Vérifiez vos identifiants.'
+          toast.error(errorMessage)
           throw error
         } finally {
           set({ isLoading: false })

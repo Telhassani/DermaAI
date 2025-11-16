@@ -1,0 +1,454 @@
+/**
+ * API Type Definitions
+ * Defines all request and response types for backend API calls
+ * Ensures type safety at the API boundary
+ */
+
+import { AppointmentStatus, AppointmentType } from '@/lib/hooks/use-appointments'
+
+// ============================================================================
+// AUTHENTICATION TYPES
+// ============================================================================
+
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+  full_name: string
+}
+
+export interface User {
+  id: number
+  email: string
+  full_name: string
+  role: 'admin' | 'doctor' | 'secretary' | 'assistant'
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string
+}
+
+// ============================================================================
+// PATIENT TYPES
+// ============================================================================
+
+export interface Patient {
+  id: number
+  user_id: number
+  date_of_birth: string
+  gender?: 'M' | 'F' | 'Other'
+  phone?: string
+  address?: string
+  medical_history?: string
+  allergies?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PatientCreateData {
+  email: string
+  full_name: string
+  date_of_birth: string
+  gender?: 'M' | 'F' | 'Other'
+  phone?: string
+  address?: string
+  medical_history?: string
+  allergies?: string
+}
+
+export interface PatientUpdateData {
+  full_name?: string
+  date_of_birth?: string
+  gender?: 'M' | 'F' | 'Other'
+  phone?: string
+  address?: string
+  medical_history?: string
+  allergies?: string
+  is_active?: boolean
+}
+
+export interface PatientListParams {
+  page?: number
+  page_size?: number
+  search?: string
+  sort_by?: 'full_name' | 'created_at' | 'date_of_birth'
+  sort_order?: 'asc' | 'desc'
+  is_active?: boolean
+}
+
+export interface PatientListResponse {
+  patients: Patient[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface PatientStats {
+  total_appointments: number
+  completed_appointments: number
+  upcoming_appointments: number
+  last_appointment: string | null
+}
+
+// ============================================================================
+// APPOINTMENT TYPES
+// ============================================================================
+
+export interface Appointment {
+  id: number
+  patient_id: number
+  doctor_id: number
+  start_time: string
+  end_time: string
+  type: AppointmentType
+  status: AppointmentStatus
+  reason?: string | null
+  notes?: string | null
+  diagnosis?: string | null
+  is_first_visit: boolean
+  reminder_sent: boolean
+  created_at: string
+  updated_at: string
+  duration_minutes: number
+  is_upcoming: boolean
+  is_past: boolean
+}
+
+export interface AppointmentCreateData {
+  patient_id: number
+  doctor_id: number
+  start_time: string
+  end_time: string
+  type?: AppointmentType
+  reason?: string
+  notes?: string
+  is_first_visit?: boolean
+  recurrence_rule?: string
+}
+
+export interface AppointmentUpdateData {
+  patient_id?: number
+  doctor_id?: number
+  start_time?: string
+  end_time?: string
+  type?: AppointmentType
+  status?: AppointmentStatus
+  reason?: string
+  notes?: string
+  diagnosis?: string
+  is_first_visit?: boolean
+  reminder_sent?: boolean
+}
+
+export interface AppointmentStatusUpdateData {
+  status: AppointmentStatus
+}
+
+export interface AppointmentListParams {
+  patient_id?: number
+  doctor_id?: number
+  type?: AppointmentType
+  status?: AppointmentStatus
+  start_date?: string
+  end_date?: string
+  is_first_visit?: boolean
+  page?: number
+  page_size?: number
+  sort_by?: 'start_time' | 'created_at' | 'patient_id'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface AppointmentListResponse {
+  appointments: Appointment[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface ConflictCheckData {
+  start_time: string
+  end_time: string
+  doctor_id: number
+  exclude_appointment_id?: number
+}
+
+export interface ConflictCheckResponse {
+  has_conflict: boolean
+  conflicts?: Appointment[]
+  conflict_details?: string
+}
+
+export interface AppointmentStatsParams {
+  start_date?: string
+  end_date?: string
+  doctor_id?: number
+  patient_id?: number
+}
+
+export interface AppointmentStats {
+  total_appointments: number
+  scheduled: number
+  confirmed: number
+  in_progress: number
+  completed: number
+  cancelled: number
+  no_show: number
+  average_duration_minutes: number
+}
+
+// ============================================================================
+// CONSULTATION TYPES
+// ============================================================================
+
+export interface Consultation {
+  id: number
+  appointment_id: number
+  patient_id: number
+  doctor_id: number
+  chief_complaint: string
+  findings?: string
+  assessment?: string
+  plan?: string
+  follow_up_date?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ConsultationCreateData {
+  appointment_id: number
+  patient_id: number
+  doctor_id: number
+  chief_complaint: string
+  findings?: string
+  assessment?: string
+  plan?: string
+  follow_up_date?: string
+}
+
+export interface ConsultationUpdateData {
+  chief_complaint?: string
+  findings?: string
+  assessment?: string
+  plan?: string
+  follow_up_date?: string
+}
+
+export interface ConsultationListParams {
+  patient_id?: number
+  doctor_id?: number
+  page?: number
+  page_size?: number
+  sort_by?: 'created_at' | 'follow_up_date'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface ConsultationListResponse {
+  consultations: Consultation[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// ============================================================================
+// PRESCRIPTION TYPES
+// ============================================================================
+
+export interface Prescription {
+  id: number
+  patient_id: number
+  doctor_id: number
+  medication_name: string
+  dosage: string
+  frequency: string
+  duration: string
+  quantity: number
+  instructions?: string
+  refills: number
+  issued_date: string
+  expiry_date: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PrescriptionCreateData {
+  patient_id: number
+  doctor_id: number
+  medication_name: string
+  dosage: string
+  frequency: string
+  duration: string
+  quantity: number
+  instructions?: string
+  refills?: number
+  issued_date: string
+  expiry_date: string
+}
+
+export interface PrescriptionUpdateData {
+  medication_name?: string
+  dosage?: string
+  frequency?: string
+  duration?: string
+  quantity?: number
+  instructions?: string
+  refills?: number
+  issued_date?: string
+  expiry_date?: string
+  is_active?: boolean
+}
+
+export interface PrescriptionListParams {
+  patient_id?: number
+  doctor_id?: number
+  is_active?: boolean
+  page?: number
+  page_size?: number
+  sort_by?: 'issued_date' | 'expiry_date' | 'created_at'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface PrescriptionListResponse {
+  prescriptions: Prescription[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// ============================================================================
+// IMAGE TYPES
+// ============================================================================
+
+export interface Image {
+  id: number
+  patient_id: number
+  doctor_id: number
+  file_url: string
+  file_name: string
+  file_size: number
+  mime_type: string
+  description?: string
+  analysis?: ImageAnalysis
+  uploaded_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ImageAnalysis {
+  id: number
+  image_id: number
+  findings: string
+  confidence_score: number
+  tags: string[]
+  recommendations?: string
+  analyzed_at: string
+}
+
+export interface ImageUploadData {
+  patient_id: number
+  doctor_id: number
+  description?: string
+  file: File
+}
+
+export interface ImageListParams {
+  patient_id?: number
+  doctor_id?: number
+  page?: number
+  page_size?: number
+  sort_by?: 'uploaded_at' | 'created_at'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface ImageListResponse {
+  images: Image[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface ImageAnalyzeRequest {
+  image_id: number
+}
+
+export interface ImageAnalyzeResponse {
+  success: boolean
+  analysis: ImageAnalysis
+  message: string
+}
+
+// ============================================================================
+// ERROR TYPES
+// ============================================================================
+
+export interface ValidationError {
+  loc: (string | number)[]
+  msg: string
+  type: string
+}
+
+export interface ErrorResponse {
+  detail?: string | ValidationError[]
+  message?: string
+  status?: number
+  timestamp?: string
+}
+
+export interface ApiError extends Error {
+  status?: number
+  response?: {
+    data?: ErrorResponse
+    status?: number
+  }
+}
+
+// ============================================================================
+// PAGINATION TYPES
+// ============================================================================
+
+export interface PaginationParams {
+  page?: number
+  page_size?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// ============================================================================
+// COMMON TYPES
+// ============================================================================
+
+export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+
+export interface ApiRequest {
+  method: ApiMethod
+  url: string
+  data?: unknown
+  params?: unknown
+}
+
+export interface ApiResponse<T = unknown> {
+  data: T
+  status: number
+  statusText: string
+}
