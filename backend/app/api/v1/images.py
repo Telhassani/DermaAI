@@ -23,7 +23,7 @@ from app.api.utils import check_image_ownership
 from app.services.ai_analysis import ai_service
 from app.core.cache import redis_cache
 
-router = APIRouter(tags=["images"])
+router = APIRouter()
 
 
 @router.post(
