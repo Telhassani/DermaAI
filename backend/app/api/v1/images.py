@@ -17,6 +17,7 @@ from app.schemas.image import (
     ConsultationImageUpdate,
     ImageAnalysisRequest,
     ImageAnalysisResponse,
+    ConsultationImageCreate,
 )
 from app.core.logging import log_audit_event
 from app.api.utils import check_image_ownership
@@ -35,7 +36,7 @@ router = APIRouter()
 async def upload_image(
     file: UploadFile = File(...),
     patient_id: int = Form(...),
-    consultation_id: int = Form(default=0),
+    consultation_id: int = Form(...),
     filename: str = Form(...),
     file_size: int = Form(...),
     mime_type: str = Form(default="image/jpeg"),
@@ -47,22 +48,22 @@ async def upload_image(
 
     - **file**: The image file to upload
     - **patient_id**: ID of the patient
-    - **consultation_id**: ID of the consultation (or 0 to auto-create)
+    - **consultation_id**: ID of the consultation (required)
     - **filename**: Original filename
     - **file_size**: File size in bytes
     - **mime_type**: MIME type of the image
     """
     try:
-        from app.models.patient import Patient
-        from datetime import datetime
+        # Verify consultation exists and belongs to current doctor (authorization)
+        consultation = db.query(Consultation).filter(
+            Consultation.id == consultation_id
+        ).first()
 
-        # Verify patient exists and belongs to current doctor (authorization)
-        patient = db.query(Patient).filter(Patient.id == patient_id).first()
-        if not patient:
-            raise HTTPException(status_code=404, detail="Patient non trouvé")
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation non trouvée")
 
-        if patient.doctor_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Accès refusé à ce patient")
+        if consultation.doctor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
 
         # Read file content from UploadFile
         file_content = await file.read()
@@ -70,33 +71,9 @@ async def upload_image(
         # Convert file bytes to Base64 for storage
         image_data_base64 = base64.b64encode(file_content).decode('utf-8')
 
-        # Verify or create consultation
-        if consultation_id and consultation_id > 0:
-            consultation = db.query(Consultation).filter(
-                Consultation.id == consultation_id
-            ).first()
-
-            if not consultation:
-                raise HTTPException(status_code=404, detail="Consultation non trouvée")
-
-            if consultation.doctor_id != current_user.id:
-                raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
-        else:
-            # Auto-create a consultation for image upload if one doesn't exist
-            now = datetime.now()
-            consultation = Consultation(
-                patient_id=patient_id,
-                doctor_id=current_user.id,
-                consultation_date=now.date(),
-                consultation_time=now,
-                chief_complaint="Image Upload",
-            )
-            db.add(consultation)
-            db.flush()  # Get the ID without committing
-
-        # Create new image record with the actual consultation ID
+        # Create new image record
         new_image = ConsultationImage(
-            consultation_id=consultation.id,
+            consultation_id=consultation_id,
             patient_id=patient_id,
             image_data=image_data_base64,
             filename=filename,
@@ -117,7 +94,7 @@ async def upload_image(
             details={
                 "image_id": new_image.id,
                 "filename": filename,
-                "consultation_id": consultation.id,
+                "consultation_id": consultation_id,
                 "file_size": file_size,
             },
             success=True,
