@@ -23,7 +23,7 @@ import {
 import { getPatient, deletePatient, PatientResponse } from '@/lib/api/patients'
 import { getPatientConsultationHistory, getConsultation, ConsultationResponse } from '@/lib/api/consultations'
 import { listPrescriptions, deletePrescription, PrescriptionResponse, markPrescriptionPrinted } from '@/lib/api/prescriptions'
-import { getPatientImages, deleteImage, updateImage, ImageResponse } from '@/lib/api/images'
+import { getPatientImages, deleteImage, updateImage, uploadImage, validateImageFile, ImageResponse } from '@/lib/api/images'
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
 import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
@@ -45,6 +45,7 @@ export default function PatientDetailPage() {
   const [images, setImages] = useState<ImageResponse[]>([])
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([])
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
   const [selectedImageForAnnotation, setSelectedImageForAnnotation] = useState<ImageResponse | null>(null)
   const [editingPrescription, setEditingPrescription] = useState<PrescriptionResponse | null>(null)
@@ -279,27 +280,53 @@ export default function PatientDetailPage() {
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
+    let files: FileList | null = null
+
+    if ('dataTransfer' in e) {
+      // Drag and drop event
+      e.preventDefault()
+      e.stopPropagation()
+      files = (e as React.DragEvent<HTMLDivElement>).dataTransfer.files
+      setIsDragging(false)
+    } else if ('target' in e) {
+      // File input event
+      files = (e.target as HTMLInputElement).files
+    }
+
+    if (!files || files.length === 0) return
 
     setUploadingImage(true)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setImages(prev => [...prev, event.target.result as string])
-          }
+        const validation = validateImageFile(file)
+        if (!validation.valid) {
+          console.error(`File validation failed: ${validation.error}`)
+          continue
         }
-        reader.readAsDataURL(file)
+        try {
+          const uploadedImage = await uploadImage(patientId, file)
+          setImages(prev => [...prev, uploadedImage])
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error)
+        }
       }
-    } catch (error) {
-      console.error('Error uploading images:', error)
     } finally {
       setUploadingImage(false)
     }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
   }
 
   const removeImage = (index: number) => {
@@ -577,8 +604,16 @@ export default function PatientDetailPage() {
             <div className="space-y-4">
               {/* Upload Area - Enhanced */}
               <div
-                className="rounded-xl border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/30 p-12 text-center cursor-pointer hover:border-purple-500 hover:from-purple-100 hover:to-purple-100/50 transition-all duration-200 group"
+                className={`rounded-xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-200 group ${
+                  isDragging
+                    ? 'border-purple-500 bg-purple-100/50 from-purple-100 to-purple-100/70'
+                    : 'border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/30 hover:border-purple-500 hover:from-purple-100 hover:to-purple-100/50'
+                }`}
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleImageUpload}
               >
                 <div className="flex flex-col items-center gap-3">
                   <div className="p-3 bg-purple-600/10 rounded-lg group-hover:bg-purple-600/20 transition-colors">
