@@ -6,13 +6,22 @@
 import { api } from './client'
 import type { Image, ImageListParams } from '@/types/api'
 
+/**
+ * @deprecated Use Image from @/types/api instead
+ * This interface matches the backend ConsultationImageResponse
+ */
 export interface ImageResponse {
   id: number
+  consultation_id: number
   patient_id: number
-  file_path: string
-  analysis_result?: any
-  created_at: string
-  updated_at: string
+  filename: string
+  file_size: number
+  mime_type: string
+  image_data: string  // Base64 encoded
+  notes?: string
+  uploaded_at: string
+  created_at?: string
+  updated_at?: string
 }
 
 export async function uploadImage(patientId: number, file: File) {
