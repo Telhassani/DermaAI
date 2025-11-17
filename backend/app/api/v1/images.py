@@ -40,7 +40,7 @@ async def upload_image(
     """
     Upload a new image for a consultation
 
-    - **consultation_id**: ID of the consultation
+    - **consultation_id**: ID of the consultation (or 0 to auto-create)
     - **patient_id**: ID of the patient
     - **image_data**: Base64 encoded image data
     - **filename**: Original filename
@@ -49,20 +49,43 @@ async def upload_image(
     - **notes**: Optional notes about the image
     """
     try:
-        # Verify consultation exists and belongs to current doctor (authorization)
-        consultation = db.query(Consultation).filter(
-            Consultation.id == image_data.consultation_id
-        ).first()
+        from app.models.patient import Patient
+        from datetime import datetime
 
-        if not consultation:
-            raise HTTPException(status_code=404, detail="Consultation non trouvée")
+        # Verify patient exists and belongs to current doctor (authorization)
+        patient = db.query(Patient).filter(Patient.id == image_data.patient_id).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient non trouvé")
 
-        if consultation.doctor_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+        if patient.doctor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Accès refusé à ce patient")
 
-        # Create new image record
+        # Verify or create consultation
+        if image_data.consultation_id and image_data.consultation_id > 0:
+            consultation = db.query(Consultation).filter(
+                Consultation.id == image_data.consultation_id
+            ).first()
+
+            if not consultation:
+                raise HTTPException(status_code=404, detail="Consultation non trouvée")
+
+            if consultation.doctor_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+        else:
+            # Auto-create a consultation for image upload if one doesn't exist
+            consultation = Consultation(
+                patient_id=image_data.patient_id,
+                doctor_id=current_user.id,
+                consultation_date=datetime.now().date().isoformat(),
+                consultation_time=datetime.now().time().isoformat(),
+                chief_complaint="Image Upload",
+            )
+            db.add(consultation)
+            db.flush()  # Get the ID without committing
+
+        # Create new image record with the actual consultation ID
         new_image = ConsultationImage(
-            consultation_id=image_data.consultation_id,
+            consultation_id=consultation.id,
             patient_id=image_data.patient_id,
             image_data=image_data.image_data,
             filename=image_data.filename,
