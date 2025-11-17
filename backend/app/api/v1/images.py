@@ -2,16 +2,16 @@
 Images API - Endpoints for managing consultation images and AI analysis
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+import base64
 
 from app.api.deps import get_current_active_user
 from app.db.session import get_db
 from app.models import User, ConsultationImage
 from app.models.consultation import Consultation
 from app.schemas.image import (
-    ConsultationImageCreate,
     ConsultationImageResponse,
     ConsultationImageListResponse,
     ConsultationImageUpdate,
@@ -33,37 +33,47 @@ router = APIRouter()
     summary="Upload a consultation image",
 )
 async def upload_image(
-    image_data: ConsultationImageCreate,
+    file: UploadFile = File(...),
+    patient_id: int = Form(...),
+    consultation_id: int = Form(default=0),
+    filename: str = Form(...),
+    file_size: int = Form(...),
+    mime_type: str = Form(default="image/jpeg"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """
-    Upload a new image for a consultation
+    Upload a new image for a consultation using multipart/form-data
 
-    - **consultation_id**: ID of the consultation (or 0 to auto-create)
+    - **file**: The image file to upload
     - **patient_id**: ID of the patient
-    - **image_data**: Base64 encoded image data
+    - **consultation_id**: ID of the consultation (or 0 to auto-create)
     - **filename**: Original filename
     - **file_size**: File size in bytes
     - **mime_type**: MIME type of the image
-    - **notes**: Optional notes about the image
     """
     try:
         from app.models.patient import Patient
         from datetime import datetime
 
         # Verify patient exists and belongs to current doctor (authorization)
-        patient = db.query(Patient).filter(Patient.id == image_data.patient_id).first()
+        patient = db.query(Patient).filter(Patient.id == patient_id).first()
         if not patient:
             raise HTTPException(status_code=404, detail="Patient non trouvé")
 
         if patient.doctor_id != current_user.id:
             raise HTTPException(status_code=403, detail="Accès refusé à ce patient")
 
+        # Read file content from UploadFile
+        file_content = await file.read()
+
+        # Convert file bytes to Base64 for storage
+        image_data_base64 = base64.b64encode(file_content).decode('utf-8')
+
         # Verify or create consultation
-        if image_data.consultation_id and image_data.consultation_id > 0:
+        if consultation_id and consultation_id > 0:
             consultation = db.query(Consultation).filter(
-                Consultation.id == image_data.consultation_id
+                Consultation.id == consultation_id
             ).first()
 
             if not consultation:
@@ -74,7 +84,7 @@ async def upload_image(
         else:
             # Auto-create a consultation for image upload if one doesn't exist
             consultation = Consultation(
-                patient_id=image_data.patient_id,
+                patient_id=patient_id,
                 doctor_id=current_user.id,
                 consultation_date=datetime.now().date().isoformat(),
                 consultation_time=datetime.now().time().isoformat(),
@@ -86,12 +96,12 @@ async def upload_image(
         # Create new image record with the actual consultation ID
         new_image = ConsultationImage(
             consultation_id=consultation.id,
-            patient_id=image_data.patient_id,
-            image_data=image_data.image_data,
-            filename=image_data.filename,
-            file_size=image_data.file_size,
-            mime_type=image_data.mime_type,
-            notes=image_data.notes,
+            patient_id=patient_id,
+            image_data=image_data_base64,
+            filename=filename,
+            file_size=file_size,
+            mime_type=mime_type,
+            notes=None,
         )
 
         db.add(new_image)
@@ -105,9 +115,9 @@ async def upload_image(
             resource="image",
             details={
                 "image_id": new_image.id,
-                "filename": image_data.filename,
-                "consultation_id": image_data.consultation_id,
-                "file_size": image_data.file_size,
+                "filename": filename,
+                "consultation_id": consultation.id,
+                "file_size": file_size,
             },
             success=True,
         )

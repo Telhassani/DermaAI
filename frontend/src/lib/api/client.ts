@@ -37,6 +37,8 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Enable sending httpOnly cookies with cross-origin requests
+  maxBodyLength: Infinity, // Allow large file uploads
+  maxContentLength: Infinity, // Allow large responses
 })
 
 // Type for failed request queue
@@ -79,6 +81,12 @@ apiClient.interceptors.request.use(
       if (process.env.NODE_ENV === 'development') {
         console.debug(`[API] No token found for request to ${config.url}`)
       }
+    }
+
+    // For FormData, don't set Content-Type header - let axios/browser handle it
+    // This ensures the multipart boundary is properly set
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
     }
 
     return config

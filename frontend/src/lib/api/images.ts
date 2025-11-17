@@ -25,33 +25,20 @@ export interface ImageResponse {
 }
 
 export async function uploadImage(patientId: number, file: File, consultationId?: number) {
-  // Convert file to Base64
-  const fileData = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = reader.result as string
-      // Remove the data:image/...;base64, prefix
-      const base64Data = base64.split(',')[1]
-      resolve(base64Data)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+  // Use FormData for multipart file upload (no Base64 conversion)
+  const formData = new FormData()
 
-  // If no consultation provided, use patientId as consultation ID
-  // Backend will validate that this consultation belongs to the patient
-  const consultation_id = consultationId || patientId
+  // Add file directly
+  formData.append('file', file)
 
-  const payload = {
-    patient_id: patientId,
-    consultation_id: consultation_id,
-    image_data: fileData,
-    filename: file.name,
-    file_size: file.size,
-    mime_type: file.type,
-  }
+  // Add metadata fields
+  formData.append('patient_id', patientId.toString())
+  formData.append('consultation_id', (consultationId || 0).toString())
+  formData.append('filename', file.name)
+  formData.append('file_size', file.size.toString())
+  formData.append('mime_type', file.type)
 
-  const response = await api.images.create(payload)
+  const response = await api.images.create(formData)
   return response.data
 }
 
