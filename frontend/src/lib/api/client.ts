@@ -282,9 +282,11 @@ export const api = {
 
   // Images
   images: {
-    list: (params?: ImageListParams) => apiClient.get('/images', { params }),
+    list: (patientId: number, params?: ImageListParams) =>
+      apiClient.get(`/images/patient/${patientId}`, { params }),
     get: (id: number) => apiClient.get(`/images/${id}`),
     create: (data: FormData) => apiClient.post('/images', data),
+    update: (id: number, data: any) => apiClient.put(`/images/${id}`, data),
     delete: (id: number) => apiClient.delete(`/images/${id}`),
     analyze: (id: number) => apiClient.post(`/images/${id}/analyze`, {}),
   },

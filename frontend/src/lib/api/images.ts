@@ -40,7 +40,7 @@ export async function getConsultationImages(consultationId: number, params?: Ima
  * Get images for a specific patient
  */
 export async function getPatientImages(patientId: number, params?: ImageListParams) {
-  const response = await api.images.list({ patient_id: patientId, ...params })
+  const response = await api.images.list(patientId, params)
   return response.data
 }
 
@@ -70,10 +70,9 @@ export async function deleteImage(imageId: number) {
 }
 
 /**
- * Update image metadata
+ * Update image metadata (notes)
  */
 export async function updateImage(imageId: number, data: Partial<Image>) {
-  // Note: API might not support PATCH for images, check backend
-  // For now, this is a stub that can be implemented when endpoint is available
-  return data
+  const response = await api.images.update(imageId, data)
+  return response.data
 }
