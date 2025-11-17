@@ -24,11 +24,34 @@ export interface ImageResponse {
   updated_at?: string
 }
 
-export async function uploadImage(patientId: number, file: File) {
-  const formData = new FormData()
-  formData.append('file', file)
+export async function uploadImage(patientId: number, file: File, consultationId?: number) {
+  // Convert file to Base64
+  const fileData = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      // Remove the data:image/...;base64, prefix
+      const base64Data = base64.split(',')[1]
+      resolve(base64Data)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 
-  const response = await api.images.create(formData)
+  // If no consultation provided, use patientId as consultation ID
+  // Backend will validate that this consultation belongs to the patient
+  const consultation_id = consultationId || patientId
+
+  const payload = {
+    patient_id: patientId,
+    consultation_id: consultation_id,
+    image_data: fileData,
+    filename: file.name,
+    file_size: file.size,
+    mime_type: file.type,
+  }
+
+  const response = await api.images.create(payload)
   return response.data
 }
 
@@ -39,10 +62,12 @@ export async function analyzeImage(imageId: number) {
 
 /**
  * Get images for a specific consultation
+ * Note: Images are retrieved by patient, not consultation directly
  */
 export async function getConsultationImages(consultationId: number, params?: ImageListParams) {
-  const response = await api.images.list({ ...params })
-  return response.data
+  // This endpoint doesn't exist yet - use patient images instead
+  // TODO: Implement consultation-specific image retrieval if needed
+  throw new Error('Use getPatientImages() instead - images are stored per patient')
 }
 
 /**
