@@ -11,12 +11,14 @@ from app.db.base import BaseModel
 
 class ConsultationImage(BaseModel):
     """
-    ConsultationImage model - Represents an image taken during a consultation
+    ConsultationImage model - Represents a dermatology image for a patient
+
+    Images are patient-centric and optionally linked to a consultation.
 
     Attributes:
-        consultation_id: ID of the consultation (FK to consultations)
-        patient_id: ID of the patient (FK to patients)
-        image_data: Binary image data (stored as BLOB)
+        consultation_id: ID of the consultation (FK to consultations, optional)
+        patient_id: ID of the patient (FK to patients, required)
+        image_data: Base64-encoded image data
         filename: Original filename of the image
         file_size: Size of the file in bytes
         mime_type: MIME type of the image (e.g., image/jpeg, image/png)
@@ -27,7 +29,7 @@ class ConsultationImage(BaseModel):
     __tablename__ = "consultation_images"
 
     # Foreign Keys
-    consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=False, index=True)
+    consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=True, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
 
     # Image Details
