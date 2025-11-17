@@ -36,7 +36,7 @@ router = APIRouter()
 async def upload_image(
     file: UploadFile = File(...),
     patient_id: int = Form(...),
-    consultation_id: int = Form(...),
+    consultation_id: int = Form(None),
     filename: str = Form(...),
     file_size: int = Form(...),
     mime_type: str = Form(default="image/jpeg"),
@@ -44,26 +44,35 @@ async def upload_image(
     db: Session = Depends(get_db),
 ):
     """
-    Upload a new image for a consultation using multipart/form-data
+    Upload a new image for a patient using multipart/form-data
+
+    Images are patient-centric and optionally linked to a consultation.
 
     - **file**: The image file to upload
-    - **patient_id**: ID of the patient
-    - **consultation_id**: ID of the consultation (required)
+    - **patient_id**: ID of the patient (required)
+    - **consultation_id**: ID of the consultation (optional)
     - **filename**: Original filename
     - **file_size**: File size in bytes
     - **mime_type**: MIME type of the image
     """
     try:
-        # Verify consultation exists and belongs to current doctor (authorization)
-        consultation = db.query(Consultation).filter(
-            Consultation.id == consultation_id
-        ).first()
+        # Verify consultation exists and belongs to current doctor (if provided)
+        if consultation_id is not None:
+            consultation = db.query(Consultation).filter(
+                Consultation.id == consultation_id
+            ).first()
 
-        if not consultation:
-            raise HTTPException(status_code=404, detail="Consultation non trouvée")
+            if not consultation:
+                raise HTTPException(status_code=404, detail="Consultation non trouvée")
 
-        if consultation.doctor_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+            if consultation.doctor_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
+        else:
+            # If no consultation_id, we still verify patient belongs to doctor
+            from app.models.patient import Patient
+            patient = db.query(Patient).filter(Patient.id == patient_id).first()
+            if not patient or patient.doctor_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Accès refusé à ce patient")
 
         # Read file content from UploadFile
         file_content = await file.read()

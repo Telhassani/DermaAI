@@ -33,7 +33,10 @@ export async function uploadImage(patientId: number, file: File, consultationId?
 
   // Add metadata fields
   formData.append('patient_id', patientId.toString())
-  formData.append('consultation_id', (consultationId || 0).toString())
+  // Only add consultation_id if provided (otherwise send as empty/null)
+  if (consultationId !== undefined) {
+    formData.append('consultation_id', consultationId.toString())
+  }
   formData.append('filename', file.name)
   formData.append('file_size', file.size.toString())
   formData.append('mime_type', file.type)
