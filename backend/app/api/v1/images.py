@@ -83,11 +83,12 @@ async def upload_image(
                 raise HTTPException(status_code=403, detail="Accès refusé à cette consultation")
         else:
             # Auto-create a consultation for image upload if one doesn't exist
+            now = datetime.now()
             consultation = Consultation(
                 patient_id=patient_id,
                 doctor_id=current_user.id,
-                consultation_date=datetime.now().date().isoformat(),
-                consultation_time=datetime.now().time().isoformat(),
+                consultation_date=now.date(),
+                consultation_time=now,
                 chief_complaint="Image Upload",
             )
             db.add(consultation)
