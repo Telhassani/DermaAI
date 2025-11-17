@@ -112,7 +112,7 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["
 app.include_router(patients.router, prefix=f"{settings.API_V1_PREFIX}/patients", tags=["Patients"])
 app.include_router(consultations.router, prefix=f"{settings.API_V1_PREFIX}/consultations", tags=["Consultations"])
 app.include_router(prescriptions.router, prefix=f"{settings.API_V1_PREFIX}/prescriptions", tags=["Prescriptions"])
-app.include_router(images.router, tags=["Images"])
+app.include_router(images.router, prefix=f"{settings.API_V1_PREFIX}/images", tags=["Images"])
 app.include_router(appointments.router, prefix=f"{settings.API_V1_PREFIX}/appointments", tags=["Appointments"])
 # app.include_router(ai_analysis.router, prefix="/api/v1/ai-analysis", tags=["AI Analysis"])
 # app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])

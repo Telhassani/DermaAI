@@ -46,10 +46,14 @@ router = APIRouter()
 # ============================================================================
 
 def _get_appointment_details(appointment: Appointment, db: Session) -> AppointmentWithDetailsResponse:
-    """Get appointment with patient and doctor details."""
+    """Get appointment with patient and doctor details.
+
+    Uses eager-loaded relationships instead of making additional queries.
+    """
     try:
-        patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
-        doctor = db.query(User).filter(User.id == appointment.doctor_id).first()
+        # Use already eager-loaded relationships (no additional queries needed)
+        patient = appointment.patient
+        doctor = appointment.doctor
 
         return AppointmentWithDetailsResponse(
             **AppointmentResponse.from_orm(appointment).model_dump(),

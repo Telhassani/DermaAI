@@ -8,7 +8,7 @@ handling, and conflict detection.
 
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_
 
 from app.models.appointment import Appointment, AppointmentStatus, AppointmentType
@@ -101,7 +101,10 @@ class AppointmentService:
         Returns:
             Appointment object or None if not found
         """
-        return db.query(Appointment).filter(
+        return db.query(Appointment).options(
+            joinedload(Appointment.patient),
+            joinedload(Appointment.doctor)
+        ).filter(
             Appointment.id == appointment_id
         ).first()
 
@@ -216,7 +219,10 @@ class AppointmentService:
         Returns:
             Tuple of (appointments list, total count)
         """
-        query = db.query(Appointment)
+        query = db.query(Appointment).options(
+            joinedload(Appointment.patient),
+            joinedload(Appointment.doctor)
+        )
 
         # Apply filters
         if filters:
@@ -475,8 +481,11 @@ class AppointmentService:
         Returns:
             Tuple of (conflicting appointments list, available slots list)
         """
-        # Find overlapping appointments
-        query = db.query(Appointment).filter(
+        # Find overlapping appointments with eager loading
+        query = db.query(Appointment).options(
+            joinedload(Appointment.patient),
+            joinedload(Appointment.doctor)
+        ).filter(
             and_(
                 Appointment.doctor_id == doctor_id,
                 Appointment.start_time < end_time,
@@ -524,8 +533,11 @@ class AppointmentService:
         Returns:
             List of available time slots with start/end times
         """
-        # Get all appointments for the doctor on that day
-        appointments = db.query(Appointment).filter(
+        # Get all appointments for the doctor on that day with eager loading
+        appointments = db.query(Appointment).options(
+            joinedload(Appointment.patient),
+            joinedload(Appointment.doctor)
+        ).filter(
             and_(
                 Appointment.doctor_id == doctor_id,
                 Appointment.start_time >= datetime.combine(date, datetime.min.time()),

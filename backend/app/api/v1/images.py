@@ -1,5 +1,5 @@
 """
-Images API - Endpoints for managing consultation images
+Images API - Endpoints for managing consultation images and AI analysis
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,11 +15,15 @@ from app.schemas.image import (
     ConsultationImageResponse,
     ConsultationImageListResponse,
     ConsultationImageUpdate,
+    ImageAnalysisRequest,
+    ImageAnalysisResponse,
 )
 from app.core.logging import log_audit_event
 from app.api.utils import check_image_ownership
+from app.services.ai_analysis import ai_service
+from app.core.cache import redis_cache
 
-router = APIRouter(prefix="/api/v1/images", tags=["images"])
+router = APIRouter(tags=["images"])
 
 
 @router.post(
@@ -309,3 +313,82 @@ async def delete_image(
     )
 
     return None
+
+
+# ============================================================================
+# AI Image Analysis Endpoints
+# ============================================================================
+
+
+@router.post(
+    "/{image_id}/analyze",
+    response_model=ImageAnalysisResponse,
+    summary="Analyze image with AI",
+)
+async def analyze_image(
+    image_id: int,
+    request: ImageAnalysisRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze a dermatology image using Claude 3.5 Sonnet vision capabilities.
+
+    Provides:
+    - Condition identification
+    - Severity assessment
+    - Clinical observations
+    - Differential diagnoses
+    - Treatment recommendations
+    - Follow-up suggestions
+
+    Note: AI analysis is for clinical support only. Professional medical consultation
+    is always recommended.
+
+    - **image_id**: ID of the image to analyze
+    - **additional_notes**: Optional clinical context or patient information
+    """
+    try:
+        # Check image ownership (authorization)
+        image = check_image_ownership(image_id, current_user, db)
+
+        # Check cache first
+        cache_key = f"image:{image_id}:analysis"
+        cached_result = redis_cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
+        # Call AI service to analyze image
+        analysis_result = await ai_service.analyze_image(
+            image_data=image.image_data,
+            mime_type=image.mime_type,
+            additional_notes=request.additional_notes,
+        )
+
+        # Store in cache for 24 hours (same analysis shouldn't change)
+        redis_cache.set(cache_key, analysis_result, expire_seconds=86400)
+
+        # Audit log
+        log_audit_event(
+            user_id=str(current_user.id),
+            action="ANALYZE_IMAGE",
+            resource="image",
+            details={
+                "image_id": image.id,
+                "consultation_id": image.consultation_id,
+                "condition": analysis_result.get("condition"),
+                "confidence": analysis_result.get("confidence_percent", 0),
+            },
+            success=analysis_result.get("status") == "success",
+        )
+
+        return analysis_result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing image: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing image: {str(e)}",
+        )

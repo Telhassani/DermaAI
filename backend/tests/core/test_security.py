@@ -101,7 +101,7 @@ class TestAccessTokenGeneration:
         data = {"user_id": 1, "email": "test@test.com", "role": "doctor"}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert payload["user_id"] == 1
         assert payload["email"] == "test@test.com"
@@ -114,7 +114,7 @@ class TestAccessTokenGeneration:
         data = {"user_id": 1}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert "exp" in payload
         # Should expire in the future
@@ -127,7 +127,7 @@ class TestAccessTokenGeneration:
         custom_expire = timedelta(hours=2)
         token = create_access_token(data, expires_delta=custom_expire)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Check that token expires in approximately 2 hours
         exp_time = datetime.fromtimestamp(payload["exp"])
@@ -142,7 +142,7 @@ class TestAccessTokenGeneration:
         data = {"user_id": 1}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         exp_time = datetime.fromtimestamp(payload["exp"])
         created_time = datetime.fromtimestamp(payload["iat"])
@@ -162,8 +162,8 @@ class TestAccessTokenGeneration:
 
         assert token1 != token2
 
-        payload1 = jwt.decode(token1, options={"verify_signature": False})
-        payload2 = jwt.decode(token2, options={"verify_signature": False})
+        payload1 = jwt.decode(token1, "", algorithms=["HS256"], options={"verify_signature": False})
+        payload2 = jwt.decode(token2, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert payload1["user_id"] != payload2["user_id"]
 
@@ -172,7 +172,7 @@ class TestAccessTokenGeneration:
         data = {"user_id": 1}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Access tokens don't have explicit type claim
         assert "type" not in payload or payload.get("type") != "refresh"
@@ -195,7 +195,7 @@ class TestRefreshTokenGeneration:
         data = {"user_id": 1}
         token = create_refresh_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert payload.get("type") == "refresh"
 
@@ -205,8 +205,8 @@ class TestRefreshTokenGeneration:
         access_token = create_access_token(data)
         refresh_token = create_refresh_token(data)
 
-        access_payload = jwt.decode(access_token, options={"verify_signature": False})
-        refresh_payload = jwt.decode(refresh_token, options={"verify_signature": False})
+        access_payload = jwt.decode(access_token, "", algorithms=["HS256"], options={"verify_signature": False})
+        refresh_payload = jwt.decode(refresh_token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         access_exp = datetime.fromtimestamp(access_payload["exp"])
         refresh_exp = datetime.fromtimestamp(refresh_payload["exp"])
@@ -219,7 +219,7 @@ class TestRefreshTokenGeneration:
         data = {"user_id": 1}
         token = create_refresh_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         exp_time = datetime.fromtimestamp(payload["exp"])
         created_time = datetime.fromtimestamp(payload["iat"])
@@ -237,7 +237,7 @@ class TestRefreshTokenGeneration:
         data = {"user_id": 42, "email": "test@test.com", "role": "doctor"}
         token = create_refresh_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert payload["user_id"] == 42
         assert payload["email"] == "test@test.com"
@@ -325,7 +325,7 @@ class TestTokenTypeVerification:
         data = {"user_id": 1}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Access tokens should verify with expected_type="access"
         # (or no type claim at all)
@@ -336,7 +336,7 @@ class TestTokenTypeVerification:
         data = {"user_id": 1}
         token = create_refresh_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         assert verify_token_type(payload, expected_type="refresh")
         assert not verify_token_type(payload, expected_type="access")
@@ -346,7 +346,7 @@ class TestTokenTypeVerification:
         data = {"user_id": 1}
         token = create_access_token(data)
 
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Without specifying expected_type, should default to "access"
         assert verify_token_type(payload)
@@ -356,7 +356,7 @@ class TestTokenTypeVerification:
         refresh_data = {"user_id": 1}
         refresh_token = create_refresh_token(refresh_data)
 
-        payload = jwt.decode(refresh_token, options={"verify_signature": False})
+        payload = jwt.decode(refresh_token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Trying to verify refresh token as access token should fail
         assert not verify_token_type(payload, expected_type="access")
@@ -392,7 +392,7 @@ class TestSecurityEdgeCases:
         token = create_access_token(data)
 
         # Decode original
-        original_payload = jwt.decode(token, options={"verify_signature": False})
+        original_payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Try to modify claims (this would require valid signature anyway)
         parts = token.split(".")
@@ -421,7 +421,7 @@ class TestSecurityEdgeCases:
         token = create_access_token(data)
 
         assert token is not None
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
         assert "exp" in payload
         assert "iat" in payload
 
@@ -431,7 +431,7 @@ class TestSecurityEdgeCases:
         token = create_access_token(large_data)
 
         assert token is not None
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, "", algorithms=["HS256"], options={"verify_signature": False})
 
         # Should contain all data
         assert len(payload) > 100

@@ -72,7 +72,7 @@ def test_user(db):
 def test_patient(db, test_user):
     """Create test patient"""
     patient = Patient(
-        identification_type=IdentificationType.CNI,
+        identification_type=IdentificationType.CIN,
         identification_number="ABC123",
         first_name="John",
         last_name="Doe",

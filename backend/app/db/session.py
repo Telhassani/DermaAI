@@ -36,12 +36,14 @@ def get_db() -> Generator[Session, None, None]:
         def get_users(db: Session = Depends(get_db)):
             return db.query(User).all()
     """
+    from sqlalchemy.exc import DBAPIError, OperationalError
+
     db = None
     try:
         db = SessionLocal()
         yield db
-    except Exception as e:
-        # Database connection failed - raise exception instead of returning mock session
+    except (OperationalError, DBAPIError) as e:
+        # Only treat connection errors as database failures
         error_msg = f"Database unavailable: {type(e).__name__}"
         raise HTTPException(
             status_code=503,

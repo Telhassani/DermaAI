@@ -4,7 +4,7 @@ Prescription endpoints - CRUD operations for medical prescriptions
 
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from datetime import datetime
 import math
@@ -53,8 +53,11 @@ async def list_prescriptions(
     Returns:
         Paginated list of prescriptions
     """
-    # Build query
-    query = db.query(Prescription)
+    # Build query with eager loading to prevent N+1 queries
+    query = db.query(Prescription).options(
+        joinedload(Prescription.patient),
+        joinedload(Prescription.doctor)
+    )
 
     # Filter by current doctor (authorization check)
     # Each doctor can only see their own prescriptions
@@ -478,11 +481,12 @@ async def get_prescription_print_data(
         HTTPException: If prescription not found or access denied
     """
     # Check prescription ownership (authorization)
+    # This already eager loads patient and doctor relationships
     prescription = check_prescription_ownership(prescription_id, current_user, db)
 
-    # Get patient and doctor data
-    patient = db.query(Patient).filter(Patient.id == prescription.patient_id).first()
-    doctor = db.query(User).filter(User.id == prescription.doctor_id).first()
+    # Use eager-loaded relationships (no additional queries needed)
+    patient = prescription.patient
+    doctor = prescription.doctor
 
     # Format print data
     print_data = PrescriptionPrintData(

@@ -267,7 +267,11 @@ def check_prescription_ownership(
         HTTPException: 404 if prescription not found, 403 if not authorized
     """
     try:
-        prescription = db.query(Prescription).filter(
+        from sqlalchemy.orm import joinedload
+        prescription = db.query(Prescription).options(
+            joinedload(Prescription.patient),
+            joinedload(Prescription.doctor)
+        ).filter(
             Prescription.id == prescription_id
         ).first()
     except Exception as e:

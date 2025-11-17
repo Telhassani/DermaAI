@@ -97,7 +97,7 @@ async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
     """
-    Get current active user (must be active)
+    Get current active user (must be active and not deleted)
 
     Args:
         current_user: Current authenticated user
@@ -106,11 +106,15 @@ async def get_current_active_user(
         Current active user
 
     Raises:
-        HTTPException: If user is inactive
+        HTTPException: If user is inactive or deleted
     """
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+        )
+    if getattr(current_user, "is_deleted", False):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User account deleted"
         )
     return current_user
 
