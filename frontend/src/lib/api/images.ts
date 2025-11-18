@@ -52,12 +52,11 @@ export async function analyzeImage(imageId: number) {
 
 /**
  * Get images for a specific consultation
- * Note: Images are retrieved by patient, not consultation directly
+ * Returns only images linked to this consultation
  */
 export async function getConsultationImages(consultationId: number, params?: ImageListParams) {
-  // This endpoint doesn't exist yet - use patient images instead
-  // TODO: Implement consultation-specific image retrieval if needed
-  throw new Error('Use getPatientImages() instead - images are stored per patient')
+  const response = await api.images.listByConsultation(consultationId, params)
+  return response.data
 }
 
 /**

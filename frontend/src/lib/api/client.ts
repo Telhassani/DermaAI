@@ -292,6 +292,8 @@ export const api = {
   images: {
     list: (patientId: number, params?: ImageListParams) =>
       apiClient.get(`/images/patient/${patientId}`, { params }),
+    listByConsultation: (consultationId: number, params?: ImageListParams) =>
+      apiClient.get(`/images/consultation/${consultationId}`, { params }),
     get: (id: number) => apiClient.get(`/images/${id}`),
     create: (data: FormData | any) => apiClient.post('/images/', data),
     update: (id: number, data: any) => apiClient.put(`/images/${id}`, data),

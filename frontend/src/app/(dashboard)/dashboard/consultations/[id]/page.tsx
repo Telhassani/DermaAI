@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { getConsultation, ConsultationResponse } from '@/lib/api/consultations'
 import { listPrescriptions, PrescriptionResponse, createPrescription, updatePrescription, deletePrescription, markPrescriptionPrinted } from '@/lib/api/prescriptions'
 import { getPatient, PatientResponse } from '@/lib/api/patients'
-import { uploadImage, getConsultationImages, deleteImage, validateImageFile, updateImage, ImageResponse } from '@/lib/api/images'
+import { uploadImage, getConsultationImages, getPatientImages, deleteImage, validateImageFile, updateImage, ImageResponse } from '@/lib/api/images'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { ArrowLeft, Upload, FileText, Plus, Clock, User, Pill, Image as ImageIcon, X, Download, Edit2, Trash2, Check, AlertCircle, Printer } from 'lucide-react'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
@@ -23,6 +23,8 @@ export default function ConsultationDetailPage() {
   const [patient, setPatient] = useState<PatientResponse | null>(null)
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([])
   const [images, setImages] = useState<ImageResponse[]>([])
+  const [allPatientImages, setAllPatientImages] = useState<ImageResponse[]>([])
+  const [showAllPatientImages, setShowAllPatientImages] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'details' | 'images' | 'prescriptions'>('details')
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
@@ -100,9 +102,13 @@ export default function ConsultationDetailPage() {
       })
       setPrescriptions(prescriptionsData.prescriptions)
 
-      // Fetch images for this consultation
+      // Fetch images for this consultation (focused view)
       const imagesData = await getConsultationImages(parseInt(consultationId))
       setImages(imagesData.images)
+
+      // Fetch all patient images (for toggle view)
+      const allImagesData = await getPatientImages(data.patient_id)
+      setAllPatientImages(allImagesData.images)
     } catch (error) {
       console.error('Error fetching consultation:', error)
     } finally {
@@ -199,7 +205,9 @@ export default function ConsultationDetailPage() {
   const removeImage = async (imageId: number) => {
     try {
       await deleteImage(imageId)
+      // Remove from both consultation and all patient images
       setImages(prev => prev.filter(img => img.id !== imageId))
+      setAllPatientImages(prev => prev.filter(img => img.id !== imageId))
     } catch (error) {
       console.error('Error deleting image:', error)
       setUploadError('Erreur lors de la suppression de l\'image')
@@ -212,8 +220,11 @@ export default function ConsultationDetailPage() {
       const updatedImage = await updateImage(imageId, { notes })
       console.log('[handleSaveAnnotation] Annotations saved successfully')
 
-      // Update the image in the list
+      // Update the image in both lists
       setImages(prev =>
+        prev.map(img => (img.id === imageId ? updatedImage : img))
+      )
+      setAllPatientImages(prev =>
         prev.map(img => (img.id === imageId ? updatedImage : img))
       )
 
@@ -428,7 +439,7 @@ export default function ConsultationDetailPage() {
             }`}
           >
             <ImageIcon className="inline h-4 w-4 mr-2" />
-            Images ({images.length})
+            Images ({showAllPatientImages ? allPatientImages.length : images.length}/{allPatientImages.length})
           </button>
           <button
             onClick={() => setActiveTab('prescriptions')}
@@ -598,12 +609,45 @@ export default function ConsultationDetailPage() {
             </div>
           )}
 
+          {/* View Toggle - Show only if there are images outside this consultation */}
+          {allPatientImages.length > images.length && (
+            <div className="flex gap-2 items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <span className="text-sm text-gray-600">
+                Afficher: <span className="font-semibold">{showAllPatientImages ? 'Toutes les images du patient' : 'Images de cette visite'}</span>
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAllPatientImages(false)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    !showAllPatientImages
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Cette visite ({images.length})
+                </button>
+                <button
+                  onClick={() => setShowAllPatientImages(true)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    showAllPatientImages
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Toutes ({allPatientImages.length})
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Images Gallery */}
-          {images.length > 0 && (
+          {(showAllPatientImages ? allPatientImages : images).length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Images téléchargées ({images.length})</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                {showAllPatientImages ? 'Toutes les images du patient' : 'Images de cette visite'} ({(showAllPatientImages ? allPatientImages : images).length})
+              </h3>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {images.map((image) => {
+                {(showAllPatientImages ? allPatientImages : images).map((image) => {
                   const uploadDate = new Date(image.uploaded_at)
                   const formattedDate = uploadDate.toLocaleDateString('fr-FR', {
                     month: 'short',
@@ -612,14 +656,24 @@ export default function ConsultationDetailPage() {
                     minute: '2-digit',
                   })
 
+                  // Check if image belongs to this consultation
+                  const isFromThisConsultation = image.consultation_id === parseInt(consultationId)
+
                   return (
                     <div key={image.id} className="relative group">
                       <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
                         <img
-                          src={image.image_data}
+                          src={`data:${image.mime_type};base64,${image.image_data}`}
                           alt={`Consultation image ${image.id}`}
                           className="w-full h-full object-cover"
                         />
+
+                        {/* Badge for images from other consultations */}
+                        {showAllPatientImages && !isFromThisConsultation && (
+                          <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
+                            Autre visite
+                          </div>
+                        )}
 
                         {/* Overlay on hover */}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -660,10 +714,12 @@ export default function ConsultationDetailPage() {
             </div>
           )}
 
-          {images.length === 0 && !uploadingImage && (
+          {(showAllPatientImages ? allPatientImages : images).length === 0 && !uploadingImage && (
             <div className="text-center py-8">
               <ImageIcon className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-2 text-sm text-gray-500">Aucune image téléchargée</p>
+              <p className="mt-2 text-sm text-gray-500">
+                {showAllPatientImages ? 'Aucune image pour ce patient' : 'Aucune image téléchargée pour cette visite'}
+              </p>
             </div>
           )}
         </div>
