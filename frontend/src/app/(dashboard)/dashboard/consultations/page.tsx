@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -29,34 +29,11 @@ export default function ConsultationsPage() {
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchConsultations()
-  }, [currentPage])
+  // Debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchConsultations = async () => {
-    try {
-      setLoading(true)
-      const data = await listConsultations({
-        page: currentPage,
-        page_size: 20
-      })
-      setConsultations(data.consultations)
-      setTotal(data.total)
-      setTotalPages(data.total_pages)
-    } catch (error) {
-      console.error('Error fetching consultations:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSearch = () => {
-    // Reset to page 1 when searching
-    setCurrentPage(1)
-    fetchConsultationsWithFilters()
-  }
-
-  const fetchConsultationsWithFilters = async () => {
+  // Fetch consultations with filters
+  const fetchConsultationsWithFilters = async (pageNum: number = 1) => {
     try {
       setLoading(true)
       const data = await listConsultations({
@@ -64,7 +41,7 @@ export default function ConsultationsPage() {
         patient_identifier: searchIdentifier || undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
-        page: currentPage,
+        page: pageNum,
         page_size: 20
       })
       setConsultations(data.consultations)
@@ -77,13 +54,35 @@ export default function ConsultationsPage() {
     }
   }
 
+  // Auto-fetch when filters change with debounce
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setCurrentPage(1)
+      fetchConsultationsWithFilters(1)
+    }, 300)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [searchName, searchIdentifier, startDate, endDate])
+
+  // Fetch when page changes
+  useEffect(() => {
+    fetchConsultationsWithFilters(currentPage)
+  }, [currentPage])
+
   const clearFilters = () => {
     setSearchIdentifier('')
     setSearchName('')
     setStartDate('')
     setEndDate('')
     setCurrentPage(1)
-    fetchConsultations()
   }
 
   const formatDate = (dateString: string) => {
@@ -152,12 +151,6 @@ export default function ConsultationsPage() {
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
-            <button
-              onClick={handleSearch}
-              className="rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
-            >
-              Rechercher
-            </button>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}

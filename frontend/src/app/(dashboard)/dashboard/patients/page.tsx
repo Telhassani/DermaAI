@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users,
@@ -39,33 +39,18 @@ export default function PatientsPage() {
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Fetch patients without filters
-  const fetchPatients = async () => {
-    try {
-      setLoading(true)
-      const data = await listPatients({
-        page,
-        page_size: pageSize,
-      })
-      setPatients(data.patients)
-      setTotalPages(data.total_pages)
-      setTotal(data.total)
-    } catch (error) {
-      console.error('Error fetching patients:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch patients with filters
-  const fetchPatientsWithFilters = async () => {
+  const fetchPatientsWithFilters = async (pageNum: number = 1) => {
     try {
       setLoading(true)
       const data = await listPatients({
         search: searchIdentifier || searchName || undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
-        page,
+        page: pageNum,
         page_size: pageSize,
       })
       setPatients(data.patients)
@@ -78,11 +63,28 @@ export default function PatientsPage() {
     }
   }
 
-  // Handle search with filters
-  const handleSearch = () => {
-    setPage(1)
-    fetchPatientsWithFilters()
-  }
+  // Auto-fetch when filters change with debounce
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setPage(1)
+      fetchPatientsWithFilters(1)
+    }, 300)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [searchName, searchIdentifier, startDate, endDate])
+
+  // Fetch when page changes
+  useEffect(() => {
+    fetchPatientsWithFilters(page)
+  }, [page])
 
   // Clear all filters
   const clearFilters = () => {
@@ -91,12 +93,7 @@ export default function PatientsPage() {
     setStartDate('')
     setEndDate('')
     setPage(1)
-    fetchPatients()
   }
-
-  useEffect(() => {
-    fetchPatients()
-  }, [page])
 
   // Handle delete
   const handleDelete = async (id: number, name: string) => {
@@ -199,12 +196,6 @@ export default function PatientsPage() {
               className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
             />
           </div>
-          <button
-            onClick={handleSearch}
-            className="rounded-lg bg-gradient-to-r from-violet-600 to-purple-500 px-6 py-2 text-sm font-medium text-white hover:from-violet-700 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
-          >
-            Rechercher
-          </button>
           {(searchName || searchIdentifier || startDate || endDate) && (
             <button
               onClick={clearFilters}
