@@ -32,12 +32,9 @@ export default function PatientsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<PatientResponse | null>(null)
 
-  // Advanced search filters
+  // Advanced search filters (same as consultations)
   const [searchName, setSearchName] = useState('')
   const [searchIdentifier, setSearchIdentifier] = useState('')
-  const [searchGender, setSearchGender] = useState('')
-  const [minAge, setMinAge] = useState('')
-  const [maxAge, setMaxAge] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
   // Fetch patients without filters
@@ -63,10 +60,7 @@ export default function PatientsPage() {
     try {
       setLoading(true)
       const data = await listPatients({
-        search: searchName || undefined,
-        gender: searchGender || undefined,
-        min_age: minAge ? parseInt(minAge) : undefined,
-        max_age: maxAge ? parseInt(maxAge) : undefined,
+        search: searchIdentifier || searchName || undefined,
         page,
         page_size: pageSize,
       })
@@ -90,9 +84,6 @@ export default function PatientsPage() {
   const clearFilters = () => {
     setSearchName('')
     setSearchIdentifier('')
-    setSearchGender('')
-    setMinAge('')
-    setMaxAge('')
     setPage(1)
     fetchPatients()
   }
@@ -208,7 +199,7 @@ export default function PatientsPage() {
           >
             Rechercher
           </button>
-          {(searchName || searchIdentifier || searchGender || minAge || maxAge) && (
+          {(searchName || searchIdentifier) && (
             <button
               onClick={clearFilters}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -221,59 +212,16 @@ export default function PatientsPage() {
 
         {/* Advanced filters */}
         {showFilters && (
-          <div className="mt-4 grid grid-cols-1 gap-4 pt-4 border-t border-gray-200 md:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 pt-4 border-t border-gray-200 md:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Identifiant
+                Identifiant patient
               </label>
               <input
                 type="text"
                 placeholder="CIN ou Passeport"
                 value={searchIdentifier}
                 onChange={(e) => setSearchIdentifier(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sexe
-              </label>
-              <select
-                value={searchGender}
-                onChange={(e) => setSearchGender(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-              >
-                <option value="">Tous</option>
-                <option value="male">Homme</option>
-                <option value="female">Femme</option>
-                <option value="other">Autre</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Âge min
-              </label>
-              <input
-                type="number"
-                placeholder="0"
-                min="0"
-                max="150"
-                value={minAge}
-                onChange={(e) => setMinAge(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Âge max
-              </label>
-              <input
-                type="number"
-                placeholder="150"
-                min="0"
-                max="150"
-                value={maxAge}
-                onChange={(e) => setMaxAge(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
@@ -299,7 +247,7 @@ export default function PatientsPage() {
           <p className="mt-4 text-sm text-gray-500">
             Aucun patient trouvé
           </p>
-          {(searchName || searchIdentifier || searchGender || minAge || maxAge) && (
+          {(searchName || searchIdentifier) && (
             <button
               onClick={clearFilters}
               className="mt-4 text-sm text-violet-600 hover:text-violet-700"
@@ -307,7 +255,7 @@ export default function PatientsPage() {
               Effacer les filtres
             </button>
           )}
-          {!searchName && !searchIdentifier && !searchGender && !minAge && !maxAge && (
+          {!searchName && !searchIdentifier && (
             <button
               onClick={() => router.push('/dashboard/patients/new')}
               className="mt-4 text-sm text-violet-600 hover:text-violet-700"
