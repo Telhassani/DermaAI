@@ -47,6 +47,7 @@ export default function ConsultationsPage() {
       setConsultations(data.consultations)
       setTotal(data.total)
       setTotalPages(data.total_pages)
+      console.debug(`[Consultations] Filtered ${data.total} results for patient: "${searchName}" identifier: "${searchIdentifier}" with dates: ${startDate}-${endDate}`)
     } catch (error) {
       console.error('Error fetching consultations:', error)
     } finally {

@@ -96,6 +96,8 @@ export interface PatientListParams {
   page?: number
   page_size?: number
   search?: string
+  start_date?: string
+  end_date?: string
   sort_by?: 'full_name' | 'created_at' | 'date_of_birth'
   sort_order?: 'asc' | 'desc'
   is_active?: boolean
@@ -303,9 +305,13 @@ export interface ConsultationUpdateData {
 
 export interface ConsultationListParams {
   patient_id?: number
+  patient_name?: string
+  patient_identifier?: string
   doctor_id?: number
   page?: number
   page_size?: number
+  start_date?: string
+  end_date?: string
   sort_by?: 'created_at' | 'follow_up_date'
   sort_order?: 'asc' | 'desc'
 }

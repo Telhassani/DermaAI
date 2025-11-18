@@ -56,6 +56,7 @@ export default function PatientsPage() {
       setPatients(data.patients)
       setTotalPages(data.total_pages)
       setTotal(data.total)
+      console.debug(`[Patients] Filtered ${data.total} results for search: "${searchName || searchIdentifier}" with dates: ${startDate}-${endDate}`)
     } catch (error) {
       console.error('Error fetching patients:', error)
     } finally {
