@@ -35,6 +35,8 @@ export default function PatientsPage() {
   // Advanced search filters (same as consultations)
   const [searchName, setSearchName] = useState('')
   const [searchIdentifier, setSearchIdentifier] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
   // Fetch patients without filters
@@ -61,6 +63,8 @@ export default function PatientsPage() {
       setLoading(true)
       const data = await listPatients({
         search: searchIdentifier || searchName || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
         page,
         page_size: pageSize,
       })
@@ -84,6 +88,8 @@ export default function PatientsPage() {
   const clearFilters = () => {
     setSearchName('')
     setSearchIdentifier('')
+    setStartDate('')
+    setEndDate('')
     setPage(1)
     fetchPatients()
   }
@@ -199,7 +205,7 @@ export default function PatientsPage() {
           >
             Rechercher
           </button>
-          {(searchName || searchIdentifier) && (
+          {(searchName || searchIdentifier || startDate || endDate) && (
             <button
               onClick={clearFilters}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -225,6 +231,28 @@ export default function PatientsPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date de début
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date de fin
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -247,7 +275,7 @@ export default function PatientsPage() {
           <p className="mt-4 text-sm text-gray-500">
             Aucun patient trouvé
           </p>
-          {(searchName || searchIdentifier) && (
+          {(searchName || searchIdentifier || startDate || endDate) && (
             <button
               onClick={clearFilters}
               className="mt-4 text-sm text-violet-600 hover:text-violet-700"
@@ -255,7 +283,7 @@ export default function PatientsPage() {
               Effacer les filtres
             </button>
           )}
-          {!searchName && !searchIdentifier && (
+          {!searchName && !searchIdentifier && !startDate && !endDate && (
             <button
               onClick={() => router.push('/dashboard/patients/new')}
               className="mt-4 text-sm text-violet-600 hover:text-violet-700"

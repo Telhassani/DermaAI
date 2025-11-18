@@ -5,12 +5,13 @@ Patient endpoints - CRUD operations for patients
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, distinct
 from datetime import date, datetime
 
 from app.db.session import get_db
 from app.models.user import User
 from app.models.patient import Patient, Gender
+from app.models.consultation import Consultation
 from app.schemas.patient import (
     PatientCreate,
     PatientUpdate,
@@ -34,6 +35,8 @@ async def list_patients(
     doctor_id: Optional[int] = Query(None, description="Filter by doctor ID"),
     min_age: Optional[int] = Query(None, ge=0, le=150, description="Minimum age"),
     max_age: Optional[int] = Query(None, ge=0, le=150, description="Maximum age"),
+    start_date: Optional[str] = Query(None, description="Filter by consultation start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Filter by consultation end date (YYYY-MM-DD)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     sort_by: str = Query("created_at", description="Field to sort by"),
@@ -50,6 +53,8 @@ async def list_patients(
         doctor_id: Filter by doctor ID
         min_age: Minimum age filter
         max_age: Maximum age filter
+        start_date: Filter patients by consultation start date (YYYY-MM-DD)
+        end_date: Filter patients by consultation end date (YYYY-MM-DD)
         page: Page number (starts at 1)
         page_size: Number of items per page
         sort_by: Field to sort by
@@ -99,6 +104,28 @@ async def list_patients(
             # Min date of birth for maximum age
             min_dob = date(today.year - max_age - 1, today.month, today.day)
             query = query.filter(Patient.date_of_birth >= min_dob)
+
+    # Consultation date filtering - filter patients by consultation dates
+    if start_date or end_date:
+        # Join with Consultation table
+        query = query.join(Consultation, Patient.id == Consultation.patient_id)
+
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                query = query.filter(Consultation.consultation_date >= start_date_obj)
+            except ValueError:
+                pass
+
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                query = query.filter(Consultation.consultation_date <= end_date_obj)
+            except ValueError:
+                pass
+
+        # Use distinct to avoid duplicate patients from multiple consultations
+        query = query.distinct(Patient.id)
 
     # Get total count before pagination
     try:
