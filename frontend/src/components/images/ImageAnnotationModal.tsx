@@ -82,7 +82,7 @@ export function ImageAnnotationModal({
           {/* Image Preview */}
           <div className="flex justify-center">
             <img
-              src={image.image_data}
+              src={`data:${image.mime_type};base64,${image.image_data}`}
               alt={image.filename}
               className="max-h-96 rounded-lg object-contain shadow-md"
             />
