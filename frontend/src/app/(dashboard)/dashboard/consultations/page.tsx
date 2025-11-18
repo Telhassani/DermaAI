@@ -53,7 +53,28 @@ export default function ConsultationsPage() {
   const handleSearch = () => {
     // Reset to page 1 when searching
     setCurrentPage(1)
-    fetchConsultations()
+    fetchConsultationsWithFilters()
+  }
+
+  const fetchConsultationsWithFilters = async () => {
+    try {
+      setLoading(true)
+      const data = await listConsultations({
+        patient_name: searchName || undefined,
+        patient_identifier: searchIdentifier || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+        page: currentPage,
+        page_size: 20
+      })
+      setConsultations(data.consultations)
+      setTotal(data.total)
+      setTotalPages(data.total_pages)
+    } catch (error) {
+      console.error('Error fetching consultations:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const clearFilters = () => {
