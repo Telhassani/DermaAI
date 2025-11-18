@@ -17,7 +17,7 @@ class ConsultationImageBase(BaseModel):
 
 class ConsultationImageCreate(ConsultationImageBase):
     """Schema for creating a consultation image"""
-    consultation_id: int = Field(..., gt=0)
+    consultation_id: Optional[int] = Field(None, gt=0)
     patient_id: int = Field(..., gt=0)
     image_data: str = Field(...)  # Base64 encoded image
 
@@ -30,7 +30,7 @@ class ConsultationImageUpdate(BaseModel):
 class ConsultationImageResponse(ConsultationImageBase):
     """Schema for consultation image response"""
     id: int
-    consultation_id: int
+    consultation_id: Optional[int]
     patient_id: int
     image_data: str  # Base64 encoded
     uploaded_at: datetime
