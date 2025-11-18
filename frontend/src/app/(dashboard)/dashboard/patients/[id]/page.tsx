@@ -654,7 +654,7 @@ export default function PatientDetailPage() {
                       <div key={image.id} className="relative group">
                         <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-md hover:shadow-lg transition-shadow border border-gray-100">
                           <img
-                            src={image.image_data}
+                            src={`data:${image.mime_type};base64,${image.image_data}`}
                             alt={`Patient image ${image.filename}`}
                             className="w-full h-full object-cover"
                           />

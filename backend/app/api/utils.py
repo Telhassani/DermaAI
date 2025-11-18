@@ -426,16 +426,31 @@ def check_image_ownership(
             detail="Image non trouvée"
         )
 
-    # Get the consultation to verify doctor ownership
-    consultation = db.query(Consultation).filter(
-        Consultation.id == image.consultation_id
-    ).first()
+    # Verify doctor ownership - either through consultation or patient
+    # Patient-centric images may not have a consultation_id (nullable)
+    if image.consultation_id is not None:
+        # If linked to a consultation, verify the doctor owns the consultation
+        consultation = db.query(Consultation).filter(
+            Consultation.id == image.consultation_id
+        ).first()
 
-    if not consultation or consultation.doctor_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Accès refusé à cette image"
-        )
+        if not consultation or consultation.doctor_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès refusé à cette image"
+            )
+    else:
+        # If not linked to a consultation, verify the doctor owns the patient
+        from app.models.patient import Patient
+        patient = db.query(Patient).filter(
+            Patient.id == image.patient_id
+        ).first()
+
+        if not patient or patient.doctor_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès refusé à cette image"
+            )
 
     return image
 

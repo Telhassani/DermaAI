@@ -106,7 +106,7 @@ export function ImageAnnotationModal({
             </div>
             <div>
               <p className="text-xs text-gray-500">Consultation ID</p>
-              <p className="text-sm font-medium text-gray-900">#{image.consultation_id}</p>
+              <p className="text-sm font-medium text-gray-900">{image.consultation_id ? `#${image.consultation_id}` : 'Aucune'}</p>
             </div>
           </div>
 
