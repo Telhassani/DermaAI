@@ -4,7 +4,9 @@ Prescription schemas - Pydantic models for API validation
 
 from typing import Optional, List, Dict, Any
 from datetime import date, datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.core.validation import sanitize_text
 
 
 # ============================================================================
@@ -21,6 +23,23 @@ class MedicationItem(BaseModel):
     frequency: Optional[str] = Field(None, description="Fréquence (e.g., '2 fois par jour')")
     route: Optional[str] = Field(None, description="Voie d'administration")
     instructions: Optional[str] = Field(None, description="Instructions spécifiques")
+
+    @field_validator("name", "dosage")
+    @classmethod
+    def sanitize_required_fields(cls, v: str) -> str:
+        """Sanitize required medication fields"""
+        v = sanitize_text(v, max_length=200)
+        if not v or len(v) < 1:
+            raise ValueError("Field cannot be empty")
+        return v
+
+    @field_validator("duration", "quantity", "frequency", "route", "instructions")
+    @classmethod
+    def sanitize_optional_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize optional medication fields"""
+        if v is None:
+            return v
+        return sanitize_text(v)
 
 
 # ============================================================================
@@ -39,6 +58,14 @@ class PrescriptionBase(BaseModel):
     instructions: Optional[str] = Field(None, description="Instructions générales")
     notes: Optional[str] = Field(None, description="Notes additionnelles")
 
+    @field_validator("instructions", "notes")
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize optional text fields"""
+        if v is None:
+            return v
+        return sanitize_text(v)
+
 
 class PrescriptionCreate(PrescriptionBase):
     """Schema for creating a new prescription"""
@@ -56,6 +83,14 @@ class PrescriptionUpdate(BaseModel):
     notes: Optional[str] = None
     is_printed: Optional[bool] = None
     is_delivered: Optional[bool] = None
+
+    @field_validator("instructions", "notes")
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize optional text fields"""
+        if v is None:
+            return v
+        return sanitize_text(v)
 
 
 class PrescriptionResponse(PrescriptionBase):

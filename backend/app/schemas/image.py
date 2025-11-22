@@ -2,9 +2,11 @@
 ConsultationImage schemas - Pydantic models for API validation
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+
+from app.core.validation import sanitize_text, validate_filename
 
 
 class ConsultationImageBase(BaseModel):
@@ -13,6 +15,23 @@ class ConsultationImageBase(BaseModel):
     file_size: int = Field(..., gt=0)
     mime_type: str = Field(default="image/jpeg", max_length=50)
     notes: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("filename")
+    @classmethod
+    def validate_image_filename(cls, v: str) -> str:
+        """Validate filename safety"""
+        is_valid, error = validate_filename(v)
+        if not is_valid:
+            raise ValueError(error)
+        return v
+
+    @field_validator("notes")
+    @classmethod
+    def sanitize_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize notes field"""
+        if v is None:
+            return v
+        return sanitize_text(v, max_length=500)
 
 
 class ConsultationImageCreate(ConsultationImageBase):
@@ -25,6 +44,14 @@ class ConsultationImageCreate(ConsultationImageBase):
 class ConsultationImageUpdate(BaseModel):
     """Schema for updating a consultation image"""
     notes: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("notes")
+    @classmethod
+    def sanitize_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize notes field"""
+        if v is None:
+            return v
+        return sanitize_text(v, max_length=500)
 
 
 class ConsultationImageResponse(ConsultationImageBase):
@@ -56,6 +83,14 @@ class ConsultationImageListResponse(BaseModel):
 class ImageAnalysisRequest(BaseModel):
     """Request to analyze an image"""
     additional_notes: Optional[str] = Field(None, max_length=1000, description="Optional clinical context")
+
+    @field_validator("additional_notes")
+    @classmethod
+    def sanitize_notes(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize analysis notes"""
+        if v is None:
+            return v
+        return sanitize_text(v, max_length=1000)
 
 
 class DifferentialDiagnosis(BaseModel):

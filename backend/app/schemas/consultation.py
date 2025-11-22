@@ -4,7 +4,9 @@ Consultation schemas - Pydantic models for API validation
 
 from typing import Optional, List
 from datetime import date, datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.core.validation import sanitize_html, sanitize_text as sanitize_plain_text
 
 
 # ============================================================================
@@ -38,6 +40,33 @@ class ConsultationBase(BaseModel):
     biopsy_performed: bool = False
     biopsy_results: Optional[str] = None
 
+    @field_validator("chief_complaint")
+    @classmethod
+    def validate_chief_complaint(cls, v: str) -> str:
+        """Sanitize chief complaint"""
+        v = sanitize_html(v, allow_html=False)
+        v = sanitize_plain_text(v, max_length=500)
+        if not v or len(v) < 1:
+            raise ValueError("Chief complaint cannot be empty")
+        return v
+
+    @field_validator(
+        "symptoms", "duration_symptoms", "medical_history_notes",
+        "clinical_examination", "dermatological_examination",
+        "lesion_type", "lesion_location", "lesion_size",
+        "lesion_color", "lesion_texture", "diagnosis",
+        "differential_diagnosis", "treatment_plan", "notes",
+        "private_notes", "biopsy_results"
+    )
+    @classmethod
+    def sanitize_medical_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize medical text fields - remove HTML and malicious content"""
+        if v is None:
+            return v
+        # First remove/escape HTML, then sanitize plain text
+        v = sanitize_html(v, allow_html=False)
+        return sanitize_plain_text(v)
+
 
 class ConsultationCreate(ConsultationBase):
     """Schema for creating a new consultation"""
@@ -69,6 +98,35 @@ class ConsultationUpdate(BaseModel):
     images_taken: Optional[bool] = None
     biopsy_performed: Optional[bool] = None
     biopsy_results: Optional[str] = None
+
+    @field_validator("chief_complaint")
+    @classmethod
+    def validate_chief_complaint(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize chief complaint"""
+        if v is None:
+            return v
+        v = sanitize_html(v, allow_html=False)
+        v = sanitize_plain_text(v, max_length=500)
+        if not v or len(v) < 1:
+            raise ValueError("Chief complaint cannot be empty")
+        return v
+
+    @field_validator(
+        "symptoms", "duration_symptoms", "medical_history_notes",
+        "clinical_examination", "dermatological_examination",
+        "lesion_type", "lesion_location", "lesion_size",
+        "lesion_color", "lesion_texture", "diagnosis",
+        "differential_diagnosis", "treatment_plan", "notes",
+        "private_notes", "biopsy_results"
+    )
+    @classmethod
+    def sanitize_medical_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize medical text fields - remove HTML and malicious content"""
+        if v is None:
+            return v
+        # First remove/escape HTML, then sanitize plain text
+        v = sanitize_html(v, allow_html=False)
+        return sanitize_plain_text(v)
 
 
 class ConsultationResponse(ConsultationBase):

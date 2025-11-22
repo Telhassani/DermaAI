@@ -8,6 +8,11 @@ from datetime import datetime, date
 import re
 
 from app.models.patient import Gender, IdentificationType
+from app.core.validation import (
+    sanitize_text,
+    validate_phone as validate_phone_func,
+    validate_identification,
+)
 
 
 class PatientBase(BaseModel):
@@ -30,18 +35,48 @@ class PatientBase(BaseModel):
     medical_history: Optional[str] = None
     doctor_id: Optional[int] = None
 
+    @field_validator("identification_number")
+    @classmethod
+    def validate_id_number(cls, v: str, info) -> str:
+        """Validate identification number"""
+        id_type = info.data.get("identification_type")
+        if id_type:
+            if not validate_identification(v, id_type):
+                raise ValueError(f"Invalid {id_type} format")
+        return sanitize_text(v, max_length=50)
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def validate_names(cls, v: str) -> str:
+        """Sanitize and validate name fields"""
+        v = sanitize_text(v, max_length=100)
+        if not v or len(v) < 1:
+            raise ValueError("Name cannot be empty after sanitization")
+        return v
+
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: str) -> str:
+    def validate_phone_field(cls, v: str) -> str:
         """Validate phone number format"""
-        # Remove spaces, dots, and dashes
-        phone = re.sub(r"[\s\.\-]", "", v)
-
-        # Check if it's a valid international or French phone number
-        if not re.match(r"^\+?\d{10,15}$", phone):
+        if not validate_phone_func(v):
             raise ValueError("Invalid phone number format")
-
         return v
+
+    @field_validator("address", "city", "postal_code", "country", "allergies", "medical_history")
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize optional text fields"""
+        if v is None:
+            return v
+        return sanitize_text(v)
+
+    @field_validator("insurance_number")
+    @classmethod
+    def sanitize_insurance_number(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize insurance number"""
+        if v is None:
+            return v
+        return sanitize_text(v, max_length=100)
 
 
 class PatientCreate(PatientBase):
@@ -69,21 +104,54 @@ class PatientUpdate(BaseModel):
     medical_history: Optional[str] = None
     doctor_id: Optional[int] = None
 
+    @field_validator("identification_number")
+    @classmethod
+    def validate_id_number(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate identification number"""
+        if v is None:
+            return v
+        id_type = info.data.get("identification_type")
+        if id_type:
+            if not validate_identification(v, id_type):
+                raise ValueError(f"Invalid {id_type} format")
+        return sanitize_text(v, max_length=50)
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def validate_names(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize and validate name fields"""
+        if v is None:
+            return v
+        v = sanitize_text(v, max_length=100)
+        if not v or len(v) < 1:
+            raise ValueError("Name cannot be empty after sanitization")
+        return v
+
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+    def validate_phone_field(cls, v: Optional[str]) -> Optional[str]:
         """Validate phone number format"""
         if v is None:
             return v
-
-        # Remove spaces, dots, and dashes
-        phone = re.sub(r"[\s\.\-]", "", v)
-
-        # Check if it's a valid international or French phone number
-        if not re.match(r"^\+?\d{10,15}$", phone):
+        if not validate_phone_func(v):
             raise ValueError("Invalid phone number format")
-
         return v
+
+    @field_validator("address", "city", "postal_code", "country", "allergies", "medical_history")
+    @classmethod
+    def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize optional text fields"""
+        if v is None:
+            return v
+        return sanitize_text(v)
+
+    @field_validator("insurance_number")
+    @classmethod
+    def sanitize_insurance_number(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize insurance number"""
+        if v is None:
+            return v
+        return sanitize_text(v, max_length=100)
 
 
 class PatientResponse(PatientBase):
