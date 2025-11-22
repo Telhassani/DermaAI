@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
 
 // Stub implementation - the @radix-ui/react-tooltip module has resolution issues
 // These are placeholder components that can be replaced once the module resolution is fixed
@@ -7,14 +8,20 @@ const TooltipProvider = ({ children }: { children: React.ReactNode }) => <>{chil
 
 const Tooltip = ({ children }: { children: React.ReactNode }) => <>{children}</>
 
-const TooltipTrigger = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ children, ...props }, ref) => (
-  <div ref={ref} {...props}>
-    {children}
-  </div>
-))
+interface TooltipTriggerProps extends React.HTMLAttributes<HTMLDivElement> {
+  asChild?: boolean
+}
+
+const TooltipTrigger = React.forwardRef<HTMLDivElement, TooltipTriggerProps>(
+  ({ children, asChild, ...props }, ref) => {
+    const Component = asChild ? Slot : 'div'
+    return (
+      <Component ref={ref} {...props}>
+        {children}
+      </Component>
+    )
+  }
+)
 TooltipTrigger.displayName = "TooltipTrigger"
 
 const TooltipContent = React.forwardRef<
