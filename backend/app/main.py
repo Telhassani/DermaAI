@@ -15,6 +15,7 @@ import sentry_sdk
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.rate_limiter import rate_limit_handler
+from app.core.security_headers import SecurityHeadersMiddleware
 # Only import auth for now - other modules will be added in later phases
 # from app.api.v1 import auth, patients, appointments, prescriptions, ai_analysis, billing
 
@@ -49,6 +50,9 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 # =====================================
 # MIDDLEWARE
 # =====================================
+
+# Security Headers Middleware (must be added first to apply to all responses)
+app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 # CORS Middleware
 app.add_middleware(
