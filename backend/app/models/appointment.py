@@ -5,7 +5,7 @@ This module defines the Appointment model for managing doctor-patient appointmen
 including support for recurring appointments and status tracking.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Integer, Text, Boolean, JSON
@@ -151,7 +151,7 @@ class Appointment(BaseModel):
         Returns:
             bool: True if appointment is scheduled/confirmed and in the future
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return self.start_time > now and self.status in [
             AppointmentStatus.SCHEDULED,
             AppointmentStatus.CONFIRMED,
@@ -165,7 +165,7 @@ class Appointment(BaseModel):
         Returns:
             bool: True if appointment end time is before current time
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return self.end_time < now
 
     @property

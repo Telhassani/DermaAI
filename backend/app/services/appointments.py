@@ -7,7 +7,7 @@ handling, and conflict detection.
 """
 
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_
 
@@ -618,7 +618,7 @@ class AppointmentService:
         if end_date:
             query = query.filter(Appointment.end_time <= end_date)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         today = now.date()
 
         appointments = query.all()

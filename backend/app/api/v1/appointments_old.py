@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import math
 
 from app.db.session import get_db
@@ -490,9 +490,9 @@ async def update_appointment_status(
     # Append notes if provided
     if status_data.notes:
         if appointment.notes:
-            appointment.notes += f"\n[{datetime.utcnow().isoformat()}] {status_data.notes}"
+            appointment.notes += f"\n[{datetime.now(timezone.utc).isoformat()}] {status_data.notes}"
         else:
-            appointment.notes = f"[{datetime.utcnow().isoformat()}] {status_data.notes}"
+            appointment.notes = f"[{datetime.now(timezone.utc).isoformat()}] {status_data.notes}"
 
     db.commit()
     db.refresh(appointment)
@@ -687,7 +687,7 @@ async def get_appointment_stats(
     no_show = query.filter(Appointment.status == AppointmentStatus.NO_SHOW).count()
 
     # Upcoming appointments
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     upcoming = query.filter(
         Appointment.start_time > now,
         Appointment.status.in_([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
@@ -697,7 +697,7 @@ async def get_appointment_stats(
     past = query.filter(Appointment.end_time < now).count()
 
     # Today's appointments
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
     today_appointments = query.filter(
         Appointment.start_time >= today_start,

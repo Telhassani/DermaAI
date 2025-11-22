@@ -42,17 +42,17 @@ class Settings(BaseSettings):
     # =====================================
     # DATABASE
     # =====================================
-    DATABASE_URL: str = "postgresql://dermai_user:dermai_pass_dev_only@localhost:5432/dermai_db"
+    DATABASE_URL: str  # Required - must be set via .env file
 
     # =====================================
     # REDIS
     # =====================================
-    REDIS_URL: str = "redis://:dermai_redis_pass_dev@localhost:6379/0"
+    REDIS_URL: str  # Required - must be set via .env file
 
     # =====================================
     # SECURITY
     # =====================================
-    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    SECRET_KEY: str  # Required - must be set via .env file, generate with: openssl rand -hex 32
     ALGORITHM: str = "HS256"
     # Token expiry: 1 hour for access token, 7 days for refresh token
     # NOTE: This is TOTAL token lifetime, not inactivity timeout
@@ -135,8 +135,8 @@ class Settings(BaseSettings):
     # =====================================
     # CELERY
     # =====================================
-    CELERY_BROKER_URL: str = "redis://:dermai_redis_pass_dev@localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://:dermai_redis_pass_dev@localhost:6379/0"
+    CELERY_BROKER_URL: Optional[str] = None  # Defaults to REDIS_URL if not set
+    CELERY_RESULT_BACKEND: Optional[str] = None  # Defaults to REDIS_URL if not set
     CELERY_TASK_SERIALIZER: str = "json"
     CELERY_RESULT_SERIALIZER: str = "json"
     CELERY_TIMEZONE: str = "UTC"

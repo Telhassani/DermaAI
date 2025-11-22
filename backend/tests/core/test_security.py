@@ -3,7 +3,7 @@ Tests for security functions (password hashing, JWT tokens, etc.)
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from app.core.security import (
     get_password_hash,
@@ -119,7 +119,7 @@ class TestAccessTokenGeneration:
         assert "exp" in payload
         # Should expire in the future
         exp_time = datetime.fromtimestamp(payload["exp"])
-        assert exp_time > datetime.utcnow()
+        assert exp_time > datetime.now(timezone.utc)
 
     def test_create_access_token_custom_expiration(self):
         """Test access token with custom expiration"""

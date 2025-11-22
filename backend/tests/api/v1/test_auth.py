@@ -3,7 +3,7 @@ Tests for authentication endpoints
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from app.core.config import settings
 from app.models.user import UserRole
@@ -269,8 +269,8 @@ class TestAuthRefresh:
                 "email": test_doctor.email,
                 "role": test_doctor.role.value,
                 "type": "refresh",
-                "exp": datetime.utcnow() - timedelta(hours=1),
-                "iat": datetime.utcnow() - timedelta(days=8),
+                "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+                "iat": datetime.now(timezone.utc) - timedelta(days=8),
             },
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,

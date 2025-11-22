@@ -467,9 +467,9 @@ def get_mock_appointments(current_user: User) -> dict:
     Returns:
         Dictionary of mock appointments indexed by ID
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today = now.date()
 
     # Sample recurring rules
