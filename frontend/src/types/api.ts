@@ -96,8 +96,6 @@ export interface PatientListParams {
   page?: number
   page_size?: number
   search?: string
-  start_date?: string
-  end_date?: string
   sort_by?: 'full_name' | 'created_at' | 'date_of_birth'
   sort_order?: 'asc' | 'desc'
   is_active?: boolean
