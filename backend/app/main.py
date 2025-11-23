@@ -3,7 +3,7 @@ DermAI Backend - FastAPI Application
 Main entry point for the API
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -23,15 +23,15 @@ from app.core.security_headers import SecurityHeadersMiddleware
 setup_logging()
 
 # Initialize Sentry (optional - only if SENTRY_DSN is set)
-if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.ENVIRONMENT,
-        traces_sample_rate=1.0 if settings.DEBUG else 0.1,
-    )
+# if settings.SENTRY_DSN:
+#     sentry_sdk.init(
+#         dsn=settings.SENTRY_DSN,
+#         environment=settings.ENVIRONMENT,
+#         traces_sample_rate=1.0 if settings.DEBUG else 0.1,
+#     )
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app
 app = FastAPI(
@@ -44,15 +44,15 @@ app = FastAPI(
 )
 
 # Add rate limiter to app
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+# app.state.limiter = limiter
+# app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # =====================================
 # MIDDLEWARE
 # =====================================
 
 # Security Headers Middleware (must be added first to apply to all responses)
-app.add_middleware(SecurityHeadersMiddleware, settings=settings)
+# app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 # CORS Middleware
 app.add_middleware(
@@ -109,7 +109,7 @@ async def api_v1_root():
 
 
 # Include routers
-from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments
+from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments, ai_analysis
 
 # Enable real authentication router with database
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
@@ -118,7 +118,7 @@ app.include_router(consultations.router, prefix=f"{settings.API_V1_PREFIX}/consu
 app.include_router(prescriptions.router, prefix=f"{settings.API_V1_PREFIX}/prescriptions", tags=["Prescriptions"])
 app.include_router(images.router, prefix=f"{settings.API_V1_PREFIX}/images", tags=["Images"])
 app.include_router(appointments.router, prefix=f"{settings.API_V1_PREFIX}/appointments", tags=["Appointments"])
-# app.include_router(ai_analysis.router, prefix="/api/v1/ai-analysis", tags=["AI Analysis"])
+app.include_router(ai_analysis.router, prefix=f"{settings.API_V1_PREFIX}/ai-analysis", tags=["AI Analysis"])
 # app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 
 # =====================================
