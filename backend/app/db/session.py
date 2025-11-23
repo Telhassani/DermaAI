@@ -10,12 +10,22 @@ from fastapi import HTTPException
 from app.core.config import settings
 
 # Create database engine
+connect_args = {}
+engine_args = {
+    "pool_pre_ping": True,
+    "echo": settings.DEBUG,
+}
+
+if "sqlite" in settings.DATABASE_URL:
+    connect_args["check_same_thread"] = False
+    engine_args["connect_args"] = connect_args
+else:
+    engine_args["pool_size"] = 10
+    engine_args["max_overflow"] = 20
+
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    echo=settings.DEBUG,
+    **engine_args
 )
 
 # Create session factory
@@ -40,7 +50,9 @@ def get_db() -> Generator[Session, None, None]:
 
     db = None
     try:
+        print("DEBUG: Creating DB session", flush=True)
         db = SessionLocal()
+        print("DEBUG: DB session created", flush=True)
         yield db
     except (OperationalError, DBAPIError) as e:
         # Only treat connection errors as database failures
