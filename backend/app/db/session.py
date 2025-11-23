@@ -48,23 +48,18 @@ def get_db() -> Generator[Session, None, None]:
     """
     from sqlalchemy.exc import DBAPIError, OperationalError
 
-    db = None
+    db = SessionLocal()
     try:
-        print("DEBUG: Creating DB session", flush=True)
-        db = SessionLocal()
-        print("DEBUG: DB session created", flush=True)
         yield db
     except (OperationalError, DBAPIError) as e:
         # Only treat connection errors as database failures
-        error_msg = f"Database unavailable: {type(e).__name__}"
         raise HTTPException(
             status_code=503,
             detail="Service temporarily unavailable. Database connection failed.",
         )
     finally:
-        if db is not None:
-            try:
-                db.close()
-            except Exception:
-                # Silently ignore errors during session cleanup
-                pass
+        try:
+            db.close()
+        except Exception:
+            # Silently ignore errors during session cleanup
+            pass
