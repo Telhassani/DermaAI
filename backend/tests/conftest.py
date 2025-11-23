@@ -3,7 +3,7 @@ Shared pytest fixtures and configuration for all tests
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -174,7 +174,7 @@ def test_patient(db, test_doctor):
         identification_number="TEST123456",
         first_name="Test",
         last_name="Patient",
-        date_of_birth="1990-05-15",
+        date_of_birth=date(1990, 5, 15),
         gender=Gender.MALE,
         phone="0612345678",
         email="patient@test.com",
@@ -194,7 +194,7 @@ def test_patient_female(db, test_doctor):
         identification_number="PASS987654",
         first_name="Jane",
         last_name="Doe",
-        date_of_birth="1985-03-20",
+        date_of_birth=date(1985, 3, 20),
         gender=Gender.FEMALE,
         phone="0687654321",
         email="jane@test.com",
@@ -216,7 +216,7 @@ def test_patients_multiple(db, test_doctor):
             identification_number=f"ID{i:05d}",
             first_name=f"Patient{i}",
             last_name="TestCase",
-            date_of_birth=f"198{i}-0{(i % 9) + 1}-15",
+            date_of_birth=date(1980 + i, (i % 9) + 1, 15),
             gender=Gender.MALE if i % 2 == 0 else Gender.FEMALE,
             phone=f"061234567{i}",
             email=f"patient{i}@test.com",

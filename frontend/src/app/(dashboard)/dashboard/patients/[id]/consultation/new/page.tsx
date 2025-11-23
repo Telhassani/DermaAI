@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Save, Stethoscope, FileText, Activity, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, Stethoscope, FileText, Activity, AlertCircle, Upload, Image as ImageIcon, X } from 'lucide-react'
 import { createConsultation, ConsultationData } from '@/lib/api/consultations'
+import { AIAnalysisButton } from '@/components/ai-analysis/AIAnalysisButton'
+import { AIAnalysisResponse } from '@/lib/api/ai-analysis'
+import { toast } from 'sonner'
 
 export default function NewConsultationPage() {
   const router = useRouter()
@@ -39,6 +42,37 @@ export default function NewConsultationPage() {
     biopsy_results: '',
   })
 
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+  }
+
+  const handleAnalysisComplete = (analysis: AIAnalysisResponse) => {
+    setFormData((prev: ConsultationData) => ({
+      ...prev,
+      diagnosis: analysis.primary_diagnosis || prev.diagnosis,
+      differential_diagnosis: analysis.differential_diagnoses?.map(d => `${d.condition} (${d.probability})`).join('\n') || prev.differential_diagnosis,
+      clinical_examination: (prev.clinical_examination ? prev.clinical_examination + '\n\n' : '') +
+        `[IA] Observations: ${analysis.clinical_findings?.join(', ')}`,
+      treatment_plan: (prev.treatment_plan ? prev.treatment_plan + '\n\n' : '') +
+        `[IA] Recommandations: ${analysis.recommendations?.join(', ')}`,
+      lesion_type: analysis.clinical_findings?.find(f => f.includes('Type')) || prev.lesion_type, // Simple heuristic
+    }))
+    toast.success("Les résultats de l'analyse ont été ajoutés au formulaire")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -60,9 +94,9 @@ export default function NewConsultationPage() {
 
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked
-      setFormData((prev) => ({ ...prev, [name]: checked }))
+      setFormData((prev: ConsultationData) => ({ ...prev, [name]: checked }))
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
+      setFormData((prev: ConsultationData) => ({ ...prev, [name]: value }))
     }
   }
 

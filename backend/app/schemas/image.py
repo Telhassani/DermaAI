@@ -61,6 +61,7 @@ class ConsultationImageResponse(ConsultationImageBase):
     patient_id: int
     image_data: str  # Base64 encoded
     uploaded_at: datetime
+    file_size: int = Field(..., ge=0)  # Allow 0 for legacy/bad data
 
     class Config:
         from_attributes = True

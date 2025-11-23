@@ -38,7 +38,7 @@ async def upload_image(
     patient_id: int = Form(...),
     consultation_id: int = Form(None),
     filename: str = Form(...),
-    file_size: int = Form(...),
+    file_size: int = Form(..., gt=0),
     mime_type: str = Form(default="image/jpeg"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),

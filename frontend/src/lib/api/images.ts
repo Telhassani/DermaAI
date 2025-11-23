@@ -78,6 +78,10 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
     return { valid: false, error: 'Invalid file type. Allowed: JPEG, PNG, GIF, WebP' }
   }
 
+  if (file.size === 0) {
+    return { valid: false, error: 'File is empty' }
+  }
+
   if (file.size > maxSize) {
     return { valid: false, error: 'File too large. Maximum size: 10MB' }
   }

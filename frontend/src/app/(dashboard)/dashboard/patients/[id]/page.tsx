@@ -300,9 +300,11 @@ export default function PatientDetailPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
+        console.log(`[handleImageUpload] Processing file: ${file.name}, Size: ${file.size}, Type: ${file.type}`)
         const validation = validateImageFile(file)
         if (!validation.valid) {
           console.error(`File validation failed: ${validation.error}`)
+          alert(`Erreur: ${validation.error}. Veuillez vérifier que le fichier n'est pas vide ou corrompu.`)
           continue
         }
         try {
@@ -399,11 +401,10 @@ export default function PatientDetailPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px ${
-                  isActive
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'border-b-2 border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px ${isActive
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'border-b-2 border-transparent text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
@@ -573,22 +574,22 @@ export default function PatientDetailPage() {
             <div className="space-y-3">
               {prescriptions.length > 0 ? (
                 <div className="space-y-3">
-                    {prescriptions.map((prescription) => (
-                      <PrescriptionCard
-                        key={prescription.id}
-                        id={prescription.id}
-                        prescription_date={prescription.prescription_date}
-                        patient_name={patient?.full_name}
-                        medications={prescription.medications}
-                        instructions={prescription.instructions}
-                        notes={prescription.notes}
-                        consultation_id={prescription.consultation_id}
-                        onEdit={() => handleEditPrescription(prescription)}
-                        onPrint={() => handlePrintPrescription(prescription)}
-                        onDelete={() => handleDeletePrescription(prescription.id)}
-                      />
-                    ))}
-                  </div>
+                  {prescriptions.map((prescription) => (
+                    <PrescriptionCard
+                      key={prescription.id}
+                      id={prescription.id}
+                      prescription_date={prescription.prescription_date}
+                      patient_name={patient?.full_name}
+                      medications={prescription.medications}
+                      instructions={prescription.instructions}
+                      notes={prescription.notes}
+                      consultation_id={prescription.consultation_id}
+                      onEdit={() => handleEditPrescription(prescription)}
+                      onPrint={() => handlePrintPrescription(prescription)}
+                      onDelete={() => handleDeletePrescription(prescription.id)}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <Pill className="mx-auto h-12 w-12 text-gray-300 mb-4" />
@@ -604,11 +605,10 @@ export default function PatientDetailPage() {
             <div className="space-y-4">
               {/* Upload Area - Enhanced */}
               <div
-                className={`rounded-xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-200 group ${
-                  isDragging
-                    ? 'border-purple-500 bg-purple-100/50 from-purple-100 to-purple-100/70'
-                    : 'border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/30 hover:border-purple-500 hover:from-purple-100 hover:to-purple-100/50'
-                }`}
+                className={`rounded-xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-200 group ${isDragging
+                  ? 'border-purple-500 bg-purple-100/50 from-purple-100 to-purple-100/70'
+                  : 'border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/30 hover:border-purple-500 hover:from-purple-100 hover:to-purple-100/50'
+                  }`}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragOver}

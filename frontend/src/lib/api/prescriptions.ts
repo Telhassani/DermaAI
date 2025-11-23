@@ -27,6 +27,7 @@ export interface PrescriptionResponse {
   notes?: string
   is_printed?: boolean
   is_delivered?: boolean
+  consultation_id?: number
   created_at: string
   updated_at: string
 }

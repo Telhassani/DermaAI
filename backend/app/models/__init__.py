@@ -8,6 +8,9 @@ from app.models.appointment import Appointment, AppointmentStatus, AppointmentTy
 from app.models.consultation import Consultation
 from app.models.prescription import Prescription, PrescriptionMedication
 from app.models.image import ConsultationImage
+from app.models.ai_analysis import AIAnalysis, AIAnalysisImage, AnalysisType, Severity, AnalysisStatus
+from app.models.lab_result import LabResult, TestType
+from app.models.audit_log import AIAnalysisAuditLog, AuditAction
 
 __all__ = [
     "User",
@@ -22,4 +25,13 @@ __all__ = [
     "Prescription",
     "PrescriptionMedication",
     "ConsultationImage",
+    "AIAnalysis",
+    "AIAnalysisImage",
+    "AnalysisType",
+    "Severity",
+    "AnalysisStatus",
+    "LabResult",
+    "TestType",
+    "AIAnalysisAuditLog",
+    "AuditAction",
 ]

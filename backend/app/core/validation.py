@@ -272,8 +272,8 @@ PATTERNS = {
     "phone": r"^[\d\s()+-]+$",  # Allow digits, spaces, parentheses, plus, hyphen
     "url": r"^https?://[^\s/$.?#].[^\s]*$",
     "username": r"^[a-zA-Z0-9_-]{3,20}$",
-    "cin": r"^[A-Z]{2}\d{6}$",  # Example: AB123456
-    "passport": r"^[A-Z0-9]{6,9}$",
+    "cin": r"^[A-Z]{2}\d{6,12}$",  # Example: AB123456789
+    "passport": r"^[A-Z0-9]{6,15}$",
 }
 
 

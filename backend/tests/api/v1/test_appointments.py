@@ -3,7 +3,7 @@ Tests for appointment endpoints
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -76,7 +76,7 @@ def test_patient(db, test_user):
         identification_number="ABC123",
         first_name="John",
         last_name="Doe",
-        date_of_birth="1990-01-01",
+        date_of_birth=date(1990, 1, 1),
         gender=Gender.MALE,
         phone="0612345678",
         doctor_id=test_user.id,

@@ -92,16 +92,18 @@ class AIAnalysisService:
             system_prompt = """You are an experienced dermatologist AI assistant analyzing skin images.
 
 Provide a detailed clinical analysis including:
-1. Identified Condition(s) - Name specific skin conditions visible
-2. Severity - Rate as mild, moderate, or severe
-3. Observations - Describe visible characteristics (color, texture, distribution, size, borders, etc.)
-4. Differential Diagnoses - List other conditions to rule out
-5. Recommendations - Suggest appropriate treatments or further investigation
-6. Follow-up - Suggest when/how to monitor
-7. Confidence - Rate your confidence in the analysis (0-100%)
+1. Primary Diagnosis - The most likely condition
+2. Differential Diagnoses - List of other potential conditions with probabilities
+3. Severity - Rate as BENIGN, MILD, MODERATE, SEVERE, CRITICAL, or UNKNOWN
+4. Clinical Findings - List of visible characteristics (color, texture, distribution, etc.)
+5. Recommendations - Treatment suggestions and next steps
+6. Reasoning - Explanation for the diagnosis
+7. Key Features - Specific visual features that led to the diagnosis
+8. Risk Factors - Any visible risk factors
+9. Confidence - 0.0 to 1.0
 
-Format response as JSON with keys: condition, severity, observations, differential_diagnoses,
-recommendations, follow_up, confidence_percent
+Format response as JSON with keys:
+primary_diagnosis, differential_diagnoses (list of {condition, probability}), severity, clinical_findings (list), recommendations (list), reasoning, key_features_identified (list), risk_factors (list), confidence_score
 
 Important: This is AI-assisted analysis only. Always recommend professional medical consultation."""
 
@@ -145,13 +147,13 @@ Important: This is AI-assisted analysis only. Always recommend professional medi
             except json.JSONDecodeError:
                 # If response isn't valid JSON, parse it as text
                 analysis = {
-                    "condition": "Unable to parse structured response",
-                    "severity": "unknown",
-                    "observations": response_text,
+                    "primary_diagnosis": "Unable to parse structured response",
+                    "severity": "UNKNOWN",
+                    "clinical_findings": [response_text],
                     "differential_diagnoses": [],
                     "recommendations": ["Please consult a dermatologist"],
-                    "follow_up": "Medical consultation recommended",
-                    "confidence_percent": 0,
+                    "reasoning": "Response parsing failed",
+                    "confidence_score": 0.0,
                 }
 
             # Add metadata
@@ -307,5 +309,86 @@ Consider dermatological implications and provide:
             return {"error": str(e), "status": "error"}
 
 
+    async def compare_with_previous(
+        self,
+        current_image_data: str,
+        previous_image_data: str,
+        previous_analysis: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Compare current image with a previous one to track progression.
+        """
+        if not self.is_configured:
+            return {"error": "AI analysis not configured"}
+
+        try:
+            system_prompt = """You are an experienced dermatologist AI assistant comparing two skin images of the same lesion over time.
+            
+            Analyze the changes and provide:
+            1. Progression - Has it improved, worsened, or stayed the same?
+            2. Key Changes - Specific changes in size, color, texture, etc.
+            3. Concern Level - Should the doctor be concerned?
+            4. Recommendations - Adjusted treatment or monitoring plan.
+            
+            Format as JSON: progression (IMPROVED, WORSENED, STABLE, UNCERTAIN), key_changes (list), concern_level (LOW, MEDIUM, HIGH), recommendations (list), comparison_summary"""
+
+            user_prompt = f"""Compare this new image with the previous image.
+            Previous Analysis: {json.dumps(previous_analysis)}"""
+
+            message = self.client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1024,
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": previous_image_data,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Previous Image",
+                            },
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": current_image_data,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": user_prompt,
+                            },
+                        ],
+                    }
+                ],
+            )
+
+            response_text = message.content[0].text
+            
+            try:
+                analysis = json.loads(response_text)
+            except json.JSONDecodeError:
+                analysis = {
+                    "progression": "UNCERTAIN",
+                    "comparison_summary": response_text,
+                    "key_changes": [],
+                    "recommendations": []
+                }
+                
+            analysis["status"] = "success"
+            return analysis
+
+        except Exception as e:
+            logger.error(f"Comparison analysis error: {str(e)}")
+            return {"error": str(e), "status": "error"}
 # Global AI service instance
 ai_service = AIAnalysisService()

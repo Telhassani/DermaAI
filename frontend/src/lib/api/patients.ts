@@ -23,6 +23,7 @@ export interface PatientResponse {
   identification_number?: string
   medical_history?: string
   allergies?: string
+  insurance_number?: string
   created_at: string
   updated_at: string
 }

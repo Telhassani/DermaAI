@@ -143,10 +143,9 @@ export default function ConsultationDetailPage() {
         // Upload to backend
         console.log('[processFiles] Uploading file:', file.name)
         const uploadedImage = await uploadImage(
-          consultation.id,
-          file,
           patient.id,
-          'clinical'
+          file,
+          consultation.id
         )
         console.log('[processFiles] File uploaded successfully:', uploadedImage.id)
         setImages(prev => [...prev, uploadedImage])
@@ -422,32 +421,29 @@ export default function ConsultationDetailPage() {
         <div className="flex gap-8">
           <button
             onClick={() => setActiveTab('details')}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'details'
+            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'details'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             Détails
           </button>
           <button
             onClick={() => setActiveTab('images')}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'images'
+            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'images'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <ImageIcon className="inline h-4 w-4 mr-2" />
             Images ({showAllPatientImages ? allPatientImages.length : images.length}/{allPatientImages.length})
           </button>
           <button
             onClick={() => setActiveTab('prescriptions')}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'prescriptions'
+            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'prescriptions'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Pill className="inline h-4 w-4 mr-2" />
             Ordonnances ({prescriptions.length})
@@ -577,11 +573,10 @@ export default function ConsultationDetailPage() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all ${
-              dragActive || globalDragActive
+            className={`rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all ${dragActive || globalDragActive
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
-            }`}
+              }`}
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="flex flex-col items-center gap-2">
@@ -618,21 +613,19 @@ export default function ConsultationDetailPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowAllPatientImages(false)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                    !showAllPatientImages
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${!showAllPatientImages
                       ? 'bg-blue-600 text-white'
                       : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   Cette visite ({images.length})
                 </button>
                 <button
                   onClick={() => setShowAllPatientImages(true)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                    showAllPatientImages
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${showAllPatientImages
                       ? 'bg-blue-600 text-white'
                       : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   Toutes ({allPatientImages.length})
                 </button>

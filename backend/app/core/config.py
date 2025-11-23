@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     # =====================================
     # CORS
     # =====================================
-    ALLOWED_ORIGINS_STR: str = '["http://localhost:3000","http://localhost:3001","http://127.0.0.1:3000"]'
+    ALLOWED_ORIGINS_STR: str = '["http://localhost:3000","http://localhost:3001","http://127.0.0.1:3000","http://127.0.0.1:3001"]'
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
 
     @property

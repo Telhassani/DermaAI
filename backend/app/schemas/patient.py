@@ -35,6 +35,15 @@ class PatientBase(BaseModel):
     medical_history: Optional[str] = None
     doctor_id: Optional[int] = None
 
+    @field_validator("date_of_birth", mode="before")
+    @classmethod
+    def validate_date_of_birth(cls, v) -> date:
+        """Validate and ensure date_of_birth is a date object"""
+        if isinstance(v, str):
+            # Pydantic will auto-convert, but ensure it's valid
+            return v
+        return v
+
     @field_validator("identification_number")
     @classmethod
     def validate_id_number(cls, v: str, info) -> str:
@@ -103,6 +112,17 @@ class PatientUpdate(BaseModel):
     allergies: Optional[str] = None
     medical_history: Optional[str] = None
     doctor_id: Optional[int] = None
+
+    @field_validator("date_of_birth", mode="before")
+    @classmethod
+    def validate_date_of_birth(cls, v) -> Optional[date]:
+        """Validate and ensure date_of_birth is a date object or None"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            # Pydantic will auto-convert, but ensure it's valid
+            return v
+        return v
 
     @field_validator("identification_number")
     @classmethod
