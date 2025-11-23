@@ -36,7 +36,7 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/hour")
-async def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user
 
@@ -87,8 +87,8 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
 
 
 @router.post("/login")
-@limiter.limit("10/hour")
-async def login(
+# @limiter.limit("10/hour")  # Disabled temporarily due to dependency injection issue in dev
+def login(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
@@ -185,7 +185,7 @@ async def login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
+def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     """
@@ -202,7 +202,7 @@ async def get_current_user_info(
 
 @router.post("/refresh")
 @limiter.limit("20/hour")
-async def refresh_token(
+def refresh_token(
     request: Request,
     token_request: RefreshTokenRequest,
     db: Session = Depends(get_db),
@@ -308,7 +308,7 @@ async def refresh_token(
 
 
 @router.post("/logout")
-async def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
+def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
     """
     Logout user and clear httpOnly cookies.
 
