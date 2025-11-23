@@ -14,7 +14,7 @@ from app.models.user import User, UserRole
 from app.schemas.user import TokenData
 
 # OAuth2 scheme for JWT token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def get_current_user(
@@ -49,45 +49,23 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
 
+    # Cast user_id to integer to ensure type consistency (FIX #3)
     try:
-        user = db.query(User).filter(User.id == user_id).first()
-    except Exception as db_error:
-        # Database connection error - use demo user for development
-        print(f"[get_current_user] Database error: {db_error}. Using demo user.")
-        email = token_data.get("email")
-        role = token_data.get("role")
-        if email and role:
-            demo_user = User(
-                id=user_id,
-                email=email,
-                hashed_password="demo_hash",
-                full_name=email.split("@")[0],
-                role=role,
-                is_active=True,
-                is_verified=True,
-            )
-            return demo_user
+        user_id = int(user_id)
+    except (ValueError, TypeError):
         raise credentials_exception
 
-    # If user not found in DB, create a demo/development user object
-    # This is useful for frontend development without a full database
+    try:
+        # Query user and filter by not deleted (FIX #4)
+        user = db.query(User).filter(
+            User.id == user_id,
+            User.is_deleted == False
+        ).first()
+    except Exception:
+        raise credentials_exception
+
+    # User must exist in database - no fake user objects
     if user is None:
-        email = token_data.get("email")
-        role = token_data.get("role")
-
-        if email and role:
-            # Create a demo user object with the email from token
-            demo_user = User(
-                id=user_id,
-                email=email,
-                hashed_password="demo_hash",
-                full_name=email.split("@")[0],
-                role=role,
-                is_active=True,
-                is_verified=True,
-            )
-            return demo_user
-
         raise credentials_exception
 
     return user

@@ -5,6 +5,12 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { CalendarMini } from './calendar-mini'
 
 export type CalendarView = 'month' | 'week' | 'day' | 'agenda'
 
@@ -105,13 +111,26 @@ export function CalendarToolbar({
           </Button>
         </div>
 
-        {/* Current period display */}
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5 text-gray-400" />
-          <h2 className="text-lg font-semibold capitalize text-gray-900">
-            {formatPeriod()}
-          </h2>
-        </div>
+        {/* Current period display with Mini Calendar Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-100 px-2">
+              <CalendarIcon className="h-5 w-5 text-gray-500" />
+              <h2 className="text-lg font-semibold capitalize text-gray-900">
+                {formatPeriod()}
+              </h2>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarMini
+              currentDate={currentDate}
+              onDateChange={(date) => {
+                onDateChange(date)
+                // Optional: Close popover here if we had access to open state
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Right section: View selector and actions */}

@@ -76,41 +76,43 @@ export function CalendarWeekView({
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
-      {/* Week header */}
-      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b bg-gray-50">
-        <div className="border-r p-3" /> {/* Empty cell for time column */}
-        {weekDays.map((day) => {
-          const isCurrentDay = isToday(day)
-          const dayNumber = format(day, 'd')
-          const dayName = format(day, 'EEE', { locale: fr })
+      <div className="overflow-x-auto border-b bg-gray-50 scrollbar-hide">
+        {/* Week header */}
+        <div className="min-w-[800px] grid grid-cols-[80px_repeat(7,1fr)]">
+          <div className="border-r p-3" /> {/* Empty cell for time column */}
+          {weekDays.map((day) => {
+            const isCurrentDay = isToday(day)
+            const dayNumber = format(day, 'd')
+            const dayName = format(day, 'EEE', { locale: fr })
 
-          return (
-            <div
-              key={day.toISOString()}
-              className={cn(
-                'border-r p-3 text-center last:border-r-0',
-                isCurrentDay && 'bg-blue-50'
-              )}
-            >
-              <div className="text-xs font-medium uppercase text-gray-500">{dayName}</div>
+            return (
               <div
+                key={day.toISOString()}
                 className={cn(
-                  'mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
-                  isCurrentDay
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-900'
+                  'border-r p-3 text-center last:border-r-0',
+                  isCurrentDay && 'bg-blue-50'
                 )}
               >
-                {dayNumber}
+                <div className="text-xs font-medium uppercase text-gray-500">{dayName}</div>
+                <div
+                  className={cn(
+                    'mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
+                    isCurrentDay
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-900'
+                  )}
+                >
+                  {dayNumber}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-[80px_repeat(7,1fr)]">
+        <div className="min-w-[800px] grid grid-cols-[80px_repeat(7,1fr)]">
           {/* Time column and day columns */}
           {hours.map((hour) => (
             <div key={hour} className="contents">
@@ -217,5 +219,6 @@ export function CalendarWeekView({
         return null
       })()}
     </div>
+    </div >
   )
 }

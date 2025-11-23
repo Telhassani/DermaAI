@@ -52,7 +52,7 @@ app = FastAPI(
 # =====================================
 
 # Security Headers Middleware (must be added first to apply to all responses)
-# app.add_middleware(SecurityHeadersMiddleware, settings=settings)
+app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 # CORS Middleware
 app.add_middleware(

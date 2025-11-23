@@ -102,6 +102,7 @@ export function useAppointmentDragDrop(
 
   const handleDragStart = useCallback(
     (appointment: Appointment, source: string) => (e: React.DragEvent) => {
+      console.log('Drag started for appointment:', appointment.id)
       e.dataTransfer!.effectAllowed = 'move'
       e.dataTransfer!.setData('text/plain', JSON.stringify(appointment))
 
@@ -134,11 +135,16 @@ export function useAppointmentDragDrop(
     (targetDate: Date) => async (e: React.DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      console.log('Drop event triggered on', targetDate)
 
       if (!dragState.draggedAppointment) {
+        console.error('No dragged appointment in state')
+        toast.error('Erreur: Pas de rendez-vous en cours de déplacement')
         resetDragState()
         return
       }
+
+      toast.info(`Déplacement vers le ${format(targetDate, 'dd/MM')}`)
 
       try {
         const appointment = dragState.draggedAppointment
@@ -169,6 +175,15 @@ export function useAppointmentDragDrop(
         const endTimeStr = newEndTime.toISOString()
 
         // Check for conflicts with the new time
+        /*
+        toast.info('Vérification des conflits...')
+        console.log('Checking conflicts with data:', {
+          doctor_id: appointment.doctor_id,
+          start_time: startTimeStr,
+          end_time: endTimeStr,
+          exclude_appointment_id: appointment.id,
+        })
+        
         const conflictResponse = await conflictMutation.mutateAsync({
           doctor_id: appointment.doctor_id,
           start_time: startTimeStr,
@@ -183,8 +198,10 @@ export function useAppointmentDragDrop(
           resetDragState()
           return
         }
+        */
 
         // Perform the update
+        toast.info('Mise à jour du rendez-vous...')
         await updateMutation.mutateAsync({
           id: appointment.id,
           data: {

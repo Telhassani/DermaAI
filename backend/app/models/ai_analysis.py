@@ -64,7 +64,7 @@ class AIAnalysis(BaseModel):
     confidence_score = Column(Float, nullable=True)  # 0.0 to 1.0
     severity = Column(Enum(Severity), default=Severity.UNKNOWN)
     clinical_findings = Column(JSON, nullable=True)  # List of findings
-    recommendations = Column(Text, nullable=True)
+    recommendations = Column(JSON, nullable=True)  # Structured recommendations with actions
     
     # Explanations
     reasoning = Column(Text, nullable=True)

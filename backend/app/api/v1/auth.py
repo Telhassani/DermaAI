@@ -87,7 +87,7 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 
 
 @router.post("/login")
-# @limiter.limit("10/hour")  # Disabled temporarily due to dependency injection issue in dev
+@limiter.limit("10/hour")
 def login(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -109,9 +109,23 @@ def login(
     # Find user by email
     user = db.query(User).filter(User.email == form_data.username).first()
 
-    # Verify credentials - only call verify_password once
-    password_valid = user and verify_password(form_data.password, user.hashed_password)
-    if not user or not password_valid:
+    # Verify user exists
+    if not user:
+        log_audit_event(
+            user_id="unknown",
+            action="LOGIN",
+            resource="auth",
+            details={"email": form_data.username, "reason": "user_not_found"},
+            success=False,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify password
+    if not verify_password(form_data.password, user.hashed_password):
         log_audit_event(
             user_id="unknown",
             action="LOGIN",
@@ -167,7 +181,7 @@ def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  # Requires HTTPS in production
+        secure=not settings.DEBUG,  # Only require HTTPS in production
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
@@ -176,7 +190,7 @@ def login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,  # Requires HTTPS in production
+        secure=not settings.DEBUG,  # Only require HTTPS in production
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/",
@@ -290,7 +304,7 @@ def refresh_token(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  # Requires HTTPS in production
+        secure=not settings.DEBUG,  # Only require HTTPS in production
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
@@ -299,7 +313,7 @@ def refresh_token(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=True,  # Requires HTTPS in production
+        secure=not settings.DEBUG,  # Only require HTTPS in production
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/",
@@ -338,7 +352,7 @@ def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
         key="access_token",
         value="",
         httponly=True,
-        secure=True,
+        secure=not settings.DEBUG,
         samesite="lax",
         max_age=0,
         path="/",
@@ -347,7 +361,7 @@ def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
         key="refresh_token",
         value="",
         httponly=True,
-        secure=True,
+        secure=not settings.DEBUG,
         samesite="lax",
         max_age=0,
         path="/",

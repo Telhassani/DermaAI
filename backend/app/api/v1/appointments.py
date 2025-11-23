@@ -738,7 +738,7 @@ async def check_appointment_conflicts(
         logger.error(f"Error checking conflicts: {str(e)}")
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la vérification des conflits"
+            detail=f"Erreur lors de la vérification des conflits: {str(e)}"
         )
 
 

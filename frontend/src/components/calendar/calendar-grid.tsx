@@ -7,7 +7,13 @@ import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
 import { useAppointmentDragDrop } from '@/lib/hooks/use-appointment-drag-drop'
 import { useAppointmentResize } from '@/lib/hooks/use-appointment-resize'
 import { AppointmentTooltip } from './appointment-tooltip'
+import { AnimatedAppointmentCard } from './animated-appointment-card'
 import { GripVertical } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 interface CalendarGridProps {
   currentDate: Date
@@ -84,6 +90,8 @@ export function CalendarGrid({
           const isTodayDate = isToday(day)
           const dayNumber = format(day, 'd')
 
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6
+
           return (
             <div
               key={day.toISOString()}
@@ -92,10 +100,23 @@ export function CalendarGrid({
                 'group relative min-h-[120px] border-b border-r p-2 transition-colors last:border-r-0',
                 (index + 1) % 7 === 0 && 'border-r-0',
                 index >= days.length - 7 && 'border-b-0',
-                isCurrentMonth ? 'bg-white' : 'bg-gray-50',
+                isCurrentMonth ? (isWeekend ? 'bg-gray-50/50' : 'bg-white') : 'bg-gray-50',
                 onDayClick && 'cursor-pointer hover:bg-blue-50',
-                isTodayDate && 'bg-blue-50 ring-2 ring-inset ring-blue-500'
+                isTodayDate && 'bg-blue-50 ring-2 ring-inset ring-blue-500',
+                dragDrop.isDraggingAppointment && 'ring-1 ring-blue-200 bg-blue-50/10'
               )}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.currentTarget.classList.add('bg-blue-100')
+                dragDrop.handleDragOver(e)
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove('bg-blue-100')
+              }}
+              onDrop={(e) => {
+                e.currentTarget.classList.remove('bg-blue-100')
+                dragDrop.handleDrop(day)(e)
+              }}
             >
               {/* Day number */}
               <div className="mb-1 flex items-center justify-between">
@@ -105,8 +126,8 @@ export function CalendarGrid({
                     isTodayDate
                       ? 'bg-blue-600 text-white'
                       : isCurrentMonth
-                      ? 'text-gray-900 group-hover:bg-gray-100'
-                      : 'text-gray-400'
+                        ? 'text-gray-900 group-hover:bg-gray-100'
+                        : 'text-gray-400'
                   )}
                 >
                   {dayNumber}
@@ -120,54 +141,63 @@ export function CalendarGrid({
 
               {/* Appointments list (first 3) */}
               <div className="space-y-1">
-                {dayAppointments.slice(0, 3).map((appointment) => {
-                  const startTime = format(new Date(appointment.start_time), 'HH:mm')
-                  return (
-                    <AppointmentTooltip key={appointment.id} appointment={appointment}>
-                      <div
-                        draggable
-                        onDragStart={dragDrop.handleDragStart(appointment, 'month-view')}
-                        onDragOver={dragDrop.handleDragOver}
-                        onDrop={dragDrop.handleDrop(day)}
+                {dayAppointments.slice(0, 3).map((appointment, index) => (
+                  <AnimatedAppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    onClick={(app) => {
+                      onAppointmentClick?.(app)
+                    }}
+                    compact={true}
+                    showActions={false}
+                    animationDelay={index * 0.05}
+                    draggable
+                    onDragStart={dragDrop.handleDragStart(appointment, 'month-view')}
+                    onDragOver={dragDrop.handleDragOver}
+                    onDrop={(e) => {
+                      e.stopPropagation()
+                      dragDrop.handleDrop(day)(e)
+                    }}
+                    className={cn(
+                      'relative mb-1',
+                      dragDrop.isDraggingAppointment && dragDrop.dragState.draggedAppointment?.id === appointment.id && 'opacity-50'
+                    )}
+                  />
+                ))}
+
+                {/* Show more indicator with Popover */}
+                {dayAppointments.length > 3 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          onAppointmentClick?.(appointment)
+                          // Don't navigate, just open popover
                         }}
-                        className={cn(
-                          'group/item cursor-grab active:cursor-grabbing rounded px-2 py-1 text-xs transition-colors hover:shadow-sm relative',
-                          dragDrop.isDraggingAppointment && dragDrop.dragState.draggedAppointment?.id === appointment.id && 'opacity-50',
-                          typeColors[appointment.type].replace('bg-', 'bg-opacity-10 hover:bg-opacity-20 bg-')
-                        )}
+                        className="w-full rounded px-2 py-1 text-left text-xs font-medium text-blue-600 hover:bg-blue-100"
                       >
-                        <div className="flex items-center gap-1">
-                          <GripVertical className="h-3 w-3 text-gray-400 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                          <div className={cn('h-1.5 w-1.5 rounded-full', typeColors[appointment.type])} />
-                          <span className="truncate font-medium text-gray-700">
-                            {startTime}
-                          </span>
-                        </div>
-                        {/* Resize handle */}
-                        <div
-                          onMouseDown={resize.handleResizeStart(appointment)}
-                          className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-t from-gray-400 to-transparent opacity-0 group-hover/item:opacity-100 cursor-ns-resize transition-opacity"
-                          title="Glisser pour redimensionner"
-                        />
+                        +{dayAppointments.length - 3} plus
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" align="start">
+                      <div className="mb-2 font-medium text-gray-900">
+                        {format(day, 'EEEE d MMMM', { locale: fr })}
                       </div>
-                    </AppointmentTooltip>
-                  )
-                })}
-
-                {/* Show more indicator */}
-                {dayAppointments.length > 3 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDayClick?.(day)
-                    }}
-                    className="w-full rounded px-2 py-1 text-left text-xs font-medium text-blue-600 hover:bg-blue-100"
-                  >
-                    +{dayAppointments.length - 3} plus
-                  </button>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {dayAppointments.map((appointment) => (
+                          <AnimatedAppointmentCard
+                            key={appointment.id}
+                            appointment={appointment}
+                            onClick={(app) => {
+                              onAppointmentClick?.(app)
+                            }}
+                            compact={true}
+                            showActions={false}
+                          />
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
 

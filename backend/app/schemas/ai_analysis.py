@@ -14,6 +14,7 @@ class AIAnalysisBase(BaseModel):
 # Properties to receive on creation
 class AIAnalysisCreate(AIAnalysisBase):
     image_data: Optional[str] = None  # Base64
+    image_path: Optional[str] = None  # File path to image for reference storage
     previous_analysis_id: Optional[int] = None  # For comparison
     additional_notes: Optional[str] = None
 
