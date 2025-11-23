@@ -6,7 +6,10 @@ from app.api import deps
 from app.models.user import User
 from app.models.ai_analysis import AIAnalysis, AIAnalysisImage, AnalysisType, AnalysisStatus
 from app.models.patient import Patient
-from app.schemas.ai_analysis import AIAnalysisCreate, AIAnalysisResponse, AIAnalysisUpdate, AIAnalysisList
+from app.schemas.ai_analysis import (
+    AIAnalysisCreate, AIAnalysisResponse, AIAnalysisUpdate, AIAnalysisList,
+    LabResultAnalysisCreate, LabResultAnalysisResponse
+)
 from app.services.ai_analysis import ai_service
 from app.core.logging import log_audit_event
 # from app.crud import crud_ai_analysis
@@ -387,3 +390,112 @@ async def compare_analyses(
     )
 
     return comparison
+
+
+@router.post("/lab-result/analyze", response_model=LabResultAnalysisResponse)
+async def analyze_lab_results(
+    *,
+    db: Session = Depends(deps.get_db),
+    lab_data: LabResultAnalysisCreate,
+    current_user: User = Depends(deps.get_current_doctor),
+) -> Any:
+    """
+    Analyze lab results for dermatological implications.
+
+    Required: Current user must be a doctor.
+    Permission: Doctor can only analyze results for patients they have access to.
+
+    Lab values will be analyzed in context of skin health and dermatological conditions.
+    The AI will identify abnormal values and provide clinical interpretation.
+    """
+    # 1. Permission check - verify doctor can access this patient
+    patient = db.query(Patient).filter(Patient.id == lab_data.patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+
+    # 2. Prepare lab data for AI analysis
+    lab_values_dict = [
+        {
+            "test_name": val.test_name,
+            "value": val.value,
+            "unit": val.unit,
+            "reference_min": val.reference_min,
+            "reference_max": val.reference_max,
+            "is_abnormal": val.is_abnormal
+        }
+        for val in lab_data.lab_values
+    ]
+
+    ai_input = {
+        "lab_values": lab_values_dict,
+        "test_date": lab_data.test_date,
+        "additional_notes": lab_data.additional_notes,
+        "patient_context": "Analyzing for dermatological implications"
+    }
+
+    # 3. Call AI Service for lab analysis
+    result = await ai_service.analyze_lab_results(ai_input)
+
+    if result.get("error"):
+        log_audit_event(
+            user_id=str(current_user.id),
+            action="ANALYZE_LAB",
+            resource="ai_analysis",
+            details={"patient_id": lab_data.patient_id, "error": result["error"]},
+            success=False,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["error"]
+        )
+
+    # 4. Save to DB
+    db_obj = AIAnalysis(
+        analysis_type=AnalysisType.LAB_RESULT,
+        patient_id=lab_data.patient_id,
+        doctor_id=current_user.id,
+        consultation_id=lab_data.consultation_id,
+        ai_provider=lab_data.ai_provider,
+        ai_model=lab_data.ai_model,
+
+        # Map results
+        primary_diagnosis=result.get("interpretation"),
+        clinical_findings=result.get("abnormalities", []),
+        recommendations=result.get("recommendations", []),
+        reasoning=result.get("reasoning"),
+
+        # Lab specific fields
+        lab_values_extracted=lab_values_dict,
+        abnormal_values=result.get("abnormalities", []),
+        reference_ranges=result.get("reference_ranges"),
+
+        # Store input data
+        input_data=ai_input,
+
+        # Default status
+        status=AnalysisStatus.PENDING,
+        tokens_used=result.get("tokens_used", {}).get("total_tokens", 0)
+    )
+
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+
+    # 5. Log audit event
+    log_audit_event(
+        user_id=str(current_user.id),
+        action="ANALYZE_LAB",
+        resource="ai_analysis",
+        details={
+            "patient_id": lab_data.patient_id,
+            "analysis_id": db_obj.id,
+            "lab_tests_count": len(lab_data.lab_values),
+            "abnormal_count": sum(1 for v in lab_data.lab_values if v.is_abnormal)
+        },
+        success=True,
+    )
+
+    return db_obj

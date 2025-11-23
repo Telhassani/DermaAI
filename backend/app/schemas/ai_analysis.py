@@ -57,3 +57,30 @@ class AIAnalysisResponse(AIAnalysisInDBBase):
 class AIAnalysisList(BaseModel):
     items: List[AIAnalysisResponse]
     total: int
+
+
+# Lab Result Analysis Schemas
+class LabValue(BaseModel):
+    test_name: str
+    value: float
+    unit: str
+    reference_min: Optional[float] = None
+    reference_max: Optional[float] = None
+    is_abnormal: bool = False
+
+
+class LabResultAnalysisCreate(BaseModel):
+    patient_id: int
+    consultation_id: Optional[int] = None
+    test_date: Optional[str] = None
+    lab_values: List[LabValue]
+    additional_notes: Optional[str] = None
+    ai_provider: AIProvider = AIProvider.CLAUDE
+    ai_model: Optional[str] = "claude-3-5-sonnet-20241022"
+
+
+class LabResultAnalysisResponse(AIAnalysisInDBBase):
+    """Response model for lab result analysis"""
+    lab_values_extracted: Optional[List[Dict[str, Any]]] = None
+    abnormal_values: Optional[List[Dict[str, Any]]] = None
+    reference_ranges: Optional[List[Dict[str, Any]]] = None
