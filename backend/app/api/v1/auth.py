@@ -109,8 +109,9 @@ def login(
     # Find user by email
     user = db.query(User).filter(User.email == form_data.username).first()
 
-    # Verify credentials
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    # Verify credentials - only call verify_password once
+    password_valid = user and verify_password(form_data.password, user.hashed_password)
+    if not user or not password_valid:
         log_audit_event(
             user_id="unknown",
             action="LOGIN",
