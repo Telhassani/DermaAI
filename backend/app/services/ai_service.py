@@ -14,6 +14,7 @@ from openai import AsyncOpenAI
 
 from app.core.config import settings
 from app.core.logging import logger
+from app.core.retry_handler import retry_async, RetryConfig
 
 # ============================================================================
 # Models & Enums
