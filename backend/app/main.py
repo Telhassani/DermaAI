@@ -109,7 +109,7 @@ async def api_v1_root():
 
 
 # Include routers
-from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments, ai_analysis, lab_results, lab_conversations
+from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments, ai_analysis, lab_results, lab_conversations, ai_stream
 
 # Enable real authentication router with database
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
@@ -119,6 +119,7 @@ app.include_router(prescriptions.router, prefix=f"{settings.API_V1_PREFIX}/presc
 app.include_router(images.router, prefix=f"{settings.API_V1_PREFIX}/images", tags=["Images"])
 app.include_router(appointments.router, prefix=f"{settings.API_V1_PREFIX}/appointments", tags=["Appointments"])
 app.include_router(ai_analysis.router, prefix=f"{settings.API_V1_PREFIX}/ai-analysis", tags=["AI Analysis"])
+app.include_router(ai_stream.router, prefix=f"{settings.API_V1_PREFIX}/ai-stream", tags=["AI Streaming"])
 app.include_router(lab_results.router, prefix=f"{settings.API_V1_PREFIX}/lab-results", tags=["Lab Results"])
 app.include_router(lab_conversations.router, prefix=f"{settings.API_V1_PREFIX}/lab-conversations", tags=["Lab Conversations"])
 # app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
