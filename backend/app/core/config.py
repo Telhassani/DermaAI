@@ -78,7 +78,7 @@ class Settings(BaseSettings):
         return self.ALLOWED_ORIGINS_STR
 
     # =====================================
-    # AI APIs
+    # AI APIs & MODELS
     # =====================================
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
@@ -94,6 +94,22 @@ class Settings(BaseSettings):
 
     # API Key encryption for session storage
     API_KEY_ENCRYPTION_KEY: Optional[str] = None
+
+    # AI Model Configuration
+    DEFAULT_AI_MODEL: str = "claude-3-5-sonnet-20241022"
+    AVAILABLE_AI_MODELS: str = '["claude-3-5-sonnet-20241022","claude-3-opus-20250219","gpt-4-turbo","gpt-4o"]'
+
+    # Model-specific settings
+    AI_MODEL_TEMPERATURE: float = 0.7
+    AI_MODEL_MAX_TOKENS: int = 2000
+    AI_MODEL_REQUEST_TIMEOUT_SECONDS: int = 30
+    AI_MODEL_RETRY_ATTEMPTS: int = 3
+    AI_MODEL_RETRY_DELAY_SECONDS: int = 1
+
+    # Streaming configuration
+    ENABLE_STREAMING_RESPONSES: bool = True
+    STREAMING_CHUNK_SIZE: int = 1024
+    STREAMING_HEARTBEAT_INTERVAL_SECONDS: int = 15
 
     # =====================================
     # EMAIL (SMTP)
