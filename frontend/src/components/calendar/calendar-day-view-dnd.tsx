@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
+import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core'
 import { format, isToday, addMinutes, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -35,6 +35,20 @@ export function CalendarDayViewDnd({
   endHour = 20,
 }: CalendarDayViewDndProps) {
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
+  )
 
   // Generate hours array
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i)
@@ -112,6 +126,7 @@ export function CalendarDayViewDnd({
 
   return (
     <DndContext
+      sensors={sensors}
       onDragStart={(event) => {
         const appointment = event.active.data.current?.appointment as Appointment
         setActiveAppointment(appointment)

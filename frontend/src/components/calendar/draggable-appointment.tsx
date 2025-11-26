@@ -26,32 +26,40 @@ export function DraggableAppointment({
   compact = false,
   showActions = true,
 }: DraggableAppointmentProps) {
+  const isDraggable =
+    appointment.status !== 'completed' &&
+    appointment.status !== 'cancelled' &&
+    appointment.status !== 'no_show'
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `appointment-${appointment.id}`,
     data: {
       appointment,
       type: 'appointment',
     },
+    disabled: !isDraggable,
   })
 
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: isDragging ? 'grabbing' : isDraggable ? 'grab' : 'default',
   }
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      {/* Drag handle - only visible on hover */}
-      <div
-        {...listeners}
-        {...attributes}
-        className="absolute -left-2 top-1/2 z-10 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
-      >
-        <div className="rounded bg-gray-100 p-1 shadow-sm hover:bg-gray-200">
-          <GripVertical className="h-4 w-4 text-gray-600" />
+      {/* Drag handle - only visible on hover and if draggable */}
+      {isDraggable && (
+        <div
+          {...listeners}
+          {...attributes}
+          className="absolute -left-2 top-1/2 z-10 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+        >
+          <div className="rounded bg-gray-100 p-1 shadow-sm hover:bg-gray-200">
+            <GripVertical className="h-4 w-4 text-gray-600" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Appointment card */}
       <div className="group">

@@ -1,4 +1,4 @@
-"""Phase 3: Add missing Foreign Key constraints for data integrity.
+w"""Phase 3: Add missing Foreign Key constraints for data integrity.
 
 Revision ID: 005_phase3_fk_constraints
 Revises: 004_phase3_critical_indexes

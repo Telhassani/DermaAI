@@ -102,6 +102,16 @@ export function useAppointmentDragDrop(
 
   const handleDragStart = useCallback(
     (appointment: Appointment, source: string) => (e: React.DragEvent) => {
+      // Check if appointment can be dragged
+      if (
+        appointment.status === 'completed' ||
+        appointment.status === 'cancelled' ||
+        appointment.status === 'no_show'
+      ) {
+        e.preventDefault()
+        return
+      }
+
       console.log('Drag started for appointment:', appointment.id)
       e.dataTransfer!.effectAllowed = 'move'
       e.dataTransfer!.setData('text/plain', JSON.stringify(appointment))
@@ -155,6 +165,17 @@ export function useAppointmentDragDrop(
 
         if (originalDate.getTime() === targetDay.getTime()) {
           toast.info('Veuillez choisir une date différente')
+          resetDragState()
+          return
+        }
+
+        // Failsafe: Check if appointment can be modified
+        if (
+          appointment.status === 'completed' ||
+          appointment.status === 'cancelled' ||
+          appointment.status === 'no_show'
+        ) {
+          toast.error('Ce rendez-vous ne peut pas être déplacé')
           resetDragState()
           return
         }

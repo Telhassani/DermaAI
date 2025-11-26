@@ -93,7 +93,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Doctor123!"
+                placeholder="password123"
                 autoComplete="current-password"
                 required
                 {...register('password')}
@@ -120,9 +120,9 @@ export function LoginForm() {
         <div className="rounded-md bg-blue-50 p-4">
           <p className="text-sm font-medium text-blue-800">Comptes de démonstration :</p>
           <ul className="mt-2 space-y-1 text-xs text-blue-700">
-            <li>👨‍⚕️ Doctor: doctor@dermai.com / Doctor123!</li>
-            <li>🔐 Admin: admin@dermai.com / Admin123!</li>
-            <li>📋 Secretary: secretary@dermai.com / Secretary123!</li>
+            <li>👨‍⚕️ Doctor: doctor@dermai.com / password123</li>
+            <li>🔐 Admin: admin@dermai.com / password123</li>
+            <li>📋 Secretary: secretary@dermai.com / password123</li>
           </ul>
         </div>
 

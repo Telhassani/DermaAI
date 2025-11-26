@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
+import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core'
 import { format, startOfWeek, addDays, isToday, addMinutes, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -31,6 +31,20 @@ export function CalendarWeekViewDnd({
   endHour = 20,
 }: CalendarWeekViewDndProps) {
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
+  )
 
   // Get week start (Monday)
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -118,6 +132,7 @@ export function CalendarWeekViewDnd({
 
   return (
     <DndContext
+      sensors={sensors}
       onDragStart={(event) => {
         const appointment = event.active.data.current?.appointment as Appointment
         setActiveAppointment(appointment)

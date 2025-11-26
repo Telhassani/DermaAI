@@ -78,38 +78,7 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
         <TooltipContent
           className={cn('w-64 p-0 border-0', colors.bg)}
         >
-          {/* Header with type indicator */}
-          <div className={cn('border-l-4 px-4 py-3', colors.text, colors.bg)}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                {/* Type and Status badges */}
-                <div className="mb-2 flex flex-wrap gap-2">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium',
-                      colors.bg,
-                      colors.text
-                    )}
-                  >
-                    <Briefcase className="h-3 w-3" />
-                    {typeLabel}
-                  </span>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium',
-                      statusInfo.color
-                    )}
-                  >
-                    <Heart className="h-3 w-3" />
-                    {statusInfo.label}
-                  </span>
-                </div>
 
-                {/* Date */}
-                <div className="text-xs font-medium capitalize text-gray-600">{dateFormatted}</div>
-              </div>
-            </div>
-          </div>
 
           {/* Content */}
           <div className="space-y-3 px-4 py-3">
@@ -127,7 +96,6 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
             <div className="flex items-start gap-2">
               <User className={cn('h-4 w-4 mt-0.5', colors.icon)} />
               <div className="flex-1">
-                <p className="text-xs text-gray-500">Patient</p>
                 <p className="text-sm font-medium text-gray-900">
                   {(appointment as any).patient_name || (appointment as any).guest_name || `ID: ${appointment.patient_id}`}
                 </p>
@@ -141,17 +109,6 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
                     {(appointment as any).patient_email || (appointment as any).guest_email}
                   </p>
                 )}
-              </div>
-            </div>
-
-            {/* Doctor info */}
-            <div className="flex items-center gap-2">
-              <User className={cn('h-4 w-4', colors.icon)} />
-              <div className="flex-1">
-                <p className="text-xs text-gray-500">Médecin</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {(appointment as any).doctor_name || `ID: ${appointment.doctor_id}`}
-                </p>
               </div>
             </div>
 
