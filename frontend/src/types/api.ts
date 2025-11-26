@@ -121,7 +121,7 @@ export interface PatientStats {
 
 export interface Appointment {
   id: number
-  patient_id: number
+  patient_id: number | null
   doctor_id: number
   start_time: string
   end_time: string
@@ -140,10 +140,13 @@ export interface Appointment {
   recurrence_rule?: Record<string, unknown> | null
   recurring_series_id?: number | null
   is_recurring?: boolean
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 export interface AppointmentCreateData {
-  patient_id: number
+  patient_id: number | null
   doctor_id: number
   start_time: string
   end_time: string
@@ -152,10 +155,13 @@ export interface AppointmentCreateData {
   notes?: string
   is_first_visit?: boolean
   recurrence_rule?: string
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 export interface AppointmentUpdateData {
-  patient_id?: number
+  patient_id?: number | null
   doctor_id?: number
   start_time?: string
   end_time?: string
@@ -166,10 +172,14 @@ export interface AppointmentUpdateData {
   diagnosis?: string
   is_first_visit?: boolean
   reminder_sent?: boolean
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 export interface AppointmentStatusUpdateData {
   status: AppointmentStatus
+  notes?: string
 }
 
 export interface AppointmentListParams {
@@ -182,7 +192,7 @@ export interface AppointmentListParams {
   is_first_visit?: boolean
   page?: number
   page_size?: number
-  sort_by?: 'start_time' | 'created_at' | 'patient_id'
+  sort_by?: string
   sort_order?: 'asc' | 'desc'
 }
 
@@ -450,6 +460,121 @@ export interface ImageAnalyzeResponse {
   success: boolean
   analysis: ImageAnalysis
   message: string
+}
+
+// ============================================================================
+// LAB CONVERSATIONS TYPES
+// ============================================================================
+
+export type MessageRole = 'USER' | 'ASSISTANT' | 'SYSTEM'
+export type MessageType = 'TEXT' | 'FILE' | 'ANALYSIS' | 'ERROR'
+export type AttachmentType = 'LAB_RESULT' | 'IMAGE' | 'PDF' | 'OTHER'
+
+export interface Attachment {
+  id: number
+  file_name: string
+  file_path: string
+  file_size?: number
+  file_type: AttachmentType
+  mime_type?: string
+  is_processed: boolean
+  extracted_data?: Record<string, unknown>
+  created_at: string
+}
+
+export interface Message {
+  id: number
+  conversation_id: number
+  role: MessageRole
+  message_type: MessageType
+  content: string
+  model_used?: string
+  prompt_tokens?: number
+  completion_tokens?: number
+  processing_time_ms?: number
+  has_attachments: boolean
+  attachments: Attachment[]
+  is_edited: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Conversation {
+  id: number
+  doctor_id: number
+  title: string
+  description?: string
+  default_model?: string
+  system_prompt?: string
+  message_count: number
+  last_message_at?: string
+  is_pinned: boolean
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ConversationDetail extends Conversation {
+  messages: Message[]
+}
+
+export interface ConversationCreateData {
+  title?: string
+  description?: string
+  default_model?: string
+  system_prompt?: string
+}
+
+export interface ConversationUpdateData {
+  title?: string
+  description?: string
+  default_model?: string
+  system_prompt?: string
+  is_pinned?: boolean
+  is_archived?: boolean
+}
+
+export interface MessageCreateData {
+  content: string
+  message_type?: MessageType
+  selected_model?: string
+  file?: File
+}
+
+export interface ConversationListResponse {
+  items: Conversation[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface MessageListResponse {
+  items: Message[]
+  total: number
+  skip: number
+  limit: number
+}
+
+export interface ConversationAnalytics {
+  total_messages: number
+  user_messages: number
+  assistant_messages: number
+  total_tokens_used: number
+  total_processing_time_ms: number
+  files_uploaded: number
+  models_used: string[]
+}
+
+export interface ConversationListParams {
+  skip?: number
+  limit?: number
+  is_archived?: boolean
+  search?: string
+}
+
+export interface MessageListParams {
+  skip?: number
+  limit?: number
 }
 
 // ============================================================================

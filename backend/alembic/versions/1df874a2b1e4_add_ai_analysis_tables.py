@@ -119,57 +119,181 @@ def upgrade() -> None:
     # op.drop_index('idx_appointments_patient_start', table_name='appointments')
     # op.drop_index('idx_appointments_status_start', table_name='appointments')
     # op.drop_constraint('fk_appointments_recurring_series', 'appointments', type_='foreignkey')
-    op.alter_column('consultation_images', 'image_data',
-               existing_type=sa.VARCHAR(),
-               nullable=False)
-    # op.drop_index('idx_images_patient_upload', table_name='consultation_images')
-    # op.drop_index('idx_images_storage_type', table_name='consultation_images')
-    # op.drop_index('idx_images_storage_type_upload_status', table_name='consultation_images')
-    # op.drop_index('idx_images_upload_status', table_name='consultation_images')
-    # op.drop_column('consultation_images', 'upload_status')
-    # op.drop_column('consultation_images', 's3_object_key')
-    # op.drop_column('consultation_images', 'file_path')
-    # op.drop_column('consultation_images', 'storage_type')
+
+    # Drop views that depend on consultation_images to allow batch alteration
+    op.execute("DROP VIEW IF EXISTS v_doctor_consultation_stats")
+    op.execute("DROP VIEW IF EXISTS v_patient_consultation_history")
+    op.execute("DROP VIEW IF EXISTS v_consultation_images")
+
+    with op.batch_alter_table('consultation_images') as batch_op:
+        batch_op.alter_column('image_data',
+                   existing_type=sa.VARCHAR(),
+                   nullable=False)
+        # batch_op.drop_index('idx_images_patient_upload')
+        # batch_op.drop_index('idx_images_storage_type')
+        # batch_op.drop_index('idx_images_storage_type_upload_status')
+        # batch_op.drop_index('idx_images_upload_status')
+        # batch_op.drop_column('upload_status')
+        # batch_op.drop_column('s3_object_key')
+        # batch_op.drop_column('file_path')
+        # batch_op.drop_column('storage_type')
+
+    # Recreate views
+    op.execute("""
+        CREATE VIEW v_consultation_images AS
+        SELECT * FROM consultation_images
+        WHERE is_deleted = false
+    """)
+
+    op.execute("""
+        CREATE VIEW v_doctor_consultation_stats AS
+        SELECT
+            u.id as doctor_id,
+            u.full_name as doctor_name,
+            COUNT(DISTINCT c.id) as total_consultations,
+            COUNT(DISTINCT CASE WHEN c.follow_up_required = true THEN c.id END) as follow_up_required_count,
+            COUNT(DISTINCT CASE WHEN c.follow_up_required = true AND c.follow_up_date <= date('now')
+                THEN c.id END) as overdue_followup_count,
+            COUNT(DISTINCT ci.id) as total_images,
+            COUNT(DISTINCT p.id) as unique_patients,
+            MAX(c.consultation_date) as last_consultation_date
+        FROM v_users u
+        LEFT JOIN v_consultations c ON u.id = c.doctor_id
+        LEFT JOIN v_consultation_images ci ON c.id = ci.consultation_id
+        LEFT JOIN v_patients p ON c.patient_id = p.id
+        WHERE u.role = 'DOCTOR'
+        GROUP BY u.id, u.full_name
+        ORDER BY total_consultations DESC
+    """)
+
+    op.execute("""
+        CREATE VIEW v_patient_consultation_history AS
+        SELECT
+            p.id as patient_id,
+            p.first_name || ' ' || p.last_name as patient_name,
+            p.doctor_id,
+            u.full_name as doctor_name,
+            c.id as consultation_id,
+            c.consultation_date,
+            c.follow_up_required,
+            c.follow_up_date,
+            c.diagnosis,
+            COUNT(DISTINCT ci.id) as image_count,
+            ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY c.consultation_date DESC) as recency_rank
+        FROM v_patients p
+        LEFT JOIN v_users u ON p.doctor_id = u.id
+        LEFT JOIN v_consultations c ON p.id = c.patient_id
+        LEFT JOIN v_consultation_images ci ON c.id = ci.consultation_id
+        WHERE c.id IS NOT NULL
+        GROUP BY p.id, p.first_name, p.last_name, p.doctor_id, u.full_name,
+                 c.id, c.consultation_date, c.follow_up_required, c.follow_up_date, c.diagnosis
+        ORDER BY p.id, c.consultation_date DESC
+    """)
+
     # op.drop_index('idx_consultations_doctor_id', table_name='consultations')
     # op.drop_index('idx_consultations_followup', table_name='consultations')
     # op.drop_column('consultations', 'consultation_number')
-    op.add_column('lab_results', sa.Column('test_type', sa.Enum('BLOOD', 'BIOPSY', 'CULTURE', 'ALLERGY', 'HORMONE', 'OTHER', name='testtype'), nullable=True))
-    op.add_column('lab_results', sa.Column('lab_facility', sa.String(length=255), nullable=True))
-    op.add_column('lab_results', sa.Column('raw_data', sa.Text(), nullable=True))
-    op.add_column('lab_results', sa.Column('structured_data', sa.JSON(), nullable=True))
-    op.add_column('lab_results', sa.Column('file_type', sa.String(length=50), nullable=True))
-    op.add_column('lab_results', sa.Column('file_url', sa.String(length=500), nullable=True))
-    op.add_column('lab_results', sa.Column('ai_analysis_id', sa.Integer(), nullable=True))
-    op.add_column('lab_results', sa.Column('is_manually_entered', sa.Boolean(), nullable=True))
-    op.alter_column('lab_results', 'test_name',
-               existing_type=sa.VARCHAR(length=200),
-               type_=sa.String(length=255),
-               existing_nullable=False)
-    op.drop_index('idx_lab_results_patient', table_name='lab_results')
-    op.drop_index('idx_lab_results_test_date', table_name='lab_results')
-    op.create_index(op.f('ix_lab_results_consultation_id'), 'lab_results', ['consultation_id'], unique=False)
-    op.create_index(op.f('ix_lab_results_deleted_at'), 'lab_results', ['deleted_at'], unique=False)
-    op.create_index(op.f('ix_lab_results_doctor_id'), 'lab_results', ['doctor_id'], unique=False)
-    op.create_index(op.f('ix_lab_results_id'), 'lab_results', ['id'], unique=False)
-    op.create_index(op.f('ix_lab_results_is_deleted'), 'lab_results', ['is_deleted'], unique=False)
-    op.create_index(op.f('ix_lab_results_patient_id'), 'lab_results', ['patient_id'], unique=False)
-    op.drop_constraint('lab_results_patient_id_fkey', 'lab_results', type_='foreignkey')
-    op.drop_constraint('lab_results_doctor_id_fkey', 'lab_results', type_='foreignkey')
-    op.drop_constraint('lab_results_consultation_id_fkey', 'lab_results', type_='foreignkey')
-    op.create_foreign_key(None, 'lab_results', 'consultations', ['consultation_id'], ['id'])
-    op.create_foreign_key(None, 'lab_results', 'users', ['doctor_id'], ['id'])
-    op.create_foreign_key(None, 'lab_results', 'ai_analyses', ['ai_analysis_id'], ['id'])
-    op.create_foreign_key(None, 'lab_results', 'patients', ['patient_id'], ['id'])
-    op.drop_column('lab_results', 'notes')
-    op.drop_column('lab_results', 'interpretation')
-    op.drop_column('lab_results', 'result_value')
-    op.drop_column('lab_results', 'unit')
-    op.drop_column('lab_results', 'normal')
-    op.drop_column('lab_results', 'reference_range')
-    op.drop_index('idx_patients_doctor_deleted', table_name='patients')
-    op.drop_index('idx_patients_doctor_id', table_name='patients')
-    op.drop_index('idx_prescriptions_delivery', table_name='prescriptions')
-    op.drop_index('idx_prescriptions_valid_until', table_name='prescriptions')
+
+    # Drop views that depend on lab_results
+    op.execute("DROP VIEW IF EXISTS v_system_health_metrics")
+    op.execute("DROP VIEW IF EXISTS v_dashboard_stats")
+    op.execute("DROP VIEW IF EXISTS v_lab_results_summary")
+    op.execute("DROP VIEW IF EXISTS v_lab_results")
+
+    with op.batch_alter_table('lab_results') as batch_op:
+        batch_op.add_column(sa.Column('test_type', sa.Enum('BLOOD', 'BIOPSY', 'CULTURE', 'ALLERGY', 'HORMONE', 'OTHER', name='testtype'), nullable=True))
+        batch_op.add_column(sa.Column('lab_facility', sa.String(length=255), nullable=True))
+        batch_op.add_column(sa.Column('raw_data', sa.Text(), nullable=True))
+        batch_op.add_column(sa.Column('structured_data', sa.JSON(), nullable=True))
+        batch_op.add_column(sa.Column('file_type', sa.String(length=50), nullable=True))
+        batch_op.add_column(sa.Column('file_url', sa.String(length=500), nullable=True))
+        batch_op.add_column(sa.Column('ai_analysis_id', sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column('is_manually_entered', sa.Boolean(), nullable=True))
+        batch_op.alter_column('test_name',
+                   existing_type=sa.VARCHAR(length=200),
+                   type_=sa.String(length=255),
+                   existing_nullable=False)
+        batch_op.drop_index('idx_lab_results_patient')
+        batch_op.drop_index('idx_lab_results_test_date')
+        batch_op.create_index(op.f('ix_lab_results_consultation_id'), ['consultation_id'], unique=False)
+        batch_op.create_index(op.f('ix_lab_results_deleted_at'), ['deleted_at'], unique=False)
+        batch_op.create_index(op.f('ix_lab_results_doctor_id'), ['doctor_id'], unique=False)
+        batch_op.create_index(op.f('ix_lab_results_id'), ['id'], unique=False)
+        batch_op.create_index(op.f('ix_lab_results_is_deleted'), ['is_deleted'], unique=False)
+        batch_op.create_index(op.f('ix_lab_results_patient_id'), ['patient_id'], unique=False)
+        
+        # Add named foreign keys
+        batch_op.create_foreign_key('fk_lab_results_consultation_id', 'consultations', ['consultation_id'], ['id'])
+        batch_op.create_foreign_key('fk_lab_results_doctor_id', 'users', ['doctor_id'], ['id'])
+        batch_op.create_foreign_key('fk_lab_results_ai_analysis_id', 'ai_analyses', ['ai_analysis_id'], ['id'])
+        batch_op.create_foreign_key('fk_lab_results_patient_id', 'patients', ['patient_id'], ['id'])
+        
+        batch_op.drop_column('notes')
+        batch_op.drop_column('interpretation')
+        batch_op.drop_column('result_value')
+        batch_op.drop_column('unit')
+        batch_op.drop_column('normal')
+        batch_op.drop_column('reference_range')
+
+    # Recreate views
+    op.execute("""
+        CREATE VIEW v_lab_results AS
+        SELECT * FROM lab_results
+        WHERE is_deleted = false
+    """)
+
+    op.execute("""
+        CREATE VIEW v_lab_results_summary AS
+        SELECT
+            lr.patient_id,
+            p.first_name || ' ' || p.last_name as patient_name,
+            COUNT(*) as total_tests,
+            0 as normal_results,
+            0 as abnormal_results,
+            0 as pending_results,
+            GROUP_CONCAT(DISTINCT lr.test_name) as test_types,
+            MAX(lr.test_date) as latest_test_date
+        FROM v_lab_results lr
+        LEFT JOIN v_patients p ON lr.patient_id = p.id
+        GROUP BY lr.patient_id, p.first_name, p.last_name
+        ORDER BY abnormal_results DESC, total_tests DESC
+    """)
+
+    op.execute("""
+        CREATE VIEW v_dashboard_stats AS
+        SELECT
+            (SELECT COUNT(*) FROM v_patients) as total_patients,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'SCHEDULED' AND start_time > DATE('now')) as upcoming_appointments,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'IN_PROGRESS' AND start_time <= DATE('now') AND end_time > DATE('now')) as current_appointments,
+            (SELECT COUNT(*) FROM v_consultations
+             WHERE follow_up_required = true AND follow_up_date <= DATE('now')) as pending_followups,
+            (SELECT COUNT(*) FROM v_prescriptions
+             WHERE is_delivered = false) as undelivered_prescriptions,
+            0 as abnormal_lab_results
+    """)
+
+    op.execute("""
+        CREATE VIEW v_system_health_metrics AS
+        SELECT
+            (SELECT COUNT(*) FROM v_users WHERE role = 'DOCTOR') as total_doctors,
+            (SELECT COUNT(*) FROM v_patients) as total_patients,
+            (SELECT COUNT(*) FROM v_appointments WHERE status IN ('SCHEDULED', 'CONFIRMED')) as pending_appointments,
+            (SELECT COUNT(*) FROM v_consultations WHERE follow_up_required = true
+                AND follow_up_date <= date('now')) as overdue_followups,
+            (SELECT COUNT(*) FROM v_prescriptions WHERE is_delivered = false) as undelivered_prescriptions,
+            0 as abnormal_lab_results,
+            (SELECT COUNT(*) FROM v_appointments
+                WHERE status = 'NO_SHOW' AND start_time >= date('now', '-30 days')) as no_shows_this_month,
+            (SELECT COUNT(*) FROM audit_logs WHERE timestamp >= date('now')) as audit_events_today,
+            datetime('now') as last_updated
+    """)
+
+    # op.drop_index('idx_patients_doctor_deleted', table_name='patients')
+    # op.drop_index('idx_patients_doctor_id', table_name='patients')
+    # op.drop_index('idx_prescriptions_delivery', table_name='prescriptions')
+    # op.drop_index('idx_prescriptions_valid_until', table_name='prescriptions')
     # ### end Alembic commands ###
 
 

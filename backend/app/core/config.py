@@ -84,6 +84,17 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     KANTESTI_API_KEY: Optional[str] = None
 
+    # Multi-model support API keys
+    MEDGEMMA_API_KEY: Optional[str] = None
+    PALM2_API_KEY: Optional[str] = None
+    BIOGPT_API_KEY: Optional[str] = None
+    CLINICAL_BERT_API_KEY: Optional[str] = None
+    GPT5_API_KEY: Optional[str] = None
+    DEEPSEEK_R1_API_KEY: Optional[str] = None
+
+    # API Key encryption for session storage
+    API_KEY_ENCRYPTION_KEY: Optional[str] = None
+
     # =====================================
     # EMAIL (SMTP)
     # =====================================

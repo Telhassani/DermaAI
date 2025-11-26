@@ -69,6 +69,9 @@ class AppointmentService:
 
         appointment = Appointment(
             patient_id=create_data.patient_id,
+            guest_name=create_data.guest_name,
+            guest_phone=create_data.guest_phone,
+            guest_email=create_data.guest_email,
             doctor_id=create_data.doctor_id,
             start_time=create_data.start_time,
             end_time=create_data.end_time,
@@ -235,9 +238,21 @@ class AppointmentService:
             if "type" in filters and filters["type"]:
                 query = query.filter(Appointment.type == filters["type"])
             if "start_date" in filters and filters["start_date"]:
-                query = query.filter(Appointment.start_time >= filters["start_date"])
+                start_date_val = filters["start_date"]
+                if isinstance(start_date_val, str):
+                    try:
+                        start_date_val = datetime.fromisoformat(start_date_val.replace('Z', '+00:00'))
+                    except ValueError:
+                        pass
+                query = query.filter(Appointment.start_time >= start_date_val)
             if "end_date" in filters and filters["end_date"]:
-                query = query.filter(Appointment.end_time <= filters["end_date"])
+                end_date_val = filters["end_date"]
+                if isinstance(end_date_val, str):
+                    try:
+                        end_date_val = datetime.fromisoformat(end_date_val.replace('Z', '+00:00'))
+                    except ValueError:
+                        pass
+                query = query.filter(Appointment.end_time <= end_date_val)
             if "is_first_visit" in filters and filters["is_first_visit"] is not None:
                 query = query.filter(Appointment.is_first_visit == filters["is_first_visit"])
             if "is_recurring" in filters and filters["is_recurring"] is not None:
@@ -316,6 +331,9 @@ class AppointmentService:
         # Create parent appointment with recurrence rule
         parent = Appointment(
             patient_id=create_data.patient_id,
+            guest_name=create_data.guest_name,
+            guest_phone=create_data.guest_phone,
+            guest_email=create_data.guest_email,
             doctor_id=create_data.doctor_id,
             start_time=create_data.start_time,
             end_time=create_data.end_time,
@@ -335,6 +353,9 @@ class AppointmentService:
             duration = create_data.end_time - create_data.start_time
             instance = Appointment(
                 patient_id=create_data.patient_id,
+                guest_name=create_data.guest_name,
+                guest_phone=create_data.guest_phone,
+                guest_email=create_data.guest_email,
                 doctor_id=create_data.doctor_id,
                 start_time=occurrence_time,
                 end_time=occurrence_time + duration,

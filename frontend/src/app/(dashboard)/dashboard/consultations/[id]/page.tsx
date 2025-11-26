@@ -7,8 +7,9 @@ import { listPrescriptions, PrescriptionResponse, createPrescription, updatePres
 import { getPatient, PatientResponse } from '@/lib/api/patients'
 import { uploadImage, getConsultationImages, getPatientImages, deleteImage, validateImageFile, updateImage, ImageResponse } from '@/lib/api/images'
 import { useAuthStore } from '@/lib/stores/auth-store'
-import { ArrowLeft, Upload, FileText, Plus, Clock, User, Pill, Image as ImageIcon, X, Download, Edit2, Trash2, Check, AlertCircle, Printer } from 'lucide-react'
+import { ArrowLeft, Upload, FileText, Plus, Clock, User, Pill, Image as ImageIcon, X, Download, Edit2, Trash2, Check, AlertCircle, Printer, Sparkles } from 'lucide-react'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
+import { AIAnalysisModal } from '@/components/images/AIAnalysisModal'
 import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
 
 export default function ConsultationDetailPage() {
@@ -35,6 +36,8 @@ export default function ConsultationDetailPage() {
   const [globalDragActive, setGlobalDragActive] = useState(false)
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
   const [selectedImageForAnnotation, setSelectedImageForAnnotation] = useState<ImageResponse | null>(null)
+  const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false)
+  const [selectedImageForAiAnalysis, setSelectedImageForAiAnalysis] = useState<ImageResponse | null>(null)
   const [prescriptionData, setPrescriptionData] = useState({
     medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
     instructions: '',
@@ -672,6 +675,17 @@ export default function ConsultationDetailPage() {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => {
+                              setSelectedImageForAiAnalysis(image)
+                              setAiAnalysisModalOpen(true)
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors"
+                            title="AI Analysis"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            AI
+                          </button>
+                          <button
+                            onClick={() => {
                               setSelectedImageForAnnotation(image)
                               setAnnotationModalOpen(true)
                             }}
@@ -926,6 +940,19 @@ export default function ConsultationDetailPage() {
         onCancel={() => {
           setAnnotationModalOpen(false)
           setSelectedImageForAnnotation(null)
+        }}
+      />
+
+      {/* AI Analysis Modal */}
+      <AIAnalysisModal
+        isOpen={aiAnalysisModalOpen}
+        imageId={selectedImageForAiAnalysis?.id || 0}
+        imageUrl={selectedImageForAiAnalysis ? `data:${selectedImageForAiAnalysis.mime_type};base64,${selectedImageForAiAnalysis.image_data}` : ''}
+        patientId={patient?.id || 0}
+        patientName={patient?.full_name || 'Patient'}
+        onClose={() => {
+          setAiAnalysisModalOpen(false)
+          setSelectedImageForAiAnalysis(null)
         }}
       />
     </div>

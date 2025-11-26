@@ -39,8 +39,9 @@ def upgrade() -> None:
     # ========================================================================
     # 1. v_doctor_patient_count - Patient count per doctor
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_doctor_patient_count")
     op.execute("""
-        CREATE OR REPLACE VIEW v_doctor_patient_count AS
+        CREATE VIEW v_doctor_patient_count AS
         SELECT
             u.id as doctor_id,
             u.full_name as doctor_name,
@@ -59,8 +60,9 @@ def upgrade() -> None:
     # ========================================================================
     # 2. v_doctor_appointment_stats - Appointment statistics by doctor
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_doctor_appointment_stats")
     op.execute("""
-        CREATE OR REPLACE VIEW v_doctor_appointment_stats AS
+        CREATE VIEW v_doctor_appointment_stats AS
         SELECT
             u.id as doctor_id,
             u.full_name as doctor_name,
@@ -71,8 +73,8 @@ def upgrade() -> None:
             COUNT(DISTINCT CASE WHEN a.status = 'COMPLETED' THEN a.id END) as completed_count,
             COUNT(DISTINCT CASE WHEN a.status = 'CANCELLED' THEN a.id END) as cancelled_count,
             COUNT(DISTINCT CASE WHEN a.status = 'NO_SHOW' THEN a.id END) as no_show_count,
-            COUNT(DISTINCT CASE WHEN a.start_time > NOW() AND a.status = 'SCHEDULED' THEN a.id END) as upcoming_appointments,
-            ROUND(AVG(EXTRACT(EPOCH FROM (a.end_time - a.start_time))/60)::numeric, 1) as avg_appointment_duration_minutes
+            COUNT(DISTINCT CASE WHEN a.start_time > datetime('now') AND a.status = 'SCHEDULED' THEN a.id END) as upcoming_appointments,
+            ROUND(AVG((strftime('%s', a.end_time) - strftime('%s', a.start_time))/60.0), 1) as avg_appointment_duration_minutes
         FROM v_users u
         LEFT JOIN v_appointments a ON u.id = a.doctor_id
         WHERE u.role = 'DOCTOR'
@@ -84,14 +86,15 @@ def upgrade() -> None:
     # ========================================================================
     # 3. v_doctor_consultation_stats - Consultation statistics by doctor
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_doctor_consultation_stats")
     op.execute("""
-        CREATE OR REPLACE VIEW v_doctor_consultation_stats AS
+        CREATE VIEW v_doctor_consultation_stats AS
         SELECT
             u.id as doctor_id,
             u.full_name as doctor_name,
             COUNT(DISTINCT c.id) as total_consultations,
             COUNT(DISTINCT CASE WHEN c.follow_up_required = true THEN c.id END) as follow_up_required_count,
-            COUNT(DISTINCT CASE WHEN c.follow_up_required = true AND c.follow_up_date <= CURRENT_DATE
+            COUNT(DISTINCT CASE WHEN c.follow_up_required = true AND c.follow_up_date <= date('now')
                 THEN c.id END) as overdue_followup_count,
             COUNT(DISTINCT ci.id) as total_images,
             COUNT(DISTINCT p.id) as unique_patients,
@@ -109,8 +112,9 @@ def upgrade() -> None:
     # ========================================================================
     # 4. v_patient_appointment_history - Recent appointments per patient
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_patient_appointment_history")
     op.execute("""
-        CREATE OR REPLACE VIEW v_patient_appointment_history AS
+        CREATE VIEW v_patient_appointment_history AS
         SELECT
             p.id as patient_id,
             p.first_name || ' ' || p.last_name as patient_name,
@@ -132,8 +136,9 @@ def upgrade() -> None:
     # ========================================================================
     # 5. v_patient_consultation_history - Recent consultations per patient
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_patient_consultation_history")
     op.execute("""
-        CREATE OR REPLACE VIEW v_patient_consultation_history AS
+        CREATE VIEW v_patient_consultation_history AS
         SELECT
             p.id as patient_id,
             p.first_name || ' ' || p.last_name as patient_name,
@@ -160,8 +165,9 @@ def upgrade() -> None:
     # ========================================================================
     # 6. v_appointment_status_breakdown - Appointments by status
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_appointment_status_breakdown")
     op.execute("""
-        CREATE OR REPLACE VIEW v_appointment_status_breakdown AS
+        CREATE VIEW v_appointment_status_breakdown AS
         SELECT
             a.status,
             COUNT(*) as count,
@@ -177,8 +183,9 @@ def upgrade() -> None:
     # ========================================================================
     # 7. v_prescription_delivery_status - Prescription delivery metrics
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_prescription_delivery_status")
     op.execute("""
-        CREATE OR REPLACE VIEW v_prescription_delivery_status AS
+        CREATE VIEW v_prescription_delivery_status AS
         SELECT
             CASE WHEN pr.is_delivered = true THEN 'Delivered' ELSE 'Pending Delivery' END as status,
             COUNT(*) as count,
@@ -186,7 +193,7 @@ def upgrade() -> None:
             COUNT(DISTINCT pr.doctor_id) as doctor_count,
             MIN(pr.created_at) as oldest_prescription,
             MAX(pr.created_at) as newest_prescription,
-            ROUND(AVG(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - pr.created_at))/86400)::numeric, 1) as avg_age_days
+            ROUND(AVG((strftime('%s', datetime('now')) - strftime('%s', pr.created_at))/86400.0), 1) as avg_age_days
         FROM v_prescriptions pr
         GROUP BY pr.is_delivered
         ORDER BY count DESC
@@ -196,8 +203,9 @@ def upgrade() -> None:
     # ========================================================================
     # 8. v_lab_results_summary - Lab results analysis
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_lab_results_summary")
     op.execute("""
-        CREATE OR REPLACE VIEW v_lab_results_summary AS
+        CREATE VIEW v_lab_results_summary AS
         SELECT
             lr.patient_id,
             p.first_name || ' ' || p.last_name as patient_name,
@@ -205,7 +213,7 @@ def upgrade() -> None:
             COUNT(CASE WHEN lr.normal = true THEN 1 END) as normal_results,
             COUNT(CASE WHEN lr.normal = false THEN 1 END) as abnormal_results,
             COUNT(CASE WHEN lr.normal IS NULL THEN 1 END) as pending_results,
-            STRING_AGG(DISTINCT lr.test_name, ', ' ORDER BY lr.test_name) as test_types,
+            GROUP_CONCAT(DISTINCT lr.test_name) as test_types,
             MAX(lr.test_date) as latest_test_date
         FROM v_lab_results lr
         LEFT JOIN v_patients p ON lr.patient_id = p.id
@@ -217,8 +225,9 @@ def upgrade() -> None:
     # ========================================================================
     # 9. v_pending_followups - Consultations requiring follow-up
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_pending_followups")
     op.execute("""
-        CREATE OR REPLACE VIEW v_pending_followups AS
+        CREATE VIEW v_pending_followups AS
         SELECT
             c.id as consultation_id,
             c.patient_id,
@@ -228,12 +237,12 @@ def upgrade() -> None:
             c.doctor_id,
             u.full_name as doctor_name,
             c.follow_up_date,
-            CASE WHEN c.follow_up_date <= CURRENT_DATE THEN 'OVERDUE'
-                 WHEN c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'DUE_SOON'
+            CASE WHEN c.follow_up_date <= date('now') THEN 'OVERDUE'
+                 WHEN c.follow_up_date <= date('now', '+7 days') THEN 'DUE_SOON'
                  ELSE 'SCHEDULED'
             END as urgency,
             c.diagnosis,
-            (c.follow_up_date::date - CURRENT_DATE::date) as days_until_followup
+            (julianday(c.follow_up_date) - julianday(date('now'))) as days_until_followup
         FROM v_consultations c
         LEFT JOIN v_patients p ON c.patient_id = p.id
         LEFT JOIN v_users u ON c.doctor_id = u.id
@@ -246,21 +255,22 @@ def upgrade() -> None:
     # ========================================================================
     # 10. v_doctor_workload - Workload metrics for scheduling
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_doctor_workload")
     op.execute("""
-        CREATE OR REPLACE VIEW v_doctor_workload AS
+        CREATE VIEW v_doctor_workload AS
         SELECT
             u.id as doctor_id,
             u.full_name as doctor_name,
             DATE(a.start_time) as appointment_date,
             COUNT(*) as appointments_today,
-            MIN(a.start_time::time) as first_appointment,
-            MAX(a.end_time::time) as last_appointment,
-            ROUND(SUM(EXTRACT(EPOCH FROM (a.end_time - a.start_time))/3600)::numeric, 1) as total_hours,
+            MIN(TIME(a.start_time)) as first_appointment,
+            MAX(TIME(a.end_time)) as last_appointment,
+            ROUND(SUM((strftime('%s', a.end_time) - strftime('%s', a.start_time))/3600.0), 1) as total_hours,
             COUNT(DISTINCT a.patient_id) as unique_patients
         FROM v_users u
         LEFT JOIN v_appointments a ON u.id = a.doctor_id
             AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED')
-            AND DATE(a.start_time) >= CURRENT_DATE
+            AND DATE(a.start_time) >= date('now')
         WHERE u.role = 'DOCTOR'
         GROUP BY u.id, u.full_name, DATE(a.start_time)
         ORDER BY appointment_date DESC, doctor_id
@@ -270,20 +280,21 @@ def upgrade() -> None:
     # ========================================================================
     # 11. v_system_health_metrics - Overall system health
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_system_health_metrics")
     op.execute("""
-        CREATE OR REPLACE VIEW v_system_health_metrics AS
+        CREATE VIEW v_system_health_metrics AS
         SELECT
             (SELECT COUNT(*) FROM v_users WHERE role = 'DOCTOR') as total_doctors,
             (SELECT COUNT(*) FROM v_patients) as total_patients,
             (SELECT COUNT(*) FROM v_appointments WHERE status IN ('SCHEDULED', 'CONFIRMED')) as pending_appointments,
             (SELECT COUNT(*) FROM v_consultations WHERE follow_up_required = true
-                AND follow_up_date <= CURRENT_DATE) as overdue_followups,
+                AND follow_up_date <= date('now')) as overdue_followups,
             (SELECT COUNT(*) FROM v_prescriptions WHERE is_delivered = false) as undelivered_prescriptions,
             (SELECT COUNT(*) FROM v_lab_results WHERE normal = false) as abnormal_lab_results,
             (SELECT COUNT(*) FROM v_appointments
-                WHERE status = 'NO_SHOW' AND start_time >= CURRENT_DATE - INTERVAL '30 days') as no_shows_this_month,
-            (SELECT COUNT(*) FROM audit_logs WHERE timestamp >= CURRENT_DATE) as audit_events_today,
-            NOW() as last_updated
+                WHERE status = 'NO_SHOW' AND start_time >= date('now', '-30 days')) as no_shows_this_month,
+            (SELECT COUNT(*) FROM audit_logs WHERE timestamp >= date('now')) as audit_events_today,
+            datetime('now') as last_updated
     """)
     print("✓ Created v_system_health_metrics view")
 

@@ -11,20 +11,22 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'make_consultation_id_nullable'
-down_revision = None
+down_revision = '001_initial_schema'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
     # Make consultation_id nullable to support patient-centric images
-    op.alter_column('consultation_images', 'consultation_id',
-               existing_type=sa.Integer(),
-               nullable=True)
+    with op.batch_alter_table('consultation_images') as batch_op:
+        batch_op.alter_column('consultation_id',
+                   existing_type=sa.Integer(),
+                   nullable=True)
 
 
 def downgrade() -> None:
     # Make consultation_id NOT NULL again
-    op.alter_column('consultation_images', 'consultation_id',
-               existing_type=sa.Integer(),
-               nullable=False)
+    with op.batch_alter_table('consultation_images') as batch_op:
+        batch_op.alter_column('consultation_id',
+                   existing_type=sa.Integer(),
+                   nullable=False)

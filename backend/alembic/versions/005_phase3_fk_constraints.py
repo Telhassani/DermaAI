@@ -20,21 +20,21 @@ def upgrade() -> None:
 
     # Add FK constraint on recurring_series_id (self-referential)
     # If parent appointment is deleted, set recurring_series_id to NULL
-    op.create_foreign_key(
-        'fk_appointments_recurring_series',
-        'appointments',
-        'appointments',
-        ['recurring_series_id'],
-        ['id'],
-        ondelete='SET NULL'
-    )
+    with op.batch_alter_table('appointments') as batch_op:
+        batch_op.create_foreign_key(
+            'fk_appointments_recurring_series',
+            'appointments',
+            ['recurring_series_id'],
+            ['id'],
+            ondelete='SET NULL'
+        )
 
 
 def downgrade() -> None:
     """Remove FK constraint on recurring_series_id."""
 
-    op.drop_constraint(
-        'fk_appointments_recurring_series',
-        'appointments',
-        type_='foreignkey'
-    )
+    with op.batch_alter_table('appointments') as batch_op:
+        batch_op.drop_constraint(
+            'fk_appointments_recurring_series',
+            type_='foreignkey'
+        )

@@ -219,6 +219,5 @@ export function CalendarWeekView({
         return null
       })()}
     </div>
-    </div >
   )
 }

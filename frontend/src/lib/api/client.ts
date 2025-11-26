@@ -23,6 +23,10 @@ import type {
   PrescriptionCreateData,
   PrescriptionUpdateData,
   ImageListParams,
+  ConversationCreateData,
+  ConversationUpdateData,
+  ConversationListParams,
+  MessageListParams,
   ErrorResponse,
 } from '@/types/api'
 
@@ -300,6 +304,56 @@ export const api = {
     update: (id: number, data: any) => apiClient.put(`/images/${id}`, data),
     delete: (id: number) => apiClient.delete(`/images/${id}`),
     analyze: (id: number) => apiClient.post(`/images/${id}/analyze`, {}),
+    aiAnalyze: (imageId: number, model: string, prompt?: string) =>
+      apiClient.post(`/images/${imageId}/ai-analyze`, {
+        selected_model: model,
+        user_prompt: prompt,
+      }),
+  },
+
+  // Lab Results
+  labResults: {
+    uploadAndAnalyze: (data: FormData) =>
+      apiClient.post('/lab-results/upload-and-analyze', data),
+    getAvailableModels: () =>
+      apiClient.get('/lab-results/available-models'),
+  },
+
+  // Lab Conversations
+  labConversations: {
+    // Conversations CRUD
+    create: (data: ConversationCreateData) =>
+      apiClient.post('/lab-conversations/conversations', data),
+    list: (params?: ConversationListParams) =>
+      apiClient.get('/lab-conversations/conversations', { params }),
+    get: (id: number, params?: Record<string, unknown>) =>
+      apiClient.get(`/lab-conversations/conversations/${id}`, { params }),
+    update: (id: number, data: ConversationUpdateData) =>
+      apiClient.put(`/lab-conversations/conversations/${id}`, data),
+    delete: (id: number) =>
+      apiClient.delete(`/lab-conversations/conversations/${id}`),
+
+    // Conversation Management
+    pin: (id: number, data: { is_pinned: boolean }) =>
+      apiClient.patch(`/lab-conversations/conversations/${id}/pin`, null, {
+        params: data,
+      }),
+    archive: (id: number, data: { is_archived: boolean }) =>
+      apiClient.patch(`/lab-conversations/conversations/${id}/archive`, null, {
+        params: data,
+      }),
+
+    // Messages
+    sendMessage: (conversationId: number, data: FormData) =>
+      apiClient.post(`/lab-conversations/conversations/${conversationId}/messages`, data),
+    listMessages: (conversationId: number, params?: MessageListParams) =>
+      apiClient.get(`/lab-conversations/conversations/${conversationId}/messages`, { params }),
+    deleteMessage: (conversationId: number, messageId: number) =>
+      apiClient.delete(`/lab-conversations/conversations/${conversationId}/messages/${messageId}`),
+
+    // Analytics
+    getAnalytics: (conversationId: number) =>
+      apiClient.get(`/lab-conversations/conversations/${conversationId}/analytics`),
   },
 }
 

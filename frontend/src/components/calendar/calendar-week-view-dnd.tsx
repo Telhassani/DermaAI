@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { DndContext, DragEndEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
-import { format, startOfWeek, addDays, isToday, addMinutes } from 'date-fns'
+import { format, startOfWeek, addDays, isToday, addMinutes, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
@@ -42,20 +42,12 @@ export function CalendarWeekViewDnd({
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i)
 
   // Group appointments by day
-  const appointmentsByDay = appointments.reduce((acc, appointment) => {
-    const startDate = new Date(appointment.start_time)
-    const dateKey = format(startDate, 'yyyy-MM-dd')
-    if (!acc[dateKey]) {
-      acc[dateKey] = []
-    }
-    acc[dateKey].push(appointment)
-    return acc
-  }, {} as Record<string, Appointment[]>)
-
   // Get appointments for a specific day
   const getAppointmentsForDay = (date: Date) => {
-    const dateKey = format(date, 'yyyy-MM-dd')
-    return appointmentsByDay[dateKey] || []
+    return appointments.filter((appointment) => {
+      const appointmentDate = new Date(appointment.start_time)
+      return isSameDay(appointmentDate, date)
+    })
   }
 
   // Calculate position and height for appointment
@@ -202,7 +194,10 @@ export function CalendarWeekViewDnd({
                       >
                         {/* Show appointments only in first hour slot to avoid duplication */}
                         {hour === startHour && (
-                          <div className="absolute inset-0 overflow-hidden">
+                          <div
+                            className="absolute inset-0 z-20 pointer-events-none"
+                            style={{ height: `${hours.length * 100}%` }}
+                          >
                             {getAppointmentsForDay(day).map((appointment) => {
                               const style = getAppointmentStyle(appointment)
                               const startTime = format(new Date(appointment.start_time), 'HH:mm')
@@ -216,7 +211,7 @@ export function CalendarWeekViewDnd({
                                     top: style.top,
                                     height: style.height,
                                   }}
-                                  className="absolute left-1 right-1 z-20"
+                                  className="absolute left-1 right-1 pointer-events-auto"
                                 >
                                   <DraggableAppointment
                                     appointment={appointment}

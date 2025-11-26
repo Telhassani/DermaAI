@@ -46,7 +46,7 @@ const menuItems = [
   {
     title: 'IA & Analyse',
     items: [
-      { icon: Brain, label: 'Analyse IA', href: '/dashboard/ai-analysis', badge: 'BETA' },
+      { icon: Brain, label: 'Analyse IA', href: '/dashboard/lab-analysis', badge: 'BETA' },
       { icon: Microscope, label: 'Images', href: '/dashboard/images', badge: null },
     ],
   },

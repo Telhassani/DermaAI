@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek } from 'date-fns'
 import { CalendarToolbar, CalendarView } from '@/components/calendar/calendar-toolbar'
 import { CalendarGrid } from '@/components/calendar/calendar-grid'
 import { CalendarWeekViewDnd } from '@/components/calendar/calendar-week-view-dnd'
@@ -55,8 +55,7 @@ export default function CalendarPage() {
           end_date: format(endOfMonth(currentDate), "yyyy-MM-dd'T'23:59:59"),
         }
       case 'week':
-        const weekStart = new Date(currentDate)
-        weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1)
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 6)
         return {

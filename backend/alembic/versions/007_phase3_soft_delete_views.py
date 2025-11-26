@@ -31,8 +31,12 @@ def upgrade() -> None:
     # ========================================================================
     # 1. v_users - Active users only (not deleted)
     # ========================================================================
+    # ========================================================================
+    # 1. v_users - Active users only (not deleted)
+    # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_users")
     op.execute("""
-        CREATE OR REPLACE VIEW v_users AS
+        CREATE VIEW v_users AS
         SELECT * FROM users
         WHERE is_deleted = false
     """)
@@ -41,8 +45,9 @@ def upgrade() -> None:
     # ========================================================================
     # 2. v_patients - Active patients only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_patients")
     op.execute("""
-        CREATE OR REPLACE VIEW v_patients AS
+        CREATE VIEW v_patients AS
         SELECT * FROM patients
         WHERE is_deleted = false
     """)
@@ -51,8 +56,9 @@ def upgrade() -> None:
     # ========================================================================
     # 3. v_appointments - Active appointments only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_appointments")
     op.execute("""
-        CREATE OR REPLACE VIEW v_appointments AS
+        CREATE VIEW v_appointments AS
         SELECT * FROM appointments
         WHERE is_deleted = false
     """)
@@ -61,8 +67,9 @@ def upgrade() -> None:
     # ========================================================================
     # 4. v_consultations - Active consultations only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_consultations")
     op.execute("""
-        CREATE OR REPLACE VIEW v_consultations AS
+        CREATE VIEW v_consultations AS
         SELECT * FROM consultations
         WHERE is_deleted = false
     """)
@@ -71,8 +78,9 @@ def upgrade() -> None:
     # ========================================================================
     # 5. v_prescriptions - Active prescriptions only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_prescriptions")
     op.execute("""
-        CREATE OR REPLACE VIEW v_prescriptions AS
+        CREATE VIEW v_prescriptions AS
         SELECT * FROM prescriptions
         WHERE is_deleted = false
     """)
@@ -81,8 +89,9 @@ def upgrade() -> None:
     # ========================================================================
     # 6. v_consultation_images - Active images only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_consultation_images")
     op.execute("""
-        CREATE OR REPLACE VIEW v_consultation_images AS
+        CREATE VIEW v_consultation_images AS
         SELECT * FROM consultation_images
         WHERE is_deleted = false
     """)
@@ -91,8 +100,9 @@ def upgrade() -> None:
     # ========================================================================
     # 7. v_lab_results - Active lab results only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_lab_results")
     op.execute("""
-        CREATE OR REPLACE VIEW v_lab_results AS
+        CREATE VIEW v_lab_results AS
         SELECT * FROM lab_results
         WHERE is_deleted = false
     """)
@@ -101,8 +111,9 @@ def upgrade() -> None:
     # ========================================================================
     # 8. v_prescription_medications - Active medications only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_prescription_medications")
     op.execute("""
-        CREATE OR REPLACE VIEW v_prescription_medications AS
+        CREATE VIEW v_prescription_medications AS
         SELECT * FROM prescription_medications
         WHERE is_deleted = false
     """)
@@ -111,8 +122,9 @@ def upgrade() -> None:
     # ========================================================================
     # 9. v_doctor_schedules - Active schedules only (not deleted)
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_doctor_schedules")
     op.execute("""
-        CREATE OR REPLACE VIEW v_doctor_schedules AS
+        CREATE VIEW v_doctor_schedules AS
         SELECT * FROM doctor_schedules
         WHERE is_deleted = false
     """)
@@ -123,8 +135,9 @@ def upgrade() -> None:
     # Note: audit_logs should never be deleted for compliance, but we create
     # a view for consistency with other tables
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_audit_logs")
     op.execute("""
-        CREATE OR REPLACE VIEW v_audit_logs AS
+        CREATE VIEW v_audit_logs AS
         SELECT * FROM audit_logs
         ORDER BY timestamp DESC
     """)
@@ -134,16 +147,17 @@ def upgrade() -> None:
     # 11. v_dashboard_stats - View for dashboard aggregations
     # This view counts all active records by type for dashboard widgets
     # ========================================================================
+    op.execute("DROP VIEW IF EXISTS v_dashboard_stats")
     op.execute("""
-        CREATE OR REPLACE VIEW v_dashboard_stats AS
+        CREATE VIEW v_dashboard_stats AS
         SELECT
             (SELECT COUNT(*) FROM v_patients) as total_patients,
             (SELECT COUNT(*) FROM v_appointments
-             WHERE status = 'SCHEDULED' AND start_time > NOW()) as upcoming_appointments,
+             WHERE status = 'SCHEDULED' AND start_time > DATE('now')) as upcoming_appointments,
             (SELECT COUNT(*) FROM v_appointments
-             WHERE status = 'IN_PROGRESS' AND start_time <= NOW() AND end_time > NOW()) as current_appointments,
+             WHERE status = 'IN_PROGRESS' AND start_time <= DATE('now') AND end_time > DATE('now')) as current_appointments,
             (SELECT COUNT(*) FROM v_consultations
-             WHERE follow_up_required = true AND follow_up_date <= CURRENT_DATE) as pending_followups,
+             WHERE follow_up_required = true AND follow_up_date <= DATE('now')) as pending_followups,
             (SELECT COUNT(*) FROM v_prescriptions
              WHERE is_delivered = false) as undelivered_prescriptions,
             (SELECT COUNT(*) FROM v_lab_results

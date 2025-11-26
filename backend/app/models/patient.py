@@ -75,8 +75,8 @@ class Patient(BaseModel):
 
     # Relationships
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # doctor = relationship("User", back_populates="patients")
-    # appointments = relationship("Appointment", back_populates="patient")
+    doctor = relationship("User", back_populates="patients")
+    appointments = relationship("Appointment", back_populates="patient")
     # prescriptions = relationship("Prescription", back_populates="patient")
 
     def __repr__(self):

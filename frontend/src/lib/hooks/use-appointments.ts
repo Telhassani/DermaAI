@@ -28,7 +28,7 @@ export enum AppointmentType {
 
 export interface Appointment {
   id: number
-  patient_id: number
+  patient_id: number | null
   doctor_id: number
   start_time: string
   end_time: string
@@ -44,6 +44,9 @@ export interface Appointment {
   duration_minutes: number
   is_upcoming: boolean
   is_past: boolean
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 export interface AppointmentWithDetails extends Appointment {
@@ -67,7 +70,7 @@ export interface AppointmentListParams {
 }
 
 export interface AppointmentCreateData {
-  patient_id: number
+  patient_id: number | null
   doctor_id: number
   start_time: string
   end_time: string
@@ -75,10 +78,13 @@ export interface AppointmentCreateData {
   reason?: string
   notes?: string
   is_first_visit?: boolean
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 export interface AppointmentUpdateData {
-  patient_id?: number
+  patient_id?: number | null
   doctor_id?: number
   start_time?: string
   end_time?: string
@@ -89,6 +95,9 @@ export interface AppointmentUpdateData {
   diagnosis?: string
   is_first_visit?: boolean
   reminder_sent?: boolean
+  guest_name?: string
+  guest_phone?: string
+  guest_email?: string
 }
 
 // Query keys

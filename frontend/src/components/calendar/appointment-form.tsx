@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,7 +17,7 @@ import { useAuth } from '@/lib/hooks/use-auth'
 
 // Validation schema
 const appointmentSchema = z.object({
-  patient_id: z.number({ required_error: 'Veuillez sélectionner un patient' }).min(1),
+  patient_id: z.number().optional(),
   doctor_id: z.number().min(1),
   date: z.string().min(1, 'Date requise'),
   start_time: z.string().min(1, 'Heure de début requise'),
@@ -26,6 +26,22 @@ const appointmentSchema = z.object({
   reason: z.string().optional(),
   notes: z.string().optional(),
   is_first_visit: z.boolean(),
+  guest_name: z.string().optional(),
+  guest_phone: z.string().optional(),
+  guest_email: z.string().email('Email invalide').optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if ((!data.patient_id || data.patient_id === 0) && !data.guest_name) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Veuillez sélectionner un patient ou saisir un nom d'invité",
+      path: ["patient_id"],
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nom de l'invité requis",
+      path: ["guest_name"],
+    });
+  }
 })
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>
@@ -58,13 +74,20 @@ export function AppointmentForm({
   isLoading,
 }: AppointmentFormProps) {
   const { user } = useAuth()
+  const [isGuest, setIsGuest] = useState(false)
 
   // Default values
   const getDefaultValues = (): AppointmentFormData => {
     if (appointment) {
       const startDate = new Date(appointment.start_time)
+      const isGuestAppt = !appointment.patient_id && !!appointment.guest_name
+      if (isGuestAppt) {
+        // We need to set isGuest state in useEffect because we can't do it here during render
+        // But for default values it's fine
+      }
+
       return {
-        patient_id: appointment.patient_id,
+        patient_id: appointment.patient_id || 0,
         doctor_id: appointment.doctor_id,
         date: format(startDate, 'yyyy-MM-dd'),
         start_time: format(startDate, 'HH:mm'),
@@ -73,6 +96,9 @@ export function AppointmentForm({
         reason: appointment.reason || '',
         notes: appointment.notes || '',
         is_first_visit: appointment.is_first_visit,
+        guest_name: appointment.guest_name || '',
+        guest_phone: appointment.guest_phone || '',
+        guest_email: appointment.guest_email || '',
       }
     }
 
@@ -90,6 +116,9 @@ export function AppointmentForm({
       reason: '',
       notes: '',
       is_first_visit: false,
+      guest_name: '',
+      guest_phone: '',
+      guest_email: '',
     }
   }
 
@@ -104,6 +133,13 @@ export function AppointmentForm({
     resolver: zodResolver(appointmentSchema),
     defaultValues: getDefaultValues(),
   })
+
+  // Set isGuest state if editing a guest appointment
+  useEffect(() => {
+    if (appointment && !appointment.patient_id && appointment.guest_name) {
+      setIsGuest(true)
+    }
+  }, [appointment])
 
   const watchDuration = watch('duration')
   const watchDate = watch('date')
@@ -148,7 +184,7 @@ export function AppointmentForm({
     const endDateTime = addMinutes(startDateTime, data.duration)
 
     const payload = {
-      patient_id: data.patient_id,
+      patient_id: isGuest ? null : (data.patient_id || null),
       doctor_id: data.doctor_id,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime.toISOString(),
@@ -156,6 +192,9 @@ export function AppointmentForm({
       reason: data.reason || undefined,
       notes: data.notes || undefined,
       is_first_visit: data.is_first_visit,
+      guest_name: isGuest ? data.guest_name : undefined,
+      guest_phone: isGuest ? data.guest_phone : undefined,
+      guest_email: isGuest ? data.guest_email : undefined,
     }
 
     onSubmit(payload)
@@ -169,24 +208,92 @@ export function AppointmentForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Patient Selection */}
+      {/* Patient Selection or Guest Input */}
       <div>
-        <Label>Patient *</Label>
-        <div className="mt-1.5">
-          <Controller
-            name="patient_id"
-            control={control}
-            render={({ field }) => (
-              <PatientSearchSelect
-                value={field.value}
-                onSelect={(patient: Patient | null) => {
-                  field.onChange(patient?.id || 0)
-                }}
-                error={errors.patient_id?.message}
-              />
-            )}
-          />
+        <div className="flex items-center justify-between mb-1.5">
+          <Label>Patient *</Label>
+          {isGuest && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsGuest(false)
+                setValue('guest_name', '')
+                setValue('guest_phone', '')
+                setValue('guest_email', '')
+              }}
+              className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+            >
+              Rechercher un patient existant
+            </Button>
+          )}
         </div>
+
+        {!isGuest ? (
+          <div className="mt-1.5">
+            <Controller
+              name="patient_id"
+              control={control}
+              render={({ field }) => (
+                <PatientSearchSelect
+                  value={field.value}
+                  onSelect={(patient: Patient | null) => {
+                    field.onChange(patient?.id || 0)
+                  }}
+                  onGuestSelect={(name?: string) => {
+                    setIsGuest(true)
+                    field.onChange(0)
+                    if (name) {
+                      setValue('guest_name', name)
+                    }
+                  }}
+                  error={errors.patient_id?.message}
+                />
+              )}
+            />
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div>
+              <Label htmlFor="guest_name" className="text-xs font-medium text-gray-500">Nom complet *</Label>
+              <Input
+                id="guest_name"
+                {...register('guest_name')}
+                placeholder="Ex: Jean Dupont"
+                className="mt-1 bg-white"
+              />
+              {errors.guest_name && (
+                <p className="mt-1 text-xs text-red-600">{errors.guest_name.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="guest_phone" className="text-xs font-medium text-gray-500">Téléphone</Label>
+                <Input
+                  id="guest_phone"
+                  {...register('guest_phone')}
+                  placeholder="06 12 34 56 78"
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label htmlFor="guest_email" className="text-xs font-medium text-gray-500">Email</Label>
+                <Input
+                  id="guest_email"
+                  type="email"
+                  {...register('guest_email')}
+                  placeholder="jean.dupont@email.com"
+                  className="mt-1 bg-white"
+                />
+                {errors.guest_email && (
+                  <p className="mt-1 text-xs text-red-600">{errors.guest_email.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Date and Time */}

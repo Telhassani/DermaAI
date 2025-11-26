@@ -19,6 +19,7 @@ import {
   Upload,
   X,
   Printer,
+  Sparkles,
 } from 'lucide-react'
 import { getPatient, deletePatient, PatientResponse } from '@/lib/api/patients'
 import { getPatientConsultationHistory, getConsultation, ConsultationResponse } from '@/lib/api/consultations'
@@ -26,6 +27,7 @@ import { listPrescriptions, deletePrescription, PrescriptionResponse, markPrescr
 import { getPatientImages, deleteImage, updateImage, uploadImage, validateImageFile, ImageResponse } from '@/lib/api/images'
 import ConsultationHistory from '@/components/consultations/ConsultationHistory'
 import { ImageAnnotationModal } from '@/components/images/ImageAnnotationModal'
+import { AIAnalysisModal } from '@/components/images/AIAnalysisModal'
 import { PrescriptionEditModal } from '@/components/prescriptions/PrescriptionEditModal'
 import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard'
 
@@ -48,6 +50,8 @@ export default function PatientDetailPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [annotationModalOpen, setAnnotationModalOpen] = useState(false)
   const [selectedImageForAnnotation, setSelectedImageForAnnotation] = useState<ImageResponse | null>(null)
+  const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false)
+  const [selectedImageForAiAnalysis, setSelectedImageForAiAnalysis] = useState<ImageResponse | null>(null)
   const [editingPrescription, setEditingPrescription] = useState<PrescriptionResponse | null>(null)
   const [prescriptionEditModalOpen, setPrescriptionEditModalOpen] = useState(false)
   const [consultationNumbers, setConsultationNumbers] = useState<{ [key: number]: number | undefined }>({})
@@ -663,6 +667,17 @@ export default function PatientDetailPage() {
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                             <button
                               onClick={() => {
+                                setSelectedImageForAiAnalysis(image)
+                                setAiAnalysisModalOpen(true)
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                              title="AI Analysis"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              AI
+                            </button>
+                            <button
+                              onClick={() => {
                                 setSelectedImageForAnnotation(image)
                                 setAnnotationModalOpen(true)
                               }}
@@ -735,6 +750,19 @@ export default function PatientDetailPage() {
         onCancel={() => {
           setAnnotationModalOpen(false)
           setSelectedImageForAnnotation(null)
+        }}
+      />
+
+      {/* AI Analysis Modal */}
+      <AIAnalysisModal
+        isOpen={aiAnalysisModalOpen}
+        imageId={selectedImageForAiAnalysis?.id || 0}
+        imageUrl={selectedImageForAiAnalysis ? `data:${selectedImageForAiAnalysis.mime_type};base64,${selectedImageForAiAnalysis.image_data}` : ''}
+        patientId={patientId}
+        patientName={patient?.full_name || 'Patient'}
+        onClose={() => {
+          setAiAnalysisModalOpen(false)
+          setSelectedImageForAiAnalysis(null)
         }}
       />
 

@@ -39,7 +39,10 @@ def seed_data():
 
         # Get or create users
         if existing_admin:
-            print("⚠️  Admin user already exists.")
+            print("⚠️  Admin user already exists. Updating password hash...")
+            # Always update the password hash to ensure it's correct
+            existing_admin.hashed_password = get_password_hash("password123")
+            db.add(existing_admin)
             admin_user = existing_admin
         else:
             admin_user = User(
@@ -56,7 +59,10 @@ def seed_data():
         # Check if doctor exists
         existing_doctor = db.query(User).filter(User.email == "doctor@dermai.com").first()
         if existing_doctor:
-            print("⚠️  Doctor user already exists.")
+            print("⚠️  Doctor user already exists. Updating password hash...")
+            # Always update the password hash to ensure it's correct
+            existing_doctor.hashed_password = get_password_hash("password123")
+            db.add(existing_doctor)
             doctor_user = existing_doctor
         else:
             doctor_user = User(
@@ -73,7 +79,10 @@ def seed_data():
         # Check if secretary exists
         existing_secretary = db.query(User).filter(User.email == "secretary@dermai.com").first()
         if existing_secretary:
-            print("⚠️  Secretary user already exists.")
+            print("⚠️  Secretary user already exists. Updating password hash...")
+            # Always update the password hash to ensure it's correct
+            existing_secretary.hashed_password = get_password_hash("password123")
+            db.add(existing_secretary)
             secretary_user = existing_secretary
         else:
             secretary_user = User(

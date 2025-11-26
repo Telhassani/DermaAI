@@ -12,6 +12,7 @@ interface PatientSearchSelectProps {
   onSelect: (patient: Patient | null) => void
   placeholder?: string
   error?: string
+  onGuestSelect?: (name?: string) => void
 }
 
 export function PatientSearchSelect({
@@ -19,6 +20,7 @@ export function PatientSearchSelect({
   onSelect,
   placeholder = 'Rechercher un patient...',
   error,
+  onGuestSelect,
 }: PatientSearchSelectProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -113,48 +115,78 @@ export function PatientSearchSelect({
                     <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                     <span className="ml-2 text-sm text-gray-600">Recherche en cours...</span>
                   </div>
-                ) : patients.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <p className="text-sm text-gray-600">
-                      {searchQuery.length < 2
-                        ? 'Tapez au moins 2 caractères pour rechercher'
-                        : 'Aucun patient trouvé'}
-                    </p>
-                  </div>
                 ) : (
-                  <div className="py-1">
-                    {patients.map((patient) => (
-                      <button
-                        key={patient.id}
-                        type="button"
-                        onClick={() => handleSelect(patient)}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
-                      >
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
-                          <User className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">
-                            {patient.full_name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {patient.age} ans • {patient.phone}
-                            {patient.email && ` • ${patient.email}`}
-                          </p>
-                        </div>
-                        <Check className="h-4 w-4 flex-shrink-0 text-blue-600 opacity-0" />
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  <>
+                    {patients.length === 0 ? (
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-gray-600">
+                          {searchQuery.length < 2
+                            ? 'Tapez au moins 2 caractères pour rechercher'
+                            : 'Aucun patient trouvé'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        {patients.map((patient: Patient) => (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            onClick={() => handleSelect(patient)}
+                            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
+                          >
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                              <User className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">
+                                {patient.full_name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {patient.age} ans • {patient.phone}
+                                {patient.email && ` • ${patient.email}`}
+                              </p>
+                            </div>
+                            <Check className="h-4 w-4 flex-shrink-0 text-blue-600 opacity-0" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                {/* Helper text */}
-                {searchQuery.length >= 2 && patients.length > 0 && (
-                  <div className="border-t bg-gray-50 px-4 py-2">
-                    <p className="text-xs text-gray-500">
-                      {patients.length} patient{patients.length > 1 ? 's' : ''} trouvé{patients.length > 1 ? 's' : ''}
-                    </p>
-                  </div>
+                    {/* Helper text */}
+                    {searchQuery.length >= 2 && patients.length > 0 && (
+                      <div className="border-t bg-gray-50 px-4 py-2">
+                        <p className="text-xs text-gray-500">
+                          {patients.length} patient{patients.length > 1 ? 's' : ''} trouvé{patients.length > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Guest Option */}
+                    {onGuestSelect && (
+                      <div className="border-t p-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onGuestSelect(searchQuery.length >= 2 ? searchQuery : undefined)
+                            setOpen(false)
+                            setSearchQuery('')
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+                            searchQuery.length >= 2
+                              ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                          )}
+                        >
+                          <User className="h-4 w-4" />
+                          {searchQuery.length >= 2
+                            ? `Créer l'invité "${searchQuery}"`
+                            : "Nouveau patient invité"
+                          }
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </>

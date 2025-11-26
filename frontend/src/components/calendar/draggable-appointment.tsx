@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Appointment } from '@/lib/hooks/use-appointments'
 import { AppointmentCard } from './appointment-card'
+import { AppointmentTooltip } from './appointment-tooltip'
 import { GripVertical } from 'lucide-react'
 
 interface DraggableAppointmentProps {
@@ -54,15 +55,19 @@ export function DraggableAppointment({
 
       {/* Appointment card */}
       <div className="group">
-        <AppointmentCard
-          appointment={appointment}
-          onClick={onClick}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onStatusChange={onStatusChange}
-          compact={compact}
-          showActions={showActions}
-        />
+        <AppointmentTooltip appointment={appointment}>
+          <div>
+            <AppointmentCard
+              appointment={appointment}
+              onClick={() => onClick?.(appointment)}
+              onEdit={() => onEdit?.(appointment)}
+              onDelete={onDelete}
+              onStatusChange={onStatusChange}
+              compact={compact}
+              showActions={showActions}
+            />
+          </div>
+        </AppointmentTooltip>
       </div>
     </div>
   )

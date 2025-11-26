@@ -76,8 +76,6 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent
-          side="top"
-          align="center"
           className={cn('w-64 p-0 border-0', colors.bg)}
         >
           {/* Header with type indicator */}
@@ -122,16 +120,27 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
                 <p className="text-sm font-semibold text-gray-900">
                   {startTime} - {endTime}
                 </p>
-                <p className="text-xs text-gray-500">{appointment.duration_minutes} minutes</p>
               </div>
             </div>
 
             {/* Patient */}
-            <div className="flex items-center gap-2">
-              <User className={cn('h-4 w-4', colors.icon)} />
+            <div className="flex items-start gap-2">
+              <User className={cn('h-4 w-4 mt-0.5', colors.icon)} />
               <div className="flex-1">
                 <p className="text-xs text-gray-500">Patient</p>
-                <p className="text-sm font-medium text-gray-900">ID: {appointment.patient_id}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {(appointment as any).patient_name || (appointment as any).guest_name || `ID: ${appointment.patient_id}`}
+                </p>
+                {((appointment as any).patient_phone || (appointment as any).guest_phone) && (
+                  <p className="text-xs text-gray-600">
+                    {(appointment as any).patient_phone || (appointment as any).guest_phone}
+                  </p>
+                )}
+                {((appointment as any).patient_email || (appointment as any).guest_email) && (
+                  <p className="text-xs text-gray-600">
+                    {(appointment as any).patient_email || (appointment as any).guest_email}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -140,7 +149,9 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
               <User className={cn('h-4 w-4', colors.icon)} />
               <div className="flex-1">
                 <p className="text-xs text-gray-500">Médecin</p>
-                <p className="text-sm font-medium text-gray-900">ID: {appointment.doctor_id}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {(appointment as any).doctor_name || `ID: ${appointment.doctor_id}`}
+                </p>
               </div>
             </div>
 
@@ -156,13 +167,6 @@ export function AppointmentTooltip({ appointment, children }: AppointmentTooltip
             {appointment.is_first_visit && (
               <div className="rounded bg-blue-100 px-2 py-1.5">
                 <p className="text-xs font-medium text-blue-700">✨ Première visite</p>
-              </div>
-            )}
-
-            {/* Recurring indicator */}
-            {appointment.is_recurring && (
-              <div className="rounded bg-purple-100 px-2 py-1.5">
-                <p className="text-xs font-medium text-purple-700">🔄 Rendez-vous récurrent</p>
               </div>
             )}
           </div>

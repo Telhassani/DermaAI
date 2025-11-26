@@ -7,7 +7,6 @@ Create Date: 2025-11-16 09:40:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '006_phase3_new_tables'
@@ -62,8 +61,8 @@ def upgrade() -> None:
             sa.Column('action', sa.String(50), nullable=False),
             sa.Column('table_name', sa.String(50), nullable=False),
             sa.Column('record_id', sa.Integer(), nullable=False),
-            sa.Column('old_values', postgresql.JSONB(), nullable=True),
-            sa.Column('new_values', postgresql.JSONB(), nullable=True),
+            sa.Column('old_values', sa.JSON(), nullable=True),
+            sa.Column('new_values', sa.JSON(), nullable=True),
             sa.Column('changes_summary', sa.Text(), nullable=True),
             sa.Column('ip_address', sa.String(50), nullable=True),
             sa.Column('user_agent', sa.Text(), nullable=True),

@@ -25,7 +25,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        result = pwd_context.verify(plain_password, hashed_password)
+        return result
+    except Exception as e:
+        return False
 
 
 def get_password_hash(password: str) -> str:

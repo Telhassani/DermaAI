@@ -8,7 +8,7 @@ including support for recurring appointments and status tracking.
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Integer, Text, Boolean, JSON
+from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Integer, Text, Boolean, JSON, String
 from sqlalchemy.orm import relationship
 import enum
 
@@ -80,8 +80,13 @@ class Appointment(BaseModel):
     __tablename__ = "appointments"
 
     # Foreign Keys with Indices
-    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Guest Information (for non-registered patients)
+    guest_name = Column(String(255), nullable=True)
+    guest_phone = Column(String(50), nullable=True)
+    guest_email = Column(String(255), nullable=True)
 
     # Core Scheduling Fields
     start_time = Column(DateTime, nullable=False, index=True)
@@ -115,8 +120,8 @@ class Appointment(BaseModel):
     recurring_series_id = Column(Integer, nullable=True, index=True)  # Parent series ID
 
     # Relationships (commented to avoid eager loading issues - use lazy loading)
-    # patient = relationship("Patient", back_populates="appointments")
-    # doctor = relationship("User", back_populates="appointments")
+    patient = relationship("Patient", back_populates="appointments")
+    doctor = relationship("User", back_populates="appointments")
 
     def __repr__(self) -> str:
         """String representation of appointment"""
@@ -152,7 +157,11 @@ class Appointment(BaseModel):
             bool: True if appointment is scheduled/confirmed and in the future
         """
         now = datetime.now(timezone.utc)
-        return self.start_time > now and self.status in [
+        start_time = self.start_time
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
+            
+        return start_time > now and self.status in [
             AppointmentStatus.SCHEDULED,
             AppointmentStatus.CONFIRMED,
         ]
@@ -166,7 +175,11 @@ class Appointment(BaseModel):
             bool: True if appointment end time is before current time
         """
         now = datetime.now(timezone.utc)
-        return self.end_time < now
+        end_time = self.end_time
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=timezone.utc)
+            
+        return end_time < now
 
     @property
     def is_recurring(self) -> bool:

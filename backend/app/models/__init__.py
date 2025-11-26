@@ -11,6 +11,14 @@ from app.models.image import ConsultationImage
 from app.models.ai_analysis import AIAnalysis, AIAnalysisImage, AnalysisType, Severity, AnalysisStatus
 from app.models.lab_result import LabResult, TestType
 from app.models.audit_log import AIAnalysisAuditLog, AuditAction
+from app.models.lab_conversation import (
+    LabConversation,
+    LabMessage,
+    LabMessageAttachment,
+    MessageRole,
+    MessageType,
+    AttachmentType,
+)
 
 __all__ = [
     "User",
@@ -34,4 +42,10 @@ __all__ = [
     "TestType",
     "AIAnalysisAuditLog",
     "AuditAction",
+    "LabConversation",
+    "LabMessage",
+    "LabMessageAttachment",
+    "MessageRole",
+    "MessageType",
+    "AttachmentType",
 ]

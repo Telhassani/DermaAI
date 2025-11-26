@@ -136,3 +136,12 @@ class LabResultAnalysis(BaseModel):
     abnormalities: list[str] = Field(default=[])
     recommendations: list[str] = Field(default=[])
     error: Optional[str] = None
+
+
+class ImageAIAnalysisResponse(BaseModel):
+    """AI analysis response for image with custom model selection"""
+    analysis_text: str = Field(..., description="Analysis text from Claude")
+    model: str = Field(..., description="Model used for analysis")
+
+    class Config:
+        from_attributes = True

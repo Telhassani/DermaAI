@@ -18,6 +18,7 @@ from app.schemas.image import (
     ImageAnalysisRequest,
     ImageAnalysisResponse,
     ConsultationImageCreate,
+    ImageAIAnalysisResponse,
 )
 from app.core.logging import log_audit_event
 from app.api.utils import check_image_ownership
@@ -408,6 +409,94 @@ async def analyze_image(
         raise
     except Exception as e:
         logger.error(f"Error analyzing image: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing image: {str(e)}",
+        )
+
+
+@router.post(
+    "/{image_id}/ai-analyze",
+    response_model=ImageAIAnalysisResponse,
+    summary="Analyze image with custom Claude model selection",
+)
+async def ai_analyze_image(
+    image_id: int,
+    selected_model: str = Form(default="claude-sonnet-4-5-20250929", description="Claude model to use (claude-sonnet-4-5-20250929 or claude-opus-4-5-20251101)"),
+    user_prompt: str = Form(default=None, description="Optional custom prompt for analysis"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze a dermatology image using Claude Vision with custom model and prompt selection.
+
+    Supports:
+    - Model selection (Claude 3.5 Sonnet, Opus 4.1)
+    - Optional custom prompts
+    - Real-time analysis results
+
+    Note: AI analysis is for clinical support only. Professional medical consultation
+    is always recommended.
+
+    - **image_id**: ID of the image to analyze
+    - **selected_model**: Claude model to use (default: claude-3-5-sonnet-20241022)
+    - **user_prompt**: Optional custom analysis prompt
+    """
+    try:
+        import logging
+        from app.services.image_ai_analyzer import image_ai_analyzer
+
+        logger = logging.getLogger(__name__)
+
+        # Check image ownership (authorization)
+        image = check_image_ownership(image_id, current_user, db)
+
+        # Get patient info for context (if available)
+        patient_context = None
+        if image.patient_id:
+            from app.models.patient import Patient
+            patient = db.query(Patient).filter(Patient.id == image.patient_id).first()
+            if patient:
+                patient_context = {
+                    "patient_id": patient.id,
+                    "patient_name": f"{patient.first_name} {patient.last_name}",
+                }
+
+        # Decode base64 image data
+        import base64
+        image_data = base64.b64decode(image.image_data)
+
+        # Call ImageAIAnalyzer service
+        analysis_text = await image_ai_analyzer.analyze_image(
+            image_data=image_data,
+            filename=image.filename,
+            user_prompt=user_prompt,
+            selected_model=selected_model,
+            patient_context=patient_context,
+        )
+
+        # Audit log
+        log_audit_event(
+            user_id=str(current_user.id),
+            action="AI_ANALYZE_IMAGE",
+            resource="image",
+            details={
+                "image_id": image.id,
+                "model": selected_model,
+                "has_custom_prompt": user_prompt is not None,
+            },
+            success=True,
+        )
+
+        return ImageAIAnalysisResponse(
+            analysis_text=analysis_text,
+            model=selected_model,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing image with AI: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error analyzing image: {str(e)}",

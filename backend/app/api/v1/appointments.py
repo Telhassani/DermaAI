@@ -191,13 +191,14 @@ async def create_appointment(
         422: If validation fails
     """
     try:
-        # Verify patient exists
-        patient = db.query(Patient).filter(Patient.id == appointment_data.patient_id).first()
-        if not patient:
-            raise HTTPException(
-                status_code=http_status.HTTP_404_NOT_FOUND,
-                detail=f"Patient avec l'ID {appointment_data.patient_id} n'existe pas"
-            )
+        # Verify patient exists (if patient_id is provided)
+        if appointment_data.patient_id:
+            patient = db.query(Patient).filter(Patient.id == appointment_data.patient_id).first()
+            if not patient:
+                raise HTTPException(
+                    status_code=http_status.HTTP_404_NOT_FOUND,
+                    detail=f"Patient avec l'ID {appointment_data.patient_id} n'existe pas"
+                )
 
         # Verify doctor exists
         from app.models.user import User as UserModel

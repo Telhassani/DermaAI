@@ -90,7 +90,7 @@ export function AppointmentCard({
     <div
       onClick={onClick}
       className={cn(
-        'group relative rounded-lg border-l-4 bg-white p-3 shadow-sm transition-all hover:shadow-md',
+        'group relative rounded-lg border-l-4 p-3 shadow-sm transition-all hover:shadow-md',
         colors.border,
         colors.bg,
         onClick && 'cursor-pointer',
@@ -106,7 +106,6 @@ export function AppointmentCard({
             <span className={cn('text-sm font-semibold', colors.text)}>
               {startTime} - {endTime}
             </span>
-            <span className="text-xs text-gray-500">({appointment.duration_minutes} min)</span>
           </div>
 
           {/* Patient name (if available) */}
@@ -172,42 +171,6 @@ export function AppointmentCard({
           </DropdownMenu>
         )}
       </div>
-
-      {/* Content */}
-      {!compact && (
-        <div className="space-y-2">
-          {/* Type and Status badges */}
-          <div className="flex flex-wrap gap-2">
-            <span
-              className={cn(
-                'rounded-md px-2 py-1 text-xs font-medium',
-                colors.bg,
-                colors.text
-              )}
-            >
-              {typeLabels[appointment.type]}
-            </span>
-            <span className={cn('rounded-md px-2 py-1 text-xs font-medium', statusInfo.color)}>
-              {statusInfo.label}
-            </span>
-          </div>
-
-          {/* Reason */}
-          {appointment.reason && (
-            <div className="flex items-start gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
-              <p className="text-xs text-gray-600 line-clamp-2">{appointment.reason}</p>
-            </div>
-          )}
-
-          {/* Notes preview */}
-          {appointment.notes && (
-            <p className="text-xs text-gray-500 line-clamp-1 italic">
-              Note: {appointment.notes}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Compact mode: just show status badge */}
       {compact && (

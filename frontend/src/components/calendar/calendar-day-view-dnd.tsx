@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { DndContext, DragEndEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
-import { format, isToday, addMinutes } from 'date-fns'
+import { format, isToday, addMinutes, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
@@ -42,7 +42,7 @@ export function CalendarDayViewDnd({
   // Filter appointments for current day
   const dayAppointments = appointments.filter((appointment) => {
     const appointmentDate = new Date(appointment.start_time)
-    return format(appointmentDate, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')
+    return isSameDay(appointmentDate, currentDate)
   })
 
   // Sort appointments by start time
@@ -179,7 +179,10 @@ export function CalendarDayViewDnd({
 
                         {/* Show appointments only in first hour slot to avoid duplication */}
                         {hour === startHour && (
-                          <div className="absolute inset-0 overflow-hidden">
+                          <div
+                            className="absolute inset-0 z-20 pointer-events-none"
+                            style={{ height: `${hours.length * 100}%` }}
+                          >
                             {sortedAppointments.map((appointment) => {
                               const style = getAppointmentStyle(appointment)
 
@@ -191,7 +194,7 @@ export function CalendarDayViewDnd({
                                     top: style.top,
                                     height: style.height,
                                   }}
-                                  className="absolute left-2 right-2 z-20"
+                                  className="absolute left-2 right-2 pointer-events-auto"
                                 >
                                   <DraggableAppointment
                                     appointment={appointment}

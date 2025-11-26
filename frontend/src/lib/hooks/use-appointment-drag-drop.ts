@@ -175,15 +175,6 @@ export function useAppointmentDragDrop(
         const endTimeStr = newEndTime.toISOString()
 
         // Check for conflicts with the new time
-        /*
-        toast.info('Vérification des conflits...')
-        console.log('Checking conflicts with data:', {
-          doctor_id: appointment.doctor_id,
-          start_time: startTimeStr,
-          end_time: endTimeStr,
-          exclude_appointment_id: appointment.id,
-        })
-        
         const conflictResponse = await conflictMutation.mutateAsync({
           doctor_id: appointment.doctor_id,
           start_time: startTimeStr,
@@ -198,10 +189,8 @@ export function useAppointmentDragDrop(
           resetDragState()
           return
         }
-        */
 
         // Perform the update
-        toast.info('Mise à jour du rendez-vous...')
         await updateMutation.mutateAsync({
           id: appointment.id,
           data: {

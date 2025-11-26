@@ -2,6 +2,7 @@
 Authentication endpoints - Register, Login, Logout, Token refresh
 """
 
+import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
@@ -24,6 +25,8 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token, UserLogin
 from app.api.deps import get_current_active_user
+
+logger = logging.getLogger(__name__)
 
 
 class RefreshTokenRequest(BaseModel):
@@ -106,11 +109,15 @@ def login(
     Raises:
         HTTPException: If credentials are invalid
     """
+    logger.debug(f"[LOGIN] Attempting login for email: {form_data.username}")
+
     # Find user by email
     user = db.query(User).filter(User.email == form_data.username).first()
+    logger.debug(f"[LOGIN] Database query result: user found = {user is not None}")
 
     # Verify user exists
     if not user:
+        logger.warning(f"[LOGIN] User not found in database: {form_data.username}")
         log_audit_event(
             user_id="unknown",
             action="LOGIN",
@@ -124,8 +131,12 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Verify password
-    if not verify_password(form_data.password, user.hashed_password):
+    # Verify password (strip whitespace to handle potential form encoding issues)
+    password_match = verify_password(form_data.password.strip(), user.hashed_password)
+    logger.debug(f"[LOGIN] Password match details: user_email={user.email}, verify_result={password_match}")
+
+    if not password_match:
+        logger.warning(f"[LOGIN] Password verification failed for user: {user.email}")
         log_audit_event(
             user_id="unknown",
             action="LOGIN",

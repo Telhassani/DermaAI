@@ -30,7 +30,10 @@ class AppointmentBase(BaseModel):
     Used as a foundation for request/response schemas.
     """
 
-    patient_id: int = Field(..., gt=0, description="Patient ID")
+    patient_id: Optional[int] = Field(None, gt=0, description="Patient ID (optional if guest)")
+    guest_name: Optional[str] = Field(None, max_length=255, description="Guest name (for non-registered patients)")
+    guest_phone: Optional[str] = Field(None, max_length=50, description="Guest phone")
+    guest_email: Optional[str] = Field(None, max_length=255, description="Guest email")
     doctor_id: int = Field(..., gt=0, description="Doctor ID")
     start_time: datetime = Field(..., description="Appointment start time (UTC)")
     end_time: datetime = Field(..., description="Appointment end time (UTC)")
@@ -71,7 +74,10 @@ class AppointmentCreate(BaseModel):
     Can create either single appointments or recurring appointment series.
     """
 
-    patient_id: int = Field(..., gt=0, description="Patient ID")
+    patient_id: Optional[int] = Field(None, gt=0, description="Patient ID (optional if guest)")
+    guest_name: Optional[str] = Field(None, max_length=255, description="Guest name (required if no patient_id)")
+    guest_phone: Optional[str] = Field(None, max_length=50, description="Guest phone")
+    guest_email: Optional[str] = Field(None, max_length=255, description="Guest email")
     doctor_id: int = Field(..., gt=0, description="Doctor ID")
     start_time: datetime = Field(..., description="Appointment start time (UTC)")
     end_time: datetime = Field(..., description="Appointment end time (UTC)")
@@ -83,6 +89,16 @@ class AppointmentCreate(BaseModel):
         None,
         description="RFC 5545 format recurrence rule for recurring appointments"
     )
+    
+    @field_validator("guest_name")
+    @classmethod
+    def validate_patient_or_guest(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate that either patient_id or guest_name is provided"""
+        if "patient_id" in info.data:
+            patient_id = info.data["patient_id"]
+            if not patient_id and not v:
+                raise ValueError("Either patient_id or guest_name must be provided")
+        return v
 
     @field_validator("end_time")
     @classmethod
@@ -117,6 +133,9 @@ class AppointmentUpdate(BaseModel):
     """
 
     patient_id: Optional[int] = Field(None, gt=0, description="Patient ID")
+    guest_name: Optional[str] = Field(None, max_length=255, description="Guest name")
+    guest_phone: Optional[str] = Field(None, max_length=50, description="Guest phone")
+    guest_email: Optional[str] = Field(None, max_length=255, description="Guest email")
     doctor_id: Optional[int] = Field(None, gt=0, description="Doctor ID")
     start_time: Optional[datetime] = Field(None, description="Appointment start time (UTC)")
     end_time: Optional[datetime] = Field(None, description="Appointment end time (UTC)")
@@ -178,7 +197,10 @@ class AppointmentResponse(BaseModel):
     """
 
     id: int = Field(..., description="Appointment ID")
-    patient_id: int = Field(..., description="Patient ID")
+    patient_id: Optional[int] = Field(None, description="Patient ID")
+    guest_name: Optional[str] = Field(None, description="Guest name")
+    guest_phone: Optional[str] = Field(None, description="Guest phone")
+    guest_email: Optional[str] = Field(None, description="Guest email")
     doctor_id: int = Field(..., description="Doctor ID")
     start_time: datetime = Field(..., description="Appointment start time (UTC)")
     end_time: datetime = Field(..., description="Appointment end time (UTC)")
@@ -200,6 +222,15 @@ class AppointmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def ensure_timezone(cls, v: datetime) -> datetime:
+        """Ensure datetime has timezone info (assume UTC if missing)"""
+        if v.tzinfo is None:
+            from datetime import timezone
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 class AppointmentWithDetailsResponse(AppointmentResponse):

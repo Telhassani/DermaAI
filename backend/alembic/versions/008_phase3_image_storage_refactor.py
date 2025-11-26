@@ -23,7 +23,6 @@ Migration Path:
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -34,27 +33,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Add object storage support to consultation_images table."""
+    # Drop views to allow batch migration and avoid dependency errors
+    op.execute("DROP VIEW IF EXISTS v_dashboard_stats")
+    op.execute("DROP VIEW IF EXISTS v_consultation_images")
 
     # Create enum type for storage types
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE storage_type_enum AS ENUM ('base64', 's3');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
-        END $$;
-    """)
-    print("✓ Created storage_type_enum")
-
-    # Create enum type for upload status
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE upload_status_enum AS ENUM ('pending', 'completed', 'failed');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
-        END $$;
-    """)
-    print("✓ Created upload_status_enum")
+    # SQLite doesn't support CREATE TYPE, so we skip it and use native_enum=False in columns
 
     # Check if columns already exist before adding
     from sqlalchemy import inspect
@@ -75,7 +59,7 @@ def upgrade() -> None:
             'consultation_images',
             sa.Column(
                 'storage_type',
-                postgresql.ENUM('base64', 's3', name='storage_type_enum'),
+                sa.Enum('base64', 's3', name='storage_type_enum', native_enum=False),
                 nullable=False,
                 server_default='base64'
             )
@@ -88,7 +72,7 @@ def upgrade() -> None:
             'consultation_images',
             sa.Column(
                 'upload_status',
-                postgresql.ENUM('pending', 'completed', 'failed', name='upload_status_enum'),
+                sa.Enum('pending', 'completed', 'failed', name='upload_status_enum', native_enum=False),
                 nullable=False,
                 server_default='completed'
             )
@@ -105,13 +89,13 @@ def upgrade() -> None:
 
     # Make image_data nullable to eventually deprecate base64
     # Note: This step maintains backward compatibility
-    op.alter_column(
-        'consultation_images',
-        'image_data',
-        existing_type=sa.String(),
-        nullable=True,
-        existing_nullable=False
-    )
+    with op.batch_alter_table('consultation_images') as batch_op:
+        batch_op.alter_column(
+            'image_data',
+            existing_type=sa.String(),
+            nullable=True,
+            existing_nullable=False
+        )
     print("✓ Made image_data nullable")
 
     # Create index on storage_type for efficient filtering
@@ -161,9 +145,38 @@ def upgrade() -> None:
     except Exception as e:
         print(f"⚠️  Check constraint skipped: {e}")
 
+    # Recreate views
+    op.execute("""
+        CREATE VIEW v_consultation_images AS
+        SELECT * FROM consultation_images
+        WHERE is_deleted = false
+    """)
+    print("✓ Recreated v_consultation_images view")
+
+    op.execute("""
+        CREATE VIEW v_dashboard_stats AS
+        SELECT
+            (SELECT COUNT(*) FROM v_patients) as total_patients,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'SCHEDULED' AND start_time > DATE('now')) as upcoming_appointments,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'IN_PROGRESS' AND start_time <= DATE('now') AND end_time > DATE('now')) as current_appointments,
+            (SELECT COUNT(*) FROM v_consultations
+             WHERE follow_up_required = true AND follow_up_date <= DATE('now')) as pending_followups,
+            (SELECT COUNT(*) FROM v_prescriptions
+             WHERE is_delivered = false) as undelivered_prescriptions,
+            (SELECT COUNT(*) FROM v_lab_results
+             WHERE normal = false) as abnormal_lab_results
+    """)
+    print("✓ Recreated v_dashboard_stats view")
+
 
 def downgrade() -> None:
     """Remove object storage support from consultation_images table."""
+    
+    # Drop views to allow batch migration
+    op.execute("DROP VIEW IF EXISTS v_dashboard_stats")
+    op.execute("DROP VIEW IF EXISTS v_consultation_images")
 
     # Drop check constraint
     try:
@@ -178,13 +191,13 @@ def downgrade() -> None:
 
     # Revert image_data to NOT NULL (will fail if any rows have NULL image_data)
     # Note: This is a dangerous operation in production
-    op.alter_column(
-        'consultation_images',
-        'image_data',
-        existing_type=sa.String(),
-        nullable=False,
-        existing_nullable=True
-    )
+    with op.batch_alter_table('consultation_images') as batch_op:
+        batch_op.alter_column(
+            'image_data',
+            existing_type=sa.String(),
+            nullable=False,
+            existing_nullable=True
+        )
 
     # Drop new columns
     op.drop_column('consultation_images', 's3_object_key')
@@ -197,3 +210,28 @@ def downgrade() -> None:
     op.execute("DROP TYPE IF EXISTS storage_type_enum")
 
     print("✓ Removed object storage support from consultation_images")
+    
+    # Recreate views
+    op.execute("""
+        CREATE VIEW v_consultation_images AS
+        SELECT * FROM consultation_images
+        WHERE is_deleted = false
+    """)
+    print("✓ Recreated v_consultation_images view")
+
+    op.execute("""
+        CREATE VIEW v_dashboard_stats AS
+        SELECT
+            (SELECT COUNT(*) FROM v_patients) as total_patients,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'SCHEDULED' AND start_time > DATE('now')) as upcoming_appointments,
+            (SELECT COUNT(*) FROM v_appointments
+             WHERE status = 'IN_PROGRESS' AND start_time <= DATE('now') AND end_time > DATE('now')) as current_appointments,
+            (SELECT COUNT(*) FROM v_consultations
+             WHERE follow_up_required = true AND follow_up_date <= DATE('now')) as pending_followups,
+            (SELECT COUNT(*) FROM v_prescriptions
+             WHERE is_delivered = false) as undelivered_prescriptions,
+            (SELECT COUNT(*) FROM v_lab_results
+             WHERE normal = false) as abnormal_lab_results
+    """)
+    print("✓ Recreated v_dashboard_stats view")
