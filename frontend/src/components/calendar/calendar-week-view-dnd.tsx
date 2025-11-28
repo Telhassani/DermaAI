@@ -284,15 +284,15 @@ export function CalendarWeekViewDnd({
                                     }}
                                     className="absolute pointer-events-auto overflow-hidden px-0.5"
                                   >
-                                  <DraggableAppointment
-                                    appointment={appointment}
-                                    onClick={onAppointmentClick}
-                                    compact={true}
-                                    showActions={false}
-                                  />
-                                </div>
-                              )
-                            })
+                                    <DraggableAppointment
+                                      appointment={appointment}
+                                      onClick={onAppointmentClick}
+                                      compact={true}
+                                      showActions={false}
+                                    />
+                                  </div>
+                                )
+                              })
                             })()}
                           </div>
                         )}
