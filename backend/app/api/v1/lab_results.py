@@ -62,7 +62,7 @@ async def upload_and_analyze_lab_results(
     """
     try:
         # Verify user is a doctor
-        if current_user.role.value != "doctor":
+        if current_user.role.value != "DOCTOR":
             raise HTTPException(
                 status_code=403,
                 detail="Only doctors can analyze lab results"

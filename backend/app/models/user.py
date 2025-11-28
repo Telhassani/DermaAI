@@ -12,10 +12,10 @@ from app.db.base import BaseModel
 class UserRole(str, enum.Enum):
     """User role enumeration"""
 
-    ADMIN = "admin"
-    DOCTOR = "doctor"
-    SECRETARY = "secretary"
-    ASSISTANT = "assistant"
+    ADMIN = "ADMIN"
+    DOCTOR = "DOCTOR"
+    SECRETARY = "SECRETARY"
+    ASSISTANT = "ASSISTANT"
 
 
 class User(BaseModel):

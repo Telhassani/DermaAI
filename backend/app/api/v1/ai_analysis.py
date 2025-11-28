@@ -136,7 +136,7 @@ def read_analysis(
 
     # Permission check: verify user can access this analysis
     # For now, allow doctors to view all analyses, admins can view all
-    if current_user.role.value not in ["doctor", "admin"]:
+    if current_user.role.value not in ["DOCTOR", "ADMIN"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to view this analysis"
@@ -175,7 +175,7 @@ def update_analysis(
         )
 
     # Permission check: only doctor who created analysis or admin can update
-    if current_user.id != analysis.doctor_id and current_user.role.value != "admin":
+    if current_user.id != analysis.doctor_id and current_user.role.value != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update analyses you created"
@@ -314,7 +314,7 @@ def delete_analysis(
         )
 
     # Permission check: only doctor who created analysis or admin can delete
-    if current_user.id != analysis.doctor_id and current_user.role.value != "admin":
+    if current_user.id != analysis.doctor_id and current_user.role.value != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete analyses you created"

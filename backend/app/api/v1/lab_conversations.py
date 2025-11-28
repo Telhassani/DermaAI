@@ -5,9 +5,12 @@ Independent mode - NO patient context
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import logging
+import json
+import asyncio
 
 from app.api.deps import get_current_active_user
 from app.db.session import get_db
@@ -37,7 +40,12 @@ from app.services.lab_conversation_service import (
     ConversationAnalyticsService,
 )
 from app.services.ai_model_router import ai_model_router
+from app.services.ai_service import get_ai_service, AIServiceError
+from app.services.file_service import get_file_service
 from app.core.logging import log_audit_event
+from app.core.config import settings
+from app.core.rate_limiter import limiter
+from pydantic import BaseModel
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -54,6 +62,7 @@ logger = logging.getLogger(__name__)
     status_code=201,
     summary="Create a new lab conversation",
 )
+@limiter.limit("10/minute")  # Rate limit: 10 new conversations per minute
 async def create_conversation(
     data: ConversationCreate,
     current_user: User = Depends(get_current_active_user),
@@ -71,7 +80,7 @@ async def create_conversation(
     - **system_prompt**: Custom system instructions for the AI
     - **temperature**: Creativity level (0.0-1.0, default 0.7)
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can create conversations")
 
     conversation = LabConversationService.create_conversation(
@@ -105,7 +114,7 @@ async def list_conversations(
     - **is_archived**: Filter by archive status (true/false/null)
     - **search**: Search in title and description
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can list conversations")
 
     conversations, total = LabConversationService.list_conversations(
@@ -144,7 +153,7 @@ async def get_conversation(
     - **conversation_id**: ID of the conversation
     - **message_limit**: Maximum number of messages to return (pagination)
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can view conversations")
 
     conversation = LabConversationService.get_conversation(
@@ -184,7 +193,7 @@ async def update_conversation(
 
     - **conversation_id**: ID of the conversation to update
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can update conversations")
 
     conversation = LabConversationService.update_conversation(
@@ -212,7 +221,7 @@ async def delete_conversation(
 
     - **conversation_id**: ID of the conversation to delete
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can delete conversations")
 
     success = LabConversationService.delete_conversation(
@@ -241,7 +250,7 @@ async def pin_conversation(
     - **conversation_id**: ID of the conversation
     - **is_pinned**: true to pin, false to unpin
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can manage conversations")
 
     conversation = LabConversationService.pin_conversation(
@@ -275,7 +284,7 @@ async def archive_conversation(
     - **conversation_id**: ID of the conversation
     - **is_archived**: true to archive, false to unarchive
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can manage conversations")
 
     conversation = LabConversationService.archive_conversation(
@@ -303,6 +312,7 @@ async def archive_conversation(
     status_code=201,
     summary="Send a message to the AI",
 )
+@limiter.limit("20/minute")  # Rate limit: 20 messages per minute per IP
 async def send_message(
     conversation_id: int,
     content: str = Form(...),
@@ -324,7 +334,7 @@ async def send_message(
     - **selected_model**: AI model to use (overrides conversation default)
     - **file**: Optional file attachment (lab result, image, PDF)
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can send messages")
 
     # Verify conversation exists and belongs to user
@@ -345,16 +355,59 @@ async def send_message(
 
     # Handle file attachment if provided
     if file:
-        attachment = LabMessageAttachmentService.create_attachment(
-            db,
-            user_message.id,
-            file.filename or "file",
-            f"/uploads/{conversation_id}/{file.filename}",  # Placeholder path
-            AttachmentType.PDF if file.content_type == "application/pdf" else AttachmentType.IMAGE,
-            file_size=file.size,
-            mime_type=file.content_type,
-        )
-        logger.info(f"Created attachment {attachment.id} for message {user_message.id}")
+        try:
+            # Get file service
+            file_service = get_file_service()
+
+            # Read file content
+            file_content = await file.read()
+
+            # Validate file
+            is_valid, error_msg = file_service.validate_file(
+                file.filename or "file",
+                len(file_content),
+                file.content_type or "application/octet-stream",
+            )
+
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid file: {error_msg}")
+
+            # Generate file hash for secure naming
+            file_hash = file_service.generate_file_hash(file_content)
+            safe_filename = file_service.generate_safe_filename(file.filename or "file", file_hash)
+
+            # Save file to disk
+            relative_path = file_service.save_file(
+                file_content,
+                safe_filename,
+                subdirectory=f"lab-conversations/{conversation_id}",
+            )
+
+            # Determine attachment type based on MIME type
+            if file.content_type == "application/pdf":
+                attachment_type = AttachmentType.PDF
+            elif file.content_type and file.content_type.startswith("image/"):
+                attachment_type = AttachmentType.IMAGE
+            else:
+                attachment_type = AttachmentType.OTHER
+
+            # Create attachment record
+            attachment = LabMessageAttachmentService.create_attachment(
+                db,
+                user_message.id,
+                file.filename or safe_filename,
+                relative_path,
+                attachment_type,
+                file_size=len(file_content),
+                mime_type=file.content_type,
+            )
+            logger.info(f"Created attachment {attachment.id} for message {user_message.id}, saved to {relative_path}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error handling file attachment: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to process file attachment: {str(e)}")
 
     log_audit_event(
         current_user,
@@ -390,7 +443,7 @@ async def list_messages(
     - **skip**: Number of messages to skip
     - **limit**: Maximum messages to return
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can view messages")
 
     # Verify conversation exists and belongs to user
@@ -418,6 +471,75 @@ async def list_messages(
     )
 
 
+@router.put(
+    "/conversations/{conversation_id}/messages/{message_id}",
+    response_model=MessageResponse,
+    summary="Edit a message",
+)
+@limiter.limit("30/minute")  # Rate limit: 30 edits per minute
+async def edit_message(
+    conversation_id: int,
+    message_id: int,
+    content: str = Form(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Edit an existing message in a conversation.
+
+    Only the message creator (current user) can edit messages.
+    AI responses cannot be regenerated, only the text can be corrected.
+
+    - **conversation_id**: ID of the conversation
+    - **message_id**: ID of the message to edit
+    - **content**: New message content
+    """
+    if current_user.role.value != "DOCTOR":
+        raise HTTPException(status_code=403, detail="Only doctors can edit messages")
+
+    # Verify conversation exists and belongs to user
+    conversation = LabConversationService.get_conversation(
+        db, conversation_id, current_user.id
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get the message
+    message = LabMessageService.get_message(db, message_id)
+    if not message or message.conversation_id != conversation_id:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    # Verify message belongs to user if it's a USER message
+    if message.role == MessageRole.USER:
+        # User can edit their own messages
+        pass
+    elif message.role == MessageRole.ASSISTANT:
+        # User can edit AI responses to fix text
+        pass
+    else:
+        raise HTTPException(status_code=403, detail="Cannot edit this message type")
+
+    # Update message content
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Message content cannot be empty")
+
+    message.content = content.strip()
+    message.is_edited = True
+    from datetime import datetime
+    message.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(message)
+
+    log_audit_event(
+        current_user,
+        "EDIT_MESSAGE",
+        f"conversation_id={conversation_id}, message_id={message_id}",
+    )
+
+    return message
+
+
 @router.delete(
     "/conversations/{conversation_id}/messages/{message_id}",
     status_code=204,
@@ -435,7 +557,7 @@ async def delete_message(
     - **conversation_id**: ID of the conversation
     - **message_id**: ID of the message to delete
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can delete messages")
 
     # Verify conversation belongs to user
@@ -482,7 +604,7 @@ async def get_analytics(
 
     - **conversation_id**: ID of the conversation
     """
-    if current_user.role.value != "doctor":
+    if current_user.role.value != "DOCTOR":
         raise HTTPException(status_code=403, detail="Only doctors can view analytics")
 
     # Verify conversation belongs to user
@@ -501,3 +623,231 @@ async def get_analytics(
     )
 
     return analytics
+
+
+# ============================================================================
+# AI RESPONSE GENERATION ENDPOINT
+# ============================================================================
+
+class StreamAIResponseRequest(BaseModel):
+    """Request to generate streaming AI response"""
+    conversation_id: int
+    model: str
+    user_message_id: int
+    temperature: Optional[float] = 0.7
+    max_tokens: Optional[int] = 2000
+
+
+async def generate_ai_response_stream(
+    ai_service,
+    model: str,
+    messages: List[Dict[str, str]],
+    system_prompt: Optional[str],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+    conversation_id: int,
+    user_message_id: int,
+    user_id: int,
+    db: Session,
+):
+    """
+    Generate streaming AI response and save to database.
+    Yields SSE-formatted events for real-time UI updates.
+    """
+    heartbeat_interval = settings.STREAMING_HEARTBEAT_INTERVAL_SECONDS
+    last_heartbeat = 0
+    chunk_count = 0
+    accumulated_content = ""
+
+    try:
+        # Send initial metadata event
+        yield f"data: {json.dumps({'type': 'start', 'model': model})}\n\n"
+
+        # Stream from AI service
+        start_time = asyncio.get_event_loop().time()
+
+        async for chunk in ai_service.stream_message(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_prompt=system_prompt,
+        ):
+            if chunk:
+                accumulated_content += chunk
+                # Send data chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+                chunk_count += 1
+
+            # Send periodic heartbeat to keep connection alive
+            current_time = asyncio.get_event_loop().time()
+            if current_time - last_heartbeat >= heartbeat_interval:
+                yield f"data: {json.dumps({'type': 'heartbeat', 'chunks_received': chunk_count})}\n\n"
+                last_heartbeat = current_time
+
+        # Stream completed - save AI response to database
+        elapsed_time = asyncio.get_event_loop().time() - start_time
+
+        # Create AI response message in database
+        ai_message = LabMessageService.create_message(
+            db,
+            conversation_id,
+            MessageRole.ASSISTANT,
+            accumulated_content,
+            message_type=MessageType.TEXT,
+            model_used=model,
+            prompt_tokens=None,  # Would need to track from AI service
+            completion_tokens=None,
+            processing_time_ms=int(elapsed_time * 1000),
+        )
+
+        # Update conversation metadata
+        conversation = LabConversationService.get_conversation(db, conversation_id, user_id)
+        if conversation:
+            conversation.message_count = (conversation.message_count or 0) + 1
+            from datetime import datetime
+            conversation.last_message_at = datetime.utcnow()
+            db.commit()
+
+        # Send completion event with the saved message ID
+        yield f"data: {json.dumps({'type': 'complete', 'chunks': chunk_count, 'elapsed_seconds': elapsed_time, 'message_id': ai_message.id})}\n\n"
+
+    except asyncio.TimeoutError:
+        error_msg = f"Request to {model} timed out after {settings.AI_MODEL_REQUEST_TIMEOUT_SECONDS}s"
+        logger.error(error_msg)
+        yield f"data: {json.dumps({'type': 'error', 'error': 'timeout', 'message': error_msg})}\n\n"
+
+    except AIServiceError as e:
+        logger.error(f"AI Service error: {str(e)}")
+        yield f"data: {json.dumps({'type': 'error', 'error': 'service_error', 'message': str(e)})}\n\n"
+
+    except Exception as e:
+        logger.error(f"Unexpected error in stream: {str(e)}")
+        yield f"data: {json.dumps({'type': 'error', 'error': 'unknown_error', 'message': 'An unexpected error occurred'})}\n\n"
+
+
+@router.post(
+    "/conversations/{conversation_id}/stream-response",
+    summary="Generate streaming AI response for a conversation",
+    tags=["Lab Conversations"],
+)
+@limiter.limit("10/minute")  # Rate limit: 10 AI requests per minute per IP
+async def stream_ai_response(
+    conversation_id: int,
+    request: StreamAIResponseRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a streaming AI response for a conversation.
+
+    This endpoint receives a request to generate an AI response, retrieves the
+    conversation history, and streams the AI's response back via Server-Sent Events.
+
+    The response is automatically saved to the database and can be referenced
+    by the client using the message_id from the 'complete' event.
+
+    Request body:
+    - **conversation_id**: ID of the conversation (path parameter)
+    - **model**: AI model to use (e.g., "claude-3-5-sonnet-20241022")
+    - **user_message_id**: ID of the user message this is responding to
+    - **temperature**: Sampling temperature (optional, default 0.7)
+    - **max_tokens**: Maximum tokens in response (optional, default 2000)
+
+    Response is streamed as Server-Sent Events:
+    - start: Initial metadata
+    - chunk: Content chunk from AI
+    - heartbeat: Keep-alive signal
+    - complete: Final event with message_id and stats
+    - error: Error information
+    """
+    if current_user.role.value != "DOCTOR":
+        raise HTTPException(status_code=403, detail="Only doctors can generate responses")
+
+    # Verify conversation exists and belongs to user
+    conversation = LabConversationService.get_conversation(
+        db, conversation_id, current_user.id
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Verify user message exists
+    user_message = LabMessageService.get_message(db, request.user_message_id)
+    if not user_message or user_message.conversation_id != conversation_id:
+        raise HTTPException(status_code=404, detail="User message not found")
+
+    # Get conversation history
+    messages, _ = LabMessageService.list_messages(
+        db, conversation_id, skip=0, limit=100
+    )
+
+    # Build message history for AI (exclude latest user message as it's being processed)
+    message_history: List[Dict[str, str]] = []
+    for msg in messages[:-1]:  # Exclude the current user message
+        message_history.append({
+            "role": msg.role.value.lower(),
+            "content": msg.content,
+        })
+
+    # Add the current user message
+    message_history.append({
+        "role": "user",
+        "content": user_message.content,
+    })
+
+    # Log the request
+    logger.info(
+        f"Generating AI response for user {current_user.email}: "
+        f"conversation_id={conversation_id}, model={request.model}"
+    )
+
+    try:
+        # Validate model
+        ai_service = get_ai_service()
+        if not ai_service.validate_model(request.model):
+            available = ai_service.get_available_models()
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Invalid model",
+                    "available_models": available
+                }
+            )
+
+        # Get system prompt from conversation or use default
+        system_prompt = conversation.system_prompt or (
+            "You are an expert medical assistant specializing in dermatology and lab analysis. "
+            "Provide accurate, evidence-based responses to support clinical decision-making. "
+            "Always maintain patient confidentiality and recommend consulting with healthcare providers for diagnosis."
+        )
+
+        # Create streaming response
+        return StreamingResponse(
+            generate_ai_response_stream(
+                ai_service=ai_service,
+                model=request.model,
+                messages=message_history,
+                system_prompt=system_prompt,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                conversation_id=conversation_id,
+                user_message_id=request.user_message_id,
+                user_id=current_user.id,
+                db=db,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # Disable proxy buffering
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in stream endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate AI response"
+        )
