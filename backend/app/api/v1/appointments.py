@@ -59,11 +59,18 @@ def _get_appointment_details(appointment: Appointment, db: Session) -> Appointme
             **AppointmentResponse.from_orm(appointment).model_dump(),
             patient_name=f"{patient.first_name} {patient.last_name}" if patient else None,
             patient_phone=patient.phone if patient else None,
-            doctor_name=f"{doctor.first_name} {doctor.last_name}" if doctor else None,
+            doctor_name=doctor.full_name if doctor else None,
         )
-    except Exception:
-        # Fallback if details can't be loaded
-        return AppointmentResponse.from_orm(appointment)
+    except Exception as e:
+        # Fallback if details can't be loaded - return with None values for optional fields
+        logger.warning(f"Error loading appointment details for appointment {appointment.id}: {str(e)}")
+        response = AppointmentResponse.from_orm(appointment).model_dump()
+        return AppointmentWithDetailsResponse(
+            **response,
+            patient_name=None,
+            patient_phone=None,
+            doctor_name=None,
+        )
 
 
 # ============================================================================
@@ -134,7 +141,7 @@ async def list_appointments(
         total_pages = (total + page_size - 1) // page_size
 
         return AppointmentListResponse(
-            appointments=[AppointmentResponse.from_orm(a) for a in appointments],
+            appointments=[_get_appointment_details(a, db) for a in appointments],
             total=total,
             page=page,
             page_size=page_size,

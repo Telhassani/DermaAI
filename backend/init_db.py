@@ -15,6 +15,7 @@ from app.db.session import engine
 from app.models import User, Patient, Appointment
 from app.models.consultation import Consultation
 from app.models.prescription import Prescription
+from app.models.appointment import AppointmentStatus, AppointmentType
 from app.core.security import get_password_hash
 from app.models.user import UserRole
 from sqlalchemy.orm import Session
@@ -179,6 +180,141 @@ def seed_data():
             print("\n⚠️  IMPORTANT: Change these passwords in production!")
         else:
             print(f"⚠️  Patients already exist for doctor ({existing_patients_count} patients). Skipping patient creation.")
+
+        # Create sample appointments/rendez-vous for the calendar
+        existing_appointments_count = db.query(Appointment).filter(
+            Appointment.doctor_id == doctor_user.id,
+            Appointment.is_deleted == False
+        ).count()
+
+        if existing_appointments_count == 0:
+            print("📅 Creating sample appointments for calendar...")
+            now = datetime.now()
+            today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            sample_appointments = [
+                # Today appointments
+                Appointment(
+                    patient_id=1,  # Marie
+                    doctor_id=doctor_user.id,
+                    start_time=today.replace(hour=9, minute=0),
+                    end_time=today.replace(hour=9, minute=30),
+                    type=AppointmentType.CONSULTATION,
+                    status=AppointmentStatus.SCHEDULED,
+                    reason="Eruption cutanée au visage",
+                    notes="Patient a changé de savon récemment",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                Appointment(
+                    patient_id=2,  # Jean
+                    doctor_id=doctor_user.id,
+                    start_time=today.replace(hour=10, minute=0),
+                    end_time=today.replace(hour=10, minute=45),
+                    type=AppointmentType.FOLLOW_UP,
+                    status=AppointmentStatus.CONFIRMED,
+                    reason="Suivi psoriasis chronique",
+                    notes="Contrôle du traitement",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                Appointment(
+                    patient_id=3,  # Sophie
+                    doctor_id=doctor_user.id,
+                    start_time=today.replace(hour=14, minute=0),
+                    end_time=today.replace(hour=14, minute=30),
+                    type=AppointmentType.CONSULTATION,
+                    status=AppointmentStatus.SCHEDULED,
+                    reason="Acné persistante",
+                    notes="Deuxième consultation",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                # Tomorrow appointments
+                Appointment(
+                    patient_id=1,  # Marie
+                    doctor_id=doctor_user.id,
+                    start_time=(today + timedelta(days=1)).replace(hour=11, minute=0),
+                    end_time=(today + timedelta(days=1)).replace(hour=11, minute=30),
+                    type=AppointmentType.PROCEDURE,
+                    status=AppointmentStatus.SCHEDULED,
+                    reason="Bilan dermatologique complet",
+                    notes="Préparation requise",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                # Next week appointments
+                Appointment(
+                    patient_id=2,  # Jean
+                    doctor_id=doctor_user.id,
+                    start_time=(today + timedelta(days=3)).replace(hour=9, minute=30),
+                    end_time=(today + timedelta(days=3)).replace(hour=10, minute=15),
+                    type=AppointmentType.FOLLOW_UP,
+                    status=AppointmentStatus.SCHEDULED,
+                    reason="Contrôle résultats analyses",
+                    notes="Apporter les résultats d'analyse",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                # Past appointments
+                Appointment(
+                    patient_id=3,  # Sophie
+                    doctor_id=doctor_user.id,
+                    start_time=(today - timedelta(days=2)).replace(hour=15, minute=0),
+                    end_time=(today - timedelta(days=2)).replace(hour=15, minute=30),
+                    type=AppointmentType.CONSULTATION,
+                    status=AppointmentStatus.COMPLETED,
+                    reason="Première consultation acné",
+                    notes="Diagnostic établi",
+                    is_first_visit=True,
+                    is_deleted=False,
+                ),
+                Appointment(
+                    patient_id=1,  # Marie (Emergency-like)
+                    doctor_id=doctor_user.id,
+                    start_time=(today - timedelta(days=5)).replace(hour=16, minute=0),
+                    end_time=(today - timedelta(days=5)).replace(hour=16, minute=30),
+                    type=AppointmentType.EMERGENCY,
+                    status=AppointmentStatus.COMPLETED,
+                    reason="Réaction allergique sévère",
+                    diagnosis="Réaction allergique de contact",
+                    notes="Traitement d'urgence appliqué",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                # Cancelled appointment
+                Appointment(
+                    patient_id=2,  # Jean
+                    doctor_id=doctor_user.id,
+                    start_time=(today + timedelta(days=7)).replace(hour=10, minute=0),
+                    end_time=(today + timedelta(days=7)).replace(hour=10, minute=30),
+                    type=AppointmentType.PROCEDURE,
+                    status=AppointmentStatus.CANCELLED,
+                    reason="Biopsie cutanée",
+                    notes="Annulée à la demande du patient",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+                # In progress (simulated)
+                Appointment(
+                    patient_id=3,  # Sophie
+                    doctor_id=doctor_user.id,
+                    start_time=now.replace(minute=0, second=0, microsecond=0) - timedelta(minutes=15),
+                    end_time=now.replace(minute=0, second=0, microsecond=0) + timedelta(minutes=30),
+                    type=AppointmentType.CONSULTATION,
+                    status=AppointmentStatus.IN_PROGRESS,
+                    reason="Suivi traitement acné",
+                    notes="En cours de consultation",
+                    is_first_visit=False,
+                    is_deleted=False,
+                ),
+            ]
+
+            db.add_all(sample_appointments)
+            db.commit()
+            print(f"✅ Sample appointments created successfully! ({len(sample_appointments)} appointments)")
+        else:
+            print(f"⚠️  Appointments already exist for doctor ({existing_appointments_count} appointments). Skipping appointment creation.")
 
         # Create sample consultations for patients
         existing_consultations_count = db.query(Consultation).count()
