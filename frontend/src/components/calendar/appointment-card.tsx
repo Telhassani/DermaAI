@@ -90,7 +90,7 @@ export function AppointmentCard({
     <div
       onClick={onClick}
       className={cn(
-        'group relative rounded-lg border-l-4 p-3 shadow-sm transition-all hover:shadow-md',
+        'group relative w-full max-w-full overflow-hidden rounded-lg border-l-4 p-3 shadow-sm transition-all hover:shadow-md',
         colors.border,
         colors.bg,
         onClick && 'cursor-pointer',
@@ -101,22 +101,22 @@ export function AppointmentCard({
       <div className="mb-2 flex items-start justify-between">
         <div className="flex-1 space-y-1">
           {/* Time */}
-          <div className="flex items-center gap-1.5">
-            <Clock className={cn('h-3.5 w-3.5', colors.text)} />
-            <span className={cn('text-sm font-semibold', colors.text)}>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Clock className={cn('h-3.5 w-3.5 flex-shrink-0', colors.text)} />
+            <span className={cn('truncate text-xs font-semibold sm:text-sm', colors.text)}>
               {startTime} - {endTime}
             </span>
           </div>
 
           {/* Patient name (if available) */}
           {!compact && (
-            <div className="flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-sm font-medium text-gray-900">
-                Patient ID: {appointment.patient_id}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <User className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+              <span className="truncate text-xs font-medium text-gray-900 sm:text-sm">
+                {appointment.patient_name || `Patient ID: ${appointment.patient_id}`}
               </span>
               {appointment.is_first_visit && (
-                <span className="rounded-full bg-blue-500 px-2 py-0.5 text-xs font-medium text-white">
+                <span className="flex-shrink-0 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs font-medium text-white whitespace-nowrap">
                   1ère visite
                 </span>
               )}

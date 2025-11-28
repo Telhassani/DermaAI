@@ -35,12 +35,12 @@ export function CalendarWeekViewDnd({
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 10,
+        distance: 3, // Reduced from 10 for more responsive drag
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150, // Reduced from 250 for better mobile experience
         tolerance: 5,
       },
     })
@@ -64,8 +64,41 @@ export function CalendarWeekViewDnd({
     })
   }
 
-  // Calculate position and height for appointment
-  const getAppointmentStyle = (appointment: Appointment) => {
+  // Detect overlapping appointments for a specific day and create column layout
+  const getAppointmentGroupsForDay = (dayAppointments: Appointment[]) => {
+    if (dayAppointments.length === 0) return []
+
+    // Sort by start time
+    const sorted = [...dayAppointments].sort(
+      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    )
+
+    // Group overlapping appointments
+    const groups: Appointment[][] = []
+    let currentGroup: Appointment[] = [sorted[0]]
+
+    for (let i = 1; i < sorted.length; i++) {
+      const current = sorted[i]
+      const lastInGroup = currentGroup[currentGroup.length - 1]
+
+      const currentStart = new Date(current.start_time).getTime()
+      const lastEnd = new Date(lastInGroup.end_time).getTime()
+
+      // If current appointment starts before last appointment ends, they overlap
+      if (currentStart < lastEnd) {
+        currentGroup.push(current)
+      } else {
+        groups.push(currentGroup)
+        currentGroup = [current]
+      }
+    }
+    groups.push(currentGroup)
+
+    return groups
+  }
+
+  // Calculate position and height for appointment with column layout
+  const getAppointmentStyle = (appointment: Appointment, dayAppointments: Appointment[]) => {
     const start = new Date(appointment.start_time)
     const end = new Date(appointment.end_time)
 
@@ -75,9 +108,28 @@ export function CalendarWeekViewDnd({
     const top = ((startHourFloat - startHour) / (endHour - startHour + 1)) * 100
     const height = ((endHourFloat - startHourFloat) / (endHour - startHour + 1)) * 100
 
+    // Get column information for this appointment
+    const groups = getAppointmentGroupsForDay(dayAppointments)
+    let columnIndex = 0
+    let columnCount = 1
+
+    for (const group of groups) {
+      const appointmentIndex = group.findIndex((a) => a.id === appointment.id)
+      if (appointmentIndex !== -1) {
+        columnIndex = appointmentIndex
+        columnCount = group.length
+        break
+      }
+    }
+
+    const columnWidth = 100 / columnCount
+    const left = columnIndex * columnWidth
+
     return {
       top: `${top}%`,
       height: `${height}%`,
+      left: `${left}%`,
+      width: `${columnWidth}%`,
     }
   }
 
@@ -213,21 +265,25 @@ export function CalendarWeekViewDnd({
                             className="absolute inset-0 z-20 pointer-events-none"
                             style={{ height: `${hours.length * 100}%` }}
                           >
-                            {getAppointmentsForDay(day).map((appointment) => {
-                              const style = getAppointmentStyle(appointment)
-                              const startTime = format(new Date(appointment.start_time), 'HH:mm')
-                              const endTime = format(new Date(appointment.end_time), 'HH:mm')
+                            {(() => {
+                              const dayAppointments = getAppointmentsForDay(day)
+                              return dayAppointments.map((appointment) => {
+                                const style = getAppointmentStyle(appointment, dayAppointments)
+                                const startTime = format(new Date(appointment.start_time), 'HH:mm')
+                                const endTime = format(new Date(appointment.end_time), 'HH:mm')
 
-                              return (
-                                <div
-                                  key={appointment.id}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    top: style.top,
-                                    height: style.height,
-                                  }}
-                                  className="absolute left-1 right-1 pointer-events-auto"
-                                >
+                                return (
+                                  <div
+                                    key={appointment.id}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      top: style.top,
+                                      height: style.height,
+                                      left: style.left,
+                                      width: style.width,
+                                    }}
+                                    className="absolute pointer-events-auto overflow-hidden px-0.5"
+                                  >
                                   <DraggableAppointment
                                     appointment={appointment}
                                     onClick={onAppointmentClick}
@@ -236,7 +292,8 @@ export function CalendarWeekViewDnd({
                                   />
                                 </div>
                               )
-                            })}
+                            })
+                            })()}
                           </div>
                         )}
 

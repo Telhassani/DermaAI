@@ -39,12 +39,12 @@ export function CalendarDayViewDnd({
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 10,
+        distance: 3, // Reduced from 10 for more responsive drag
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150, // Reduced from 250 for better mobile experience
         tolerance: 5,
       },
     })
@@ -64,7 +64,57 @@ export function CalendarDayViewDnd({
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
   )
 
-  // Calculate position and height for appointment
+  // Detect overlapping appointments and create column layout
+  const getAppointmentGroups = (appointmentsToGroup: Appointment[]) => {
+    if (appointmentsToGroup.length === 0) return []
+
+    // Sort by start time
+    const sorted = [...appointmentsToGroup].sort(
+      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    )
+
+    // Group overlapping appointments
+    const groups: Appointment[][] = []
+    let currentGroup: Appointment[] = [sorted[0]]
+
+    for (let i = 1; i < sorted.length; i++) {
+      const current = sorted[i]
+      const lastInGroup = currentGroup[currentGroup.length - 1]
+
+      const currentStart = new Date(current.start_time).getTime()
+      const lastEnd = new Date(lastInGroup.end_time).getTime()
+
+      // If current appointment starts before last appointment ends, they overlap
+      if (currentStart < lastEnd) {
+        currentGroup.push(current)
+      } else {
+        groups.push(currentGroup)
+        currentGroup = [current]
+      }
+    }
+    groups.push(currentGroup)
+
+    return groups
+  }
+
+  // Create a map of appointment ID to column information
+  const appointmentColumnMap = (() => {
+    const groups = getAppointmentGroups(sortedAppointments)
+    const map = new Map<number, { columnIndex: number; columnCount: number }>()
+
+    groups.forEach((group) => {
+      group.forEach((appointment, index) => {
+        map.set(appointment.id, {
+          columnIndex: index,
+          columnCount: group.length,
+        })
+      })
+    })
+
+    return map
+  })()
+
+  // Calculate position and height for appointment with column layout
   const getAppointmentStyle = (appointment: Appointment) => {
     const start = new Date(appointment.start_time)
     const end = new Date(appointment.end_time)
@@ -75,9 +125,16 @@ export function CalendarDayViewDnd({
     const top = ((startHourFloat - startHour) / (endHour - startHour + 1)) * 100
     const height = ((endHourFloat - startHourFloat) / (endHour - startHour + 1)) * 100
 
+    // Get column information for this appointment
+    const columnInfo = appointmentColumnMap.get(appointment.id) || { columnIndex: 0, columnCount: 1 }
+    const columnWidth = 100 / columnInfo.columnCount
+    const left = columnInfo.columnIndex * columnWidth
+
     return {
       top: `${top}%`,
       height: `${Math.max(height, 8)}%`, // Minimum height for visibility
+      left: `${left}%`,
+      width: `${columnWidth}%`,
     }
   }
 
@@ -208,8 +265,10 @@ export function CalendarDayViewDnd({
                                   style={{
                                     top: style.top,
                                     height: style.height,
+                                    left: style.left,
+                                    width: style.width,
                                   }}
-                                  className="absolute left-2 right-2 pointer-events-auto"
+                                  className="absolute pointer-events-auto overflow-hidden px-0.5"
                                 >
                                   <DraggableAppointment
                                     appointment={appointment}
