@@ -11,7 +11,7 @@ import { AppointmentTooltip } from './appointment-tooltip'
 import { DraggableAppointment } from './draggable-appointment'
 import { DroppableDay } from './droppable-day'
 import { GripVertical } from 'lucide-react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core'
+import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor, KeyboardSensor } from '@dnd-kit/core'
 import { useState } from 'react'
 import { AppointmentCard } from './appointment-card'
 import { toast } from 'sonner'
@@ -41,16 +41,19 @@ export function CalendarGrid({
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 10,
+        distance: 3, // Reduced from 10 for more responsive drag
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150, // Reduced from 250 for better mobile experience
         tolerance: 5,
       },
-    })
+    }),
+    useSensor(KeyboardSensor)
   )
+
+
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event

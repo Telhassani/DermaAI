@@ -2,7 +2,7 @@
 
 import { Clock, User, Phone, FileText, MoreVertical, Edit, Trash2, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { Appointment, AppointmentStatus, AppointmentType } from '@/lib/hooks/use-appointments'
+import { Appointment, AppointmentStatus, AppointmentType, AppointmentWithDetails } from '@/lib/hooks/use-appointments'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 interface AppointmentCardProps {
-  appointment: Appointment
+  appointment: Appointment | AppointmentWithDetails
   onClick?: () => void
   onEdit?: () => void
   onDelete?: (id: number) => void
