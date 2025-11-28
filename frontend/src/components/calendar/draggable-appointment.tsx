@@ -14,6 +14,7 @@ interface DraggableAppointmentProps {
   onDelete?: (id: number) => void
   onStatusChange?: (status: string) => void
   compact?: boolean
+  extraCompact?: boolean
   showActions?: boolean
 }
 
@@ -24,6 +25,7 @@ export function DraggableAppointment({
   onDelete,
   onStatusChange,
   compact = false,
+  extraCompact = false,
   showActions = true,
 }: DraggableAppointmentProps) {
   const isDraggable =
@@ -72,6 +74,7 @@ export function DraggableAppointment({
               onDelete={onDelete}
               onStatusChange={onStatusChange}
               compact={compact}
+              extraCompact={extraCompact}
               showActions={showActions}
             />
           </div>

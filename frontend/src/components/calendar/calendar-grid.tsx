@@ -230,17 +230,19 @@ export function CalendarGrid({
                 </div>
 
                 {/* Appointments list (first 3) */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {dayAppointments.slice(0, 3).map((appointment, index) => (
-                    <DraggableAppointment
-                      key={appointment.id}
-                      appointment={appointment}
-                      onClick={(app) => {
-                        onAppointmentClick?.(app)
-                      }}
-                      compact={true}
-                      showActions={false}
-                    />
+                    <div key={appointment.id} className="max-h-12 overflow-hidden">
+                      <DraggableAppointment
+                        appointment={appointment}
+                        onClick={(app) => {
+                          onAppointmentClick?.(app)
+                        }}
+                        compact={true}
+                        extraCompact={true}
+                        showActions={false}
+                      />
+                    </div>
                   ))}
 
                   {/* Show more indicator with Popover */}

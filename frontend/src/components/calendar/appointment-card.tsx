@@ -19,6 +19,7 @@ interface AppointmentCardProps {
   onDelete?: (id: number) => void
   onStatusChange?: (status: AppointmentStatus) => void
   compact?: boolean
+  extraCompact?: boolean
   showActions?: boolean
 }
 
@@ -71,6 +72,7 @@ export function AppointmentCard({
   onDelete,
   onStatusChange,
   compact = false,
+  extraCompact = false,
   showActions = true,
 }: AppointmentCardProps) {
   const colors = typeColors[appointment.type]
@@ -90,26 +92,34 @@ export function AppointmentCard({
     <div
       onClick={onClick}
       className={cn(
-        'group relative w-full max-w-full overflow-hidden rounded-lg border-l-4 p-3 shadow-sm transition-all hover:shadow-md',
+        'group relative w-full max-w-full overflow-hidden rounded-lg border-l-4 shadow-sm transition-all hover:shadow-md',
         colors.border,
         colors.bg,
         onClick && 'cursor-pointer',
-        compact && 'p-2'
+        !extraCompact && 'p-3',
+        compact && !extraCompact && 'p-2',
+        extraCompact && 'p-1'
       )}
     >
       {/* Header */}
-      <div className="mb-2 flex items-start justify-between">
+      <div className={cn('flex items-start justify-between', extraCompact ? 'mb-0' : 'mb-2')}>
         <div className="flex-1 space-y-1">
           {/* Time */}
           <div className="flex min-w-0 items-center gap-1.5">
-            <Clock className={cn('h-3.5 w-3.5 flex-shrink-0', colors.text)} />
-            <span className={cn('truncate text-xs font-semibold sm:text-sm', colors.text)}>
-              {startTime} - {endTime}
+            {!compact && !extraCompact && (
+              <Clock className={cn('h-3.5 w-3.5 flex-shrink-0', colors.text)} />
+            )}
+            <span className={cn(
+              'truncate font-semibold',
+              extraCompact ? 'text-[10px]' : compact ? 'text-xs' : 'text-xs sm:text-sm',
+              colors.text
+            )}>
+              {extraCompact ? startTime : `${startTime} - ${endTime}`}
             </span>
           </div>
 
           {/* Patient name (if available) */}
-          {!compact && (
+          {!compact && !extraCompact && (
             <div className="flex min-w-0 items-center gap-1.5">
               <User className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
               <span className="truncate text-xs font-medium text-gray-900 sm:text-sm">
