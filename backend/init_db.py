@@ -48,7 +48,7 @@ def seed_data():
         else:
             admin_user = User(
                 email="admin@dermai.com",
-                hashed_password=get_password_hash("Admin123!"),  # Change in production!
+                hashed_password=get_password_hash("password123"),
                 full_name="DermAI Admin",
                 role=UserRole.ADMIN,
                 is_active=True,
@@ -68,7 +68,7 @@ def seed_data():
         else:
             doctor_user = User(
                 email="doctor@dermai.com",
-                hashed_password=get_password_hash("Doctor123!"),  # Change in production!
+                hashed_password=get_password_hash("password123"),
                 full_name="Dr. Jean Dupont",
                 role=UserRole.DOCTOR,
                 is_active=True,
@@ -88,7 +88,7 @@ def seed_data():
         else:
             secretary_user = User(
                 email="secretary@dermai.com",
-                hashed_password=get_password_hash("Secretary123!"),  # Change in production!
+                hashed_password=get_password_hash("password123"),
                 full_name="Marie Martin",
                 role=UserRole.SECRETARY,
                 is_active=True,
@@ -102,9 +102,9 @@ def seed_data():
         if not existing_admin or not existing_doctor or not existing_secretary:
             print("✅ Users created successfully!")
             print("\n📝 Demo accounts created:")
-            print("   🔐 Admin: admin@dermai.com / Admin123!")
-            print("   👨‍⚕️ Doctor: doctor@dermai.com / Doctor123!")
-            print("   📋 Secretary: secretary@dermai.com / Secretary123!")
+            print("   🔐 Admin: admin@dermai.com / password123")
+            print("   👨‍⚕️ Doctor: doctor@dermai.com / password123")
+            print("   📋 Secretary: secretary@dermai.com / password123")
 
         # Create sample patients for the doctor (always check and create if missing)
 

@@ -117,14 +117,18 @@ apiClient.interceptors.response.use(
       switch (status) {
         case 401:
           // Unauthorized - Try to refresh token first
+          // Unauthorized - Try to refresh token first
           if (!isRefreshing) {
             isRefreshing = true
             const refresh_token = localStorage.getItem('refresh_token')
 
-            if (refresh_token && originalRequest.url !== '/auth/refresh') {
+            // Try to refresh if we haven't already tried on this request AND it's not a login request
+            if (originalRequest.url !== '/auth/refresh' && originalRequest.url !== '/auth/login') {
               // Try to refresh token
+              // We send the refresh token from localStorage if available, otherwise send empty string
+              // The backend will check the httpOnly cookie if the body token is empty/invalid
               apiClient
-                .post('/auth/refresh', { refresh_token })
+                .post('/auth/refresh', { refresh_token: refresh_token || '' })
                 .then((res) => {
                   const { access_token } = res.data
                   localStorage.setItem('access_token', access_token)
@@ -147,15 +151,30 @@ apiClient.interceptors.response.use(
                   toast.error('Session expirée. Veuillez vous reconnecter.')
                 })
             } else {
-              // No refresh token or already refreshing - logout
+              // Already failed refresh or other auth error - logout
               localStorage.removeItem('access_token')
               localStorage.removeItem('refresh_token')
               localStorage.removeItem('user')
               processQueue(error, null)
-              if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-                window.location.href = '/login'
+
+              // Do not redirect if:
+              // 1. We are already on the login page (prevents loop)
+              // 2. The error comes from checkAuth (/auth/me)
+              const isAuthCheck = originalRequest.url?.includes('/auth/me')
+              const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login'
+
+              if (typeof window !== 'undefined' &&
+                !window.location.pathname.includes('/auth') &&
+                !isLoginPage &&
+                !isAuthCheck) {
+                console.warn('[API] Session expired. Would redirect to login, but disabled for debugging.')
+                // window.location.href = '/login'
               }
-              toast.error('Session expirée. Veuillez vous reconnecter.')
+
+              // Only show toast if it's not a background check
+              if (!isAuthCheck) {
+                toast.error('Session expirée. Veuillez vous reconnecter.')
+              }
             }
           }
 

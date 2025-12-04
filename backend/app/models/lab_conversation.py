@@ -6,7 +6,7 @@ Truly independent - NO patient context
 from datetime import datetime
 from typing import Optional
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum as SQLEnum, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum as SQLEnum, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -64,6 +64,10 @@ class LabConversation(Base):
     is_pinned = Column(Boolean, default=False)
     is_archived = Column(Boolean, default=False)
 
+    # Auto-generated title tracking
+    title_auto_generated = Column(Boolean, default=False, nullable=False)
+    original_title = Column(String(255), nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -102,6 +106,10 @@ class LabMessage(Base):
     # Edit tracking
     is_edited = Column(Boolean, default=False)
     edited_at = Column(DateTime, nullable=True)
+
+    # Version tracking (for regenerated messages)
+    current_version_number = Column(Integer, default=1, nullable=False)
+    has_versions = Column(Boolean, default=False, nullable=False)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -144,3 +152,75 @@ class LabMessageAttachment(Base):
     # Relationships
     message = relationship("LabMessage", back_populates="attachments")
     ai_analysis = relationship("AIAnalysis", backref="attachment")
+
+
+class LabMessageVersion(Base):
+    """
+    Version history for regenerated AI messages
+    Tracks all iterations of an AI response for audit trail
+    """
+    __tablename__ = "lab_message_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Message reference
+    message_id = Column(Integer, ForeignKey("lab_messages.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Version tracking
+    version_number = Column(Integer, nullable=False)  # 1, 2, 3, etc.
+
+    # Content
+    content = Column(Text, nullable=False)
+
+    # AI metadata
+    model_used = Column(String(100), nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    processing_time_ms = Column(Integer, nullable=True)
+
+    # Version management
+    is_current = Column(Boolean, default=False, nullable=False, index=True)
+    regeneration_reason = Column(String(255), nullable=True)  # Why was it regenerated?
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    message = relationship("LabMessage", backref="versions")
+
+    __table_args__ = (
+        UniqueConstraint('message_id', 'version_number', name='uq_message_version'),
+    )
+
+
+class PromptTemplate(Base):
+    """
+    Reusable prompt templates for quick message composition
+    Supports both system templates and user-created templates
+    """
+    __tablename__ = "prompt_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Owner
+    doctor_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Template content
+    category = Column(String(100), nullable=True, index=True)  # e.g., "lab_analysis", "image_analysis"
+    title = Column(String(255), nullable=False)
+    template_text = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
+
+    # System vs custom
+    is_system = Column(Boolean, default=False, nullable=False)  # System templates available to all
+
+    # Usage tracking
+    usage_count = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    doctor = relationship("User", backref="prompt_templates")

@@ -163,24 +163,7 @@ export function AppointmentDetailsModal({
           ) : (
             <div className="space-y-6">
               {/* Status and Type badges */}
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium',
-                    statusLabels[appointment.status].color
-                  )}
-                >
-                  {statusLabels[appointment.status].label}
-                </span>
-                <span className="rounded-md bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
-                  {typeLabels[appointment.type]}
-                </span>
-                {appointment.is_first_visit && (
-                  <span className="rounded-md bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700">
-                    1ère visite
-                  </span>
-                )}
-              </div>
+
 
               {/* Date and Time */}
               <div className="space-y-3 rounded-lg border bg-gray-50 p-4">
@@ -260,36 +243,6 @@ export function AppointmentDetailsModal({
                   <p className="rounded-lg border bg-green-50 p-4 text-gray-700">
                     {appointment.diagnosis}
                   </p>
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              {appointment.status !== AppointmentStatus.COMPLETED &&
-                appointment.status !== AppointmentStatus.CANCELLED && (
-                <div className="flex gap-3 border-t pt-4">
-                  <Button
-                    onClick={() => handleStatusChange(AppointmentStatus.CONFIRMED)}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={appointment.status === AppointmentStatus.CONFIRMED}
-                  >
-                    Confirmer
-                  </Button>
-                  <Button
-                    onClick={() => handleStatusChange(AppointmentStatus.IN_PROGRESS)}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={appointment.status === AppointmentStatus.IN_PROGRESS}
-                  >
-                    Démarrer
-                  </Button>
-                  <Button
-                    onClick={() => handleStatusChange(AppointmentStatus.COMPLETED)}
-                    className="flex-1 gap-2"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Terminer
-                  </Button>
                 </div>
               )}
 

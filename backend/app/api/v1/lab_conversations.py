@@ -15,6 +15,7 @@ import asyncio
 from app.api.deps import get_current_active_user
 from app.db.session import get_db
 from app.models import User
+from app.models.user import UserRole
 from app.models.lab_conversation import (
     LabConversation,
     LabMessage,
@@ -32,6 +33,13 @@ from app.schemas.lab_conversation import (
     MessageResponse,
     MessageListResponse,
     ConversationAnalytics,
+    MessageVersionResponse,
+    RegenerateMessageRequest,
+    SwitchMessageVersionRequest,
+    PromptTemplateCreate,
+    PromptTemplateUpdate,
+    PromptTemplateResponse,
+    PromptTemplateListResponse,
 )
 from app.services.lab_conversation_service import (
     LabConversationService,
@@ -80,7 +88,7 @@ async def create_conversation(
     - **system_prompt**: Custom system instructions for the AI
     - **temperature**: Creativity level (0.0-1.0, default 0.7)
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can create conversations")
 
     conversation = LabConversationService.create_conversation(
@@ -114,7 +122,7 @@ async def list_conversations(
     - **is_archived**: Filter by archive status (true/false/null)
     - **search**: Search in title and description
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can list conversations")
 
     conversations, total = LabConversationService.list_conversations(
@@ -129,7 +137,7 @@ async def list_conversations(
     log_audit_event(current_user, "LIST_LAB_CONVERSATIONS", f"count={len(conversations)}")
 
     return ConversationListResponse(
-        conversations=conversations,
+        items=conversations,
         total=total,
         skip=skip,
         limit=limit,
@@ -153,7 +161,7 @@ async def get_conversation(
     - **conversation_id**: ID of the conversation
     - **message_limit**: Maximum number of messages to return (pagination)
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can view conversations")
 
     conversation = LabConversationService.get_conversation(
@@ -193,7 +201,7 @@ async def update_conversation(
 
     - **conversation_id**: ID of the conversation to update
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can update conversations")
 
     conversation = LabConversationService.update_conversation(
@@ -221,7 +229,7 @@ async def delete_conversation(
 
     - **conversation_id**: ID of the conversation to delete
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can delete conversations")
 
     success = LabConversationService.delete_conversation(
@@ -250,7 +258,7 @@ async def pin_conversation(
     - **conversation_id**: ID of the conversation
     - **is_pinned**: true to pin, false to unpin
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can manage conversations")
 
     conversation = LabConversationService.pin_conversation(
@@ -284,7 +292,7 @@ async def archive_conversation(
     - **conversation_id**: ID of the conversation
     - **is_archived**: true to archive, false to unarchive
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can manage conversations")
 
     conversation = LabConversationService.archive_conversation(
@@ -334,7 +342,7 @@ async def send_message(
     - **selected_model**: AI model to use (overrides conversation default)
     - **file**: Optional file attachment (lab result, image, PDF)
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can send messages")
 
     # Verify conversation exists and belongs to user
@@ -443,7 +451,7 @@ async def list_messages(
     - **skip**: Number of messages to skip
     - **limit**: Maximum messages to return
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can view messages")
 
     # Verify conversation exists and belongs to user
@@ -494,7 +502,7 @@ async def edit_message(
     - **message_id**: ID of the message to edit
     - **content**: New message content
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can edit messages")
 
     # Verify conversation exists and belongs to user
@@ -557,7 +565,7 @@ async def delete_message(
     - **conversation_id**: ID of the conversation
     - **message_id**: ID of the message to delete
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can delete messages")
 
     # Verify conversation belongs to user
@@ -604,7 +612,7 @@ async def get_analytics(
 
     - **conversation_id**: ID of the conversation
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can view analytics")
 
     # Verify conversation belongs to user
@@ -761,7 +769,7 @@ async def stream_ai_response(
     - complete: Final event with message_id and stats
     - error: Error information
     """
-    if current_user.role.value != "DOCTOR":
+    if current_user.role != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Only doctors can generate responses")
 
     # Verify conversation exists and belongs to user
@@ -851,3 +859,212 @@ async def stream_ai_response(
             status_code=500,
             detail="Failed to generate AI response"
         )
+
+
+# ============================================================================
+# MESSAGE VERSION ENDPOINTS
+# ============================================================================
+
+
+@router.get(
+    "/conversations/{conversation_id}/messages/{message_id}/versions",
+    response_model=List[MessageVersionResponse],
+    summary="Get all versions of a message",
+    tags=["Message Versions"]
+)
+async def get_message_versions(
+    conversation_id: int,
+    message_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all versions of a specific message (for regenerated responses).
+
+    Returns list of all versions in creation order, with metadata about each.
+    """
+    # Verify conversation and message
+    conversation = LabConversationService.get_conversation(
+        db, conversation_id, current_user.id
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    message = LabMessageService.get_message(db, message_id)
+    if not message or message.conversation_id != conversation_id:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    # Import service here to avoid circular imports
+    from app.services.lab_message_version_service import LabMessageVersionService
+
+    versions = LabMessageVersionService.get_versions(db, message_id)
+
+    log_audit_event(current_user, "VIEW_MESSAGE_VERSIONS", f"message_id={message_id}")
+
+    return versions
+
+
+@router.patch(
+    "/conversations/{conversation_id}/messages/{message_id}/switch-version",
+    response_model=MessageResponse,
+    summary="Switch to a different version of a message",
+    tags=["Message Versions"]
+)
+async def switch_message_version(
+    conversation_id: int,
+    message_id: int,
+    version_number: int = Query(..., ge=1),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Switch the active version of a message.
+
+    User can switch between regenerated versions to use the best response.
+    """
+    if current_user.role != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Only doctors can manage messages")
+
+    # Verify conversation and message
+    conversation = LabConversationService.get_conversation(
+        db, conversation_id, current_user.id
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    message = LabMessageService.get_message(db, message_id)
+    if not message or message.conversation_id != conversation_id:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    # Import service here to avoid circular imports
+    from app.services.lab_message_version_service import LabMessageVersionService
+
+    # Verify version exists
+    version = LabMessageVersionService.get_version(db, message_id, version_number)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    # Update message to use this version
+    message.current_version_number = version_number
+    message.content = version.content
+    message.model_used = version.model_used
+    message.prompt_tokens = version.prompt_tokens
+    message.completion_tokens = version.completion_tokens
+    message.processing_time_ms = version.processing_time_ms
+    db.commit()
+
+    log_audit_event(
+        current_user,
+        "SWITCH_MESSAGE_VERSION",
+        f"message_id={message_id}, version={version_number}",
+    )
+
+    return message
+
+
+# ============================================================================
+# PROMPT TEMPLATE ENDPOINTS
+# ============================================================================
+
+
+@router.post(
+    "/prompt-templates",
+    response_model=PromptTemplateResponse,
+    status_code=201,
+    summary="Create a new prompt template",
+    tags=["Prompt Templates"]
+)
+@limiter.limit("20/minute")
+async def create_prompt_template(
+    data: PromptTemplateCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new reusable prompt template for quick access."""
+    if current_user.role != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Only doctors can create templates")
+
+    from app.services.prompt_template_service import PromptTemplateService
+
+    template = PromptTemplateService.create_template(db, current_user.id, data)
+    log_audit_event(current_user, "CREATE_PROMPT_TEMPLATE", f"template_id={template.id}")
+    return template
+
+
+@router.get(
+    "/prompt-templates",
+    response_model=PromptTemplateListResponse,
+    summary="List all prompt templates",
+    tags=["Prompt Templates"]
+)
+async def list_prompt_templates(
+    category: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get all templates (both system and user-created)."""
+    from app.services.prompt_template_service import PromptTemplateService
+
+    templates, total = PromptTemplateService.list_templates(
+        db, current_user.id, category=category, skip=skip, limit=limit
+    )
+    return {
+        "items": templates,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+    }
+
+
+@router.patch(
+    "/prompt-templates/{template_id}",
+    response_model=PromptTemplateResponse,
+    summary="Update a prompt template",
+    tags=["Prompt Templates"]
+)
+async def update_prompt_template(
+    template_id: int,
+    data: PromptTemplateUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Update an existing prompt template."""
+    if current_user.role != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Only doctors can update templates")
+
+    from app.services.prompt_template_service import PromptTemplateService
+
+    template = PromptTemplateService.update_template(
+        db, template_id, current_user.id, data
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    log_audit_event(current_user, "UPDATE_PROMPT_TEMPLATE", f"template_id={template_id}")
+    return template
+
+
+@router.delete(
+    "/prompt-templates/{template_id}",
+    status_code=204,
+    summary="Delete a prompt template",
+    tags=["Prompt Templates"]
+)
+async def delete_prompt_template(
+    template_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a prompt template."""
+    if current_user.role != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Only doctors can delete templates")
+
+    from app.services.prompt_template_service import PromptTemplateService
+
+    success = PromptTemplateService.delete_template(db, template_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    log_audit_event(current_user, "DELETE_PROMPT_TEMPLATE", f"template_id={template_id}")

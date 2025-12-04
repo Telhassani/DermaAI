@@ -196,20 +196,20 @@ export function useAppointmentDragDrop(
         const endTimeStr = newEndTime.toISOString()
 
         // Check for conflicts with the new time
-        const conflictResponse = await conflictMutation.mutateAsync({
-          doctor_id: appointment.doctor_id,
-          start_time: startTimeStr,
-          end_time: endTimeStr,
-          exclude_appointment_id: appointment.id,
-        })
+        // const conflictResponse = await conflictMutation.mutateAsync({
+        //   doctor_id: appointment.doctor_id,
+        //   start_time: startTimeStr,
+        //   end_time: endTimeStr,
+        //   exclude_appointment_id: appointment.id,
+        // })
 
-        if (conflictResponse.has_conflict) {
-          toast.error(
-            `Conflit détecté: ${conflictResponse.conflict_details}. Essayez une autre date.`
-          )
-          resetDragState()
-          return
-        }
+        // if (conflictResponse.has_conflict) {
+        //   const conflictCount = conflictResponse.conflicting_appointments.length
+        //   toast.warning(
+        //     `Attention: Chevauchement avec ${conflictCount} rendez-vous existant${conflictCount > 1 ? 's' : ''}.`
+        //   )
+        //   // We do NOT return here anymore, allowing the drop to proceed
+        // }
 
         // Perform the update
         await updateMutation.mutateAsync({

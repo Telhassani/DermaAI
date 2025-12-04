@@ -1,8 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core'
-import { format, startOfWeek, addDays, isToday, addMinutes, isSameDay } from 'date-fns'
+import { useState, useRef } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import { restrictToWindowEdges } from '@dnd-kit/modifiers'
+import { format, startOfWeek, addDays, isToday, addMinutes, isSameDay, parse } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
@@ -31,17 +41,14 @@ export function CalendarWeekViewDnd({
   endHour = 20,
 }: CalendarWeekViewDndProps) {
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null)
+  const [resizingAppointment, setResizingAppointment] = useState<{ id: number; start: Date; end: Date } | null>(null)
+  const [initialResizeState, setInitialResizeState] = useState<{ start: Date; end: Date } | null>(null)
+  const [currentDragTime, setCurrentDragTime] = useState<{ start: Date; end: Date } | null>(null)
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Reduced from 10 for more responsive drag
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150, // Reduced from 250 for better mobile experience
-        tolerance: 5,
+        distance: 10, // Add threshold to prevent accidental/too-quick drags
       },
     })
   )
@@ -76,20 +83,21 @@ export function CalendarWeekViewDnd({
     // Group overlapping appointments
     const groups: Appointment[][] = []
     let currentGroup: Appointment[] = [sorted[0]]
+    let maxEndTime = new Date(sorted[0].end_time).getTime()
 
     for (let i = 1; i < sorted.length; i++) {
       const current = sorted[i]
-      const lastInGroup = currentGroup[currentGroup.length - 1]
-
       const currentStart = new Date(current.start_time).getTime()
-      const lastEnd = new Date(lastInGroup.end_time).getTime()
+      const currentEnd = new Date(current.end_time).getTime()
 
-      // If current appointment starts before last appointment ends, they overlap
-      if (currentStart < lastEnd) {
+      // If current appointment starts before the max end time of the group, they overlap
+      if (currentStart < maxEndTime) {
         currentGroup.push(current)
+        maxEndTime = Math.max(maxEndTime, currentEnd)
       } else {
         groups.push(currentGroup)
         currentGroup = [current]
+        maxEndTime = currentEnd
       }
     }
     groups.push(currentGroup)
@@ -133,70 +141,198 @@ export function CalendarWeekViewDnd({
     }
   }
 
-  // Type colors
-  const typeColors: Record<AppointmentType, string> = {
-    [AppointmentType.CONSULTATION]: 'border-l-blue-500 bg-blue-50',
-    [AppointmentType.FOLLOW_UP]: 'border-l-green-500 bg-green-50',
-    [AppointmentType.PROCEDURE]: 'border-l-purple-500 bg-purple-50',
-    [AppointmentType.EMERGENCY]: 'border-l-red-500 bg-red-50',
+  // Handle drag start
+  const handleDragStart = (event: any) => {
+    const { active } = event
+    const data = active.data.current
+
+    if (data?.type === 'appointment') {
+      const appointment = data.appointment as Appointment
+      setActiveAppointment(appointment)
+      setCurrentDragTime({
+        start: new Date(appointment.start_time),
+        end: new Date(appointment.end_time)
+      })
+    } else if (data?.type === 'resize') {
+      const appointment = data.appointment as Appointment
+      const start = new Date(appointment.start_time)
+      const end = new Date(appointment.end_time)
+
+      setResizingAppointment({
+        id: appointment.id,
+        start,
+        end
+      })
+      setInitialResizeState({
+        start,
+        end
+      })
+      // Initialize time badge for resize too
+      setCurrentDragTime({
+        start,
+        end
+      })
+    }
+  }
+
+  // Handle drag move
+  const handleDragMove = (event: any) => {
+    const { active, delta } = event
+    const data = active.data.current
+
+    if (data?.type === 'appointment' && activeAppointment) {
+      // Existing move logic
+      const step = 25 // 15 min step
+      const snappedY = Math.round(delta.y / step) * step
+      const minutesMoved = (snappedY / 100) * 60
+
+      const originalStart = new Date(activeAppointment.start_time)
+      const originalEnd = new Date(activeAppointment.end_time)
+
+      const newStart = addMinutes(originalStart, minutesMoved)
+      const newEnd = addMinutes(originalEnd, minutesMoved)
+
+      setCurrentDragTime({ start: newStart, end: newEnd })
+    } else if (data?.type === 'resize' && resizingAppointment && initialResizeState) {
+      // Resize logic
+      const step = 25 // 15 min step
+
+      // Use Math.trunc/floor logic to add friction
+      const frictionY = delta.y
+      const snappedY = (frictionY > 0)
+        ? Math.floor(frictionY / step) * step
+        : Math.ceil(frictionY / step) * step
+
+      const minutesMoved = (snappedY / 100) * 60
+
+      // CRITICAL FIX: Always calculate from the INITIAL state, not the current (updating) state
+      const originalStart = initialResizeState.start
+      const originalEnd = initialResizeState.end
+
+      let newStart = resizingAppointment.start
+      let newEnd = resizingAppointment.end
+
+      if (data.position === 'top') {
+        const potentialStart = addMinutes(originalStart, minutesMoved)
+        const newDuration = (originalEnd.getTime() - potentialStart.getTime()) / (1000 * 60)
+
+        // Constraints: Min 15 mins, Max 8 hours
+        if (newDuration >= 15 && newDuration <= 8 * 60) {
+          newStart = potentialStart
+          setResizingAppointment({
+            ...resizingAppointment,
+            start: newStart
+          })
+        }
+      } else if (data.position === 'bottom') {
+        const potentialEnd = addMinutes(originalEnd, minutesMoved)
+        const newDuration = (potentialEnd.getTime() - originalStart.getTime()) / (1000 * 60)
+
+        // Constraints: Min 15 mins, Max 8 hours
+        if (newDuration >= 15 && newDuration <= 8 * 60) {
+          newEnd = potentialEnd
+          setResizingAppointment({
+            ...resizingAppointment,
+            end: newEnd
+          })
+        }
+      }
+
+      // Update time badge
+      setCurrentDragTime({ start: newStart, end: newEnd })
+    }
   }
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
+    const { active, over, delta } = event
+    const data = active.data.current
 
-    if (!over || !onAppointmentReschedule) {
-      setActiveAppointment(null)
-      return
-    }
-
-    const appointment = active.data.current?.appointment as Appointment
-    const dropData = over.data.current
-
-    if (dropData?.type === 'time-slot') {
-      const newDate = dropData.date as Date
-      const newHour = dropData.hour as number
-
-      // Calculate new start and end times
-      const oldStart = new Date(appointment.start_time)
-      const oldEnd = new Date(appointment.end_time)
-      const duration = oldEnd.getTime() - oldStart.getTime()
-
-      const newStart = new Date(newDate)
-      newStart.setHours(newHour, 0, 0, 0)
-
-      const newEnd = addMinutes(newStart, duration / (1000 * 60))
-
-      // Check if time is valid
-      if (newStart < new Date()) {
-        toast.error('Impossible de programmer un rendez-vous dans le passé')
-        setActiveAppointment(null)
-        return
-      }
-
-      // Call reschedule callback
-      onAppointmentReschedule(appointment.id, newStart, newEnd)
-      toast.success('Rendez-vous reprogrammé')
-    }
-
+    // Reset state
     setActiveAppointment(null)
+    setCurrentDragTime(null)
+    setResizingAppointment(null)
+    setInitialResizeState(null)
+
+    if (!onAppointmentReschedule) return
+
+    if (data?.type === 'appointment' && over) {
+      // Existing move commit logic
+      // Parse drop target: slot-yyyy-MM-dd-hour
+      const parts = (over.id as string).split('-')
+      const dateStr = `${parts[1]}-${parts[2]}-${parts[3]}`
+      const targetDate = parse(dateStr, 'yyyy-MM-dd', new Date())
+
+      const step = 25 // 15 min step
+      const snappedY = Math.round(delta.y / step) * step
+      const minutesMoved = (snappedY / 100) * 60
+
+      const originalStart = new Date(data.appointment.start_time)
+      const newTimeOfDay = addMinutes(originalStart, minutesMoved)
+
+      const newStart = new Date(targetDate)
+      newStart.setHours(newTimeOfDay.getHours())
+      newStart.setMinutes(newTimeOfDay.getMinutes())
+      newStart.setSeconds(0)
+      newStart.setMilliseconds(0)
+
+      const duration = new Date(data.appointment.end_time).getTime() - originalStart.getTime()
+      const newEnd = new Date(newStart.getTime() + duration)
+
+      onAppointmentReschedule(data.appointment.id, newStart, newEnd)
+
+    } else if (data?.type === 'resize' && resizingAppointment) {
+      // Commit resize
+      onAppointmentReschedule(resizingAppointment.id, resizingAppointment.start, resizingAppointment.end)
+    }
+  }
+
+  // Snap to grid modifier (25px = 15 minutes, assuming 100px per hour)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const snapToGrid = ({ transform }: any) => {
+    const step = 25 // 15 minute interval
+    return {
+      ...transform,
+      y: Math.round(transform.y / step) * step,
+    }
+  }
+
+  const restrictToGrid = ({ transform, draggingNodeRect }: any) => {
+    const gridElement = document.getElementById('calendar-week-grid')
+
+    if (!gridElement || !draggingNodeRect) {
+      return transform
+    }
+
+    const gridRect = gridElement.getBoundingClientRect()
+    const nodeRect = draggingNodeRect
+
+    // Calculate boundaries
+    const minX = gridRect.left - nodeRect.left
+    const maxX = gridRect.right - nodeRect.width - nodeRect.left
+    const minY = gridRect.top - nodeRect.top
+    const maxY = gridRect.bottom - nodeRect.height - nodeRect.top
+
+    return {
+      ...transform,
+      x: Math.max(minX, Math.min(maxX, transform.x)),
+      y: Math.max(minY, Math.min(maxY, transform.y)),
+    }
   }
 
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={(event) => {
-        const appointment = event.active.data.current?.appointment as Appointment
-        setActiveAppointment(appointment)
-      }}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       collisionDetection={closestCenter}
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div id="calendar-week-grid" className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200/60 bg-white shadow-sm ring-1 ring-black/5">
         {/* Week header */}
-        <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b bg-gray-50">
-          <div className="border-r p-3" /> {/* Empty cell for time column */}
-          {weekDays.map((day) => {
+        <div className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-gray-100 bg-gradient-to-b from-white to-gray-50/50">
+          <div className="border-r border-gray-50 p-3" /> {/* Empty cell for time column */}
+          {weekDays.map((day, index) => {
             const isCurrentDay = isToday(day)
             const dayNumber = format(day, 'd')
             const dayName = format(day, 'EEE', { locale: fr })
@@ -205,16 +341,16 @@ export function CalendarWeekViewDnd({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  'border-r p-3 text-center last:border-r-0',
-                  isCurrentDay && 'bg-blue-50'
+                  'border-r border-gray-50 p-3 text-center last:border-r-0',
+                  isCurrentDay && 'bg-blue-50/30'
                 )}
               >
-                <div className="text-xs font-medium uppercase text-gray-500">{dayName}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{dayName}</div>
                 <div
                   className={cn(
-                    'mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
+                    'mt-1.5 mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium transition-colors',
                     isCurrentDay
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-900'
                   )}
                 >
@@ -226,14 +362,14 @@ export function CalendarWeekViewDnd({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-[80px_repeat(7,1fr)]">
+        <div className="flex-1 overflow-auto custom-scrollbar relative">
+          <div className="grid grid-cols-[70px_repeat(7,1fr)]">
             {/* Time column and day columns */}
             {hours.map((hour) => (
               <div key={hour} className="contents">
                 {/* Time label */}
-                <div className="sticky left-0 z-10 border-b border-r bg-gray-50 p-2 text-right">
-                  <span className="text-xs font-medium text-gray-500">
+                <div className="sticky left-0 z-10 border-r border-gray-100 bg-white h-full pointer-events-none">
+                  <span className="absolute top-0 right-2 text-xs font-medium text-gray-500 -translate-y-1/2 bg-white px-1">
                     {hour.toString().padStart(2, '0')}:00
                   </span>
                 </div>
@@ -250,27 +386,37 @@ export function CalendarWeekViewDnd({
                       date={day}
                       hour={hour}
                       className={cn(
-                        'group relative',
-                        isCurrentDay && 'bg-blue-50/30',
-                        onTimeSlotClick && 'cursor-pointer hover:bg-blue-50'
+                        'group relative border-b border-r border-gray-100 h-[100px]', // Added border-r for vertical grid
+                        isCurrentDay && 'bg-blue-50/5',
+                        onTimeSlotClick && 'cursor-pointer hover:bg-gray-50/50 transition-colors'
                       )}
                     >
                       <div
                         onClick={() => onTimeSlotClick?.(day, hour)}
                         className="absolute inset-0"
                       >
+                        {/* 15-minute markers - subtle */}
+                        <div className="absolute left-0 right-0 top-[25%] h-px bg-gray-50/30" />
+                        <div className="absolute left-0 right-0 top-[50%] h-px bg-gray-100/50 border-t border-dashed border-gray-200" />
+                        <div className="absolute left-0 right-0 top-[75%] h-px bg-gray-50/30" />
+
                         {/* Show appointments only in first hour slot to avoid duplication */}
                         {hour === startHour && (
                           <div
-                            className="absolute inset-0 z-20 pointer-events-none"
+                            className="absolute inset-0 z-20 pointer-events-none pr-1" // Added right padding for spacing
                             style={{ height: `${hours.length * 100}%` }}
                           >
                             {(() => {
                               const dayAppointments = getAppointmentsForDay(day)
                               return dayAppointments.map((appointment) => {
-                                const style = getAppointmentStyle(appointment, dayAppointments)
-                                const startTime = format(new Date(appointment.start_time), 'HH:mm')
-                                const endTime = format(new Date(appointment.end_time), 'HH:mm')
+                                // Use resizing appointment data if it matches
+                                const isResizing = resizingAppointment?.id === appointment.id
+                                const displayAppointment = isResizing
+                                  ? { ...appointment, start_time: resizingAppointment.start.toISOString(), end_time: resizingAppointment.end.toISOString() }
+                                  : appointment
+
+                                const style = getAppointmentStyle(displayAppointment, dayAppointments)
+                                const isDragging = activeAppointment?.id === appointment.id
 
                                 return (
                                   <div
@@ -282,12 +428,16 @@ export function CalendarWeekViewDnd({
                                       left: style.left,
                                       width: style.width,
                                     }}
-                                    className="absolute pointer-events-auto overflow-hidden px-0.5"
+                                    className={cn(
+                                      "absolute pointer-events-auto z-10 hover:z-20 pb-[1px]", // Added bottom padding for vertical gap
+                                      !isResizing && "transition-all duration-300 ease-in-out", // Disable transition during resize for smoothness
+                                      isDragging && "opacity-0" // Hide original while dragging (but NOT while resizing)
+                                    )}
                                   >
                                     <DraggableAppointment
-                                      appointment={appointment}
+                                      appointment={displayAppointment}
                                       onClick={onAppointmentClick}
-                                      compact={true}
+                                      variant="week"
                                       showActions={false}
                                     />
                                   </div>
@@ -300,7 +450,9 @@ export function CalendarWeekViewDnd({
                         {/* Hover overlay for empty slots */}
                         {onTimeSlotClick && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                            <span className="text-xs text-gray-400">+</span>
+                            <div className="bg-blue-500/10 text-blue-600 text-[10px] font-medium px-1.5 py-0.5 rounded">
+                              +
+                            </div>
                           </div>
                         )}
                       </div>
@@ -310,46 +462,83 @@ export function CalendarWeekViewDnd({
               </div>
             ))}
           </div>
+
+          {/* Current time indicator (if today is in view) */}
+          {weekDays.some((day) => isToday(day)) && (() => {
+            const now = new Date()
+            const currentHour = now.getHours()
+            const currentMinutes = now.getMinutes()
+
+            // Only show if within working hours
+            if (currentHour >= startHour && currentHour <= endHour) {
+              const currentHourFloat = currentHour + currentMinutes / 60
+              const topPosition = ((currentHourFloat - startHour) / (endHour - startHour + 1)) * 100
+
+              return (
+                <div
+                  className="pointer-events-none absolute left-[70px] right-0 z-30 flex items-center"
+                  style={{ top: `${topPosition}%` }}
+                >
+                  <div className="h-2.5 w-2.5 -ml-1.5 rounded-full bg-red-500 ring-2 ring-white shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                  <div className="h-px flex-1 bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.4)]" />
+                </div>
+              )
+            }
+            return null
+          })()}
         </div>
+      </div>
 
-        {/* Current time indicator (if today is in view) */}
-        {weekDays.some((day) => isToday(day)) && (() => {
-          const now = new Date()
-          const currentHour = now.getHours()
-          const currentMinutes = now.getMinutes()
-
-          // Only show if within working hours
-          if (currentHour >= startHour && currentHour <= endHour) {
-            const currentHourFloat = currentHour + currentMinutes / 60
-            const topPosition = ((currentHourFloat - startHour) / (endHour - startHour + 1)) * 100
+      {/* Drag overlay */}
+      <DragOverlay modifiers={[snapToGrid, restrictToGrid]} dropAnimation={null}>
+        {(() => {
+          if (activeAppointment) {
+            // Dragging the whole card
+            const durationMinutes = (new Date(activeAppointment.end_time).getTime() - new Date(activeAppointment.start_time).getTime()) / (1000 * 60)
+            const height = (durationMinutes / 60) * 100 // 100px per hour
 
             return (
-              <div
-                className="pointer-events-none absolute left-[80px] right-0 z-30"
-                style={{ top: `${topPosition + 8}%` }}
-              >
-                <div className="flex items-center">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <div className="h-0.5 flex-1 bg-red-500" />
+              <div className="flex items-center">
+                <div
+                  className="shadow-2xl scale-[1.02] cursor-grabbing opacity-90 relative"
+                  style={{
+                    height: `${height}px`,
+                    width: '180px' // Approximate column width
+                  }}
+                >
+                  <DraggableAppointment
+                    appointment={activeAppointment}
+                    variant="week"
+                    showActions={false}
+                  />
+                </div>
+
+                {/* Time Indicator */}
+                {currentDragTime && (
+                  <div className="ml-2 flex flex-col leading-tight text-xs font-semibold text-blue-600 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <span>{format(currentDragTime.start, 'HH:mm')}</span>
+                    <span className="text-blue-400">{format(currentDragTime.end, 'HH:mm')}</span>
+                  </div>
+                )}
+              </div>
+            )
+          } else if (resizingAppointment && currentDragTime) {
+            // Resizing - Show only the time indicator following the cursor
+            // We position it slightly offset so it doesn't block the view
+            return (
+              <div className="pointer-events-none flex items-center">
+                {/* Invisible spacer to offset the badge if needed, or just absolute positioning */}
+                <div className="w-4 h-4" />
+
+                <div className="ml-4 flex flex-col leading-tight text-xs font-semibold text-blue-600 bg-white/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-blue-100 animate-in fade-in zoom-in duration-200">
+                  <span>{format(currentDragTime.start, 'HH:mm')}</span>
+                  <span className="text-blue-400">{format(currentDragTime.end, 'HH:mm')}</span>
                 </div>
               </div>
             )
           }
           return null
         })()}
-      </div>
-
-      {/* Drag overlay */}
-      <DragOverlay>
-        {activeAppointment && (
-          <div className="w-64 rotate-3 opacity-90">
-            <AppointmentCard
-              appointment={activeAppointment}
-              compact={true}
-              showActions={false}
-            />
-          </div>
-        )}
       </DragOverlay>
     </DndContext>
   )

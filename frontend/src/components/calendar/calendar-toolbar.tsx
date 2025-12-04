@@ -135,17 +135,17 @@ export function CalendarToolbar({
 
       {/* Right section: View selector and actions */}
       <div className="flex items-center gap-3">
-        {/* View selector */}
-        <div className="flex items-center rounded-lg border bg-gray-50 p-1">
+        {/* View selector - Segmented Control */}
+        <div className="flex items-center rounded-xl border border-gray-200/50 bg-gray-100/50 p-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onViewChange('month')}
             className={cn(
-              'px-3',
+              'px-3 rounded-lg transition-all duration-200 ease-in-out',
               view === 'month'
-                ? 'bg-white font-medium text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-black/5'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
             )}
           >
             Mois
@@ -155,10 +155,10 @@ export function CalendarToolbar({
             size="sm"
             onClick={() => onViewChange('week')}
             className={cn(
-              'px-3',
+              'px-3 rounded-lg transition-all duration-200 ease-in-out',
               view === 'week'
-                ? 'bg-white font-medium text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-black/5'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
             )}
           >
             Semaine
@@ -168,10 +168,10 @@ export function CalendarToolbar({
             size="sm"
             onClick={() => onViewChange('day')}
             className={cn(
-              'px-3',
+              'px-3 rounded-lg transition-all duration-200 ease-in-out',
               view === 'day'
-                ? 'bg-white font-medium text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-black/5'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
             )}
           >
             Jour
@@ -181,10 +181,10 @@ export function CalendarToolbar({
             size="sm"
             onClick={() => onViewChange('agenda')}
             className={cn(
-              'px-3',
+              'px-3 rounded-lg transition-all duration-200 ease-in-out',
               view === 'agenda'
-                ? 'bg-white font-medium text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white font-medium text-blue-600 shadow-sm ring-1 ring-black/5'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
             )}
           >
             Agenda

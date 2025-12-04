@@ -23,12 +23,16 @@ from app.core.security_headers import SecurityHeadersMiddleware
 setup_logging()
 
 # Initialize Sentry (optional - only if SENTRY_DSN is set)
-# if settings.SENTRY_DSN:
-#     sentry_sdk.init(
-#         dsn=settings.SENTRY_DSN,
-#         environment=settings.ENVIRONMENT,
-#         traces_sample_rate=1.0 if settings.DEBUG else 0.1,
-#     )
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        traces_sample_rate=1.0 if settings.DEBUG else 0.1,
+        integrations=[
+            sentry_sdk.integrations.fastapi.FastApiIntegration(),
+            sentry_sdk.integrations.sqlalchemy.SqlalchemyIntegration(),
+        ],
+    )
 
 # Initialize rate limiter
 # limiter = Limiter(key_func=get_remote_address)

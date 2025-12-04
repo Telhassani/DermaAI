@@ -23,6 +23,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     // Timeout fallback - if initialization takes too long, redirect to login
     const timeout = setTimeout(() => {
       if (!isInitialized && !user) {
+        console.log('[AuthGuard] Timeout reached, redirecting to login...')
         setTimedOut(true)
         router.push('/login')
       }
@@ -32,19 +33,20 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, [isInitialized, user, router])
 
   useEffect(() => {
+    console.log('[AuthGuard] State check:', { isInitialized, hasUser: !!user })
     // If initialization is complete and user is not authenticated, redirect to login
     if (isInitialized && !user) {
-      router.push('/login')
+      console.log('[AuthGuard] Not authenticated')
+      // STOP REDIRECT FOR DEBUGGING
+      // router.push('/login')
     }
   }, [isInitialized, user, router])
 
-  // Show loading state only while initializing AND no user data exists
-  // If we have user data, show content even if initialization is pending
-  if (!user) {
+  // Show loading state
+  if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent mx-auto mb-3"></div>
           <p className="text-sm text-gray-600">
             {!isInitialized ? 'Initializing...' : 'Redirecting...'}
           </p>

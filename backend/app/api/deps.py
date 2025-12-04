@@ -2,8 +2,8 @@
 API dependencies - Reusable dependencies for routes
 """
 
-from typing import Annotated
-from fastapi import Depends, HTTPException, status
+from typing import Annotated, Optional
+from fastapi import Depends, HTTPException, status, Cookie, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -13,18 +13,41 @@ from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import TokenData
 
-# OAuth2 scheme for JWT token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# OAuth2 scheme for JWT token - set auto_error=False to handle missing token manually
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+
+async def get_token(
+    token: Optional[str] = Depends(oauth2_scheme),
+    access_token: Optional[str] = Cookie(None),
+    request: Request = None,
+) -> Optional[str]:
+    """
+    Extract JWT token from multiple sources:
+    1. Authorization header (Bearer token)
+    2. httpOnly cookie (access_token)
+
+    Returns the first found token or None.
+    """
+    # Priority 1: Authorization header (Bearer token)
+    if token:
+        return token
+
+    # Priority 2: httpOnly cookie
+    if access_token:
+        return access_token
+
+    return None
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+    token: Annotated[Optional[str], Depends(get_token)], db: Session = Depends(get_db)
 ) -> User:
     """
     Get current authenticated user from JWT token
 
     Args:
-        token: JWT access token from Authorization header
+        token: JWT access token from Authorization header or httpOnly cookie
         db: Database session
 
     Returns:
@@ -38,6 +61,10 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Check if token was provided
+    if not token:
+        raise credentials_exception
 
     # Decode token
     token_data = decode_token(token)
@@ -56,11 +83,8 @@ async def get_current_user(
         raise credentials_exception
 
     try:
-        # Query user and filter by not deleted (FIX #4)
-        user = db.query(User).filter(
-            User.id == user_id,
-            User.is_deleted == False
-        ).first()
+        # Query user by ID
+        user = db.query(User).filter(User.id == user_id).first()
     except Exception:
         raise credentials_exception
 

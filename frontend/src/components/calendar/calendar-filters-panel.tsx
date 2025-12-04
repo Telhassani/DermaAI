@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Filter, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -57,6 +57,7 @@ export function CalendarFiltersPanel({
   onFiltersChange,
 }: CalendarFiltersPanelProps) {
   const [localFilters, setLocalFilters] = useState<CalendarFilters>(filters)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Load saved filters from localStorage on mount
   useEffect(() => {
@@ -68,6 +69,15 @@ export function CalendarFiltersPanel({
         onFiltersChange(parsed)
       } catch (error) {
         console.error('Failed to parse saved filters:', error)
+      }
+    }
+  }, [])
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
       }
     }
   }, [])
@@ -101,12 +111,22 @@ export function CalendarFiltersPanel({
     saveFilters(newFilters)
   }
 
-  // Update search query
+  // Update search query with debounce (300ms)
   const handleSearchChange = (query: string) => {
-    const newFilters = { ...localFilters, searchQuery: query }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-    saveFilters(newFilters)
+    // Update local state immediately for UI responsiveness
+    setLocalFilters((prev) => ({ ...prev, searchQuery: query }))
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Debounce the actual filter application and save
+    searchTimeoutRef.current = setTimeout(() => {
+      const newFilters = { ...localFilters, searchQuery: query }
+      onFiltersChange(newFilters)
+      saveFilters(newFilters)
+    }, 300)
   }
 
   // Toggle show cancelled

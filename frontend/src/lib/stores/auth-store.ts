@@ -9,7 +9,7 @@ export interface User {
   id: number
   email: string
   full_name: string
-  role: 'admin' | 'doctor' | 'secretary' | 'assistant'
+  role: 'ADMIN' | 'DOCTOR' | 'SECRETARY' | 'ASSISTANT'
   is_active: boolean
   created_at: string
 }
@@ -158,9 +158,12 @@ export const useAuthStore = create<AuthStoreState>()(
           const user = response.data
           // Treat httpOnly cookie as valid if /me endpoint succeeds
           set({ user, isAuthenticated: true, isInitialized: true })
-        } catch (error) {
+        } catch (error: any) {
           // Auth failed - clear local state but trust httpOnly cookie clearing
           console.error('Auth check failed:', error)
+          // SHOW ERROR TO USER
+          toast.error(`Auth check failed: ${error.message || 'Unknown error'}`)
+
           try {
             localStorage.removeItem('access_token')
             localStorage.removeItem('user')
@@ -176,7 +179,8 @@ export const useAuthStore = create<AuthStoreState>()(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        isInitialized: state.isInitialized,
+        // Do NOT persist isInitialized - it must be false on every reload
+        // isInitialized: state.isInitialized,
       }),
     }
   )

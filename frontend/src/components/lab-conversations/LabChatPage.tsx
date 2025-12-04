@@ -10,29 +10,173 @@ import {
   getConversation,
   sendMessage,
   createConversation,
+  deleteConversation as deleteConversationAPI,
+  pinConversation as pinConversationAPI,
+  archiveConversation as archiveConversationAPI,
 } from '@/lib/api/lab-conversations'
+import { useStreamingResponse } from '@/lib/hooks/useStreamingResponse'
+import {
+  useConversations,
+  useSelectedConversationId,
+  useMessages,
+  useIsLoadingConversations,
+  useIsLoadingMessages,
+  useIsSendingMessage,
+  useStreamingState,
+  useSearchQuery,
+  useCreateModalState,
+  useCurrentConversation,
+  // Import individual action hooks
+  useSetConversations,
+  useSetSelectedConversationId,
+  useSetMessages,
+  useAddMessage,
+  useUpdateMessage,
+  useDeleteMessage,
+  useSetIsLoadingConversations,
+  useSetIsLoadingMessages,
+  useSetIsSendingMessage,
+  useAppendStreamingContent,
+  useSetIsStreaming,
+  useSetStreamingMessageId,
+  useResetStreaming,
+  useAddConversation,
+  useDeleteConversation,
+  usePinConversation,
+  useArchiveConversation,
+  useSetSearchQuery,
+  useSetShowCreateModal,
+  useSetNewConversationTitle,
+  useSetNewConversationSystemPrompt,
+  useResetCreateForm,
+  useUpdateConversation,
+} from '@/lib/stores/useConversationStore'
 import type { Conversation, Message, ConversationListParams } from '@/types/api'
 import { ConversationSidebar } from './ConversationSidebar'
 import { ChatMessage } from './ChatMessage'
+import { StreamingChatMessage } from './StreamingChatMessage'
 import { ChatInput } from './ChatInput'
+import { StreamingErrorBoundary } from './StreamingErrorBoundary'
+import { ExportDialog } from './ExportDialog'
+import { Download, Settings } from 'lucide-react'
 
 interface LabChatPageProps {
   availableModels?: string[]
 }
 
 export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChatPageProps) {
-  // State management
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newConversationTitle, setNewConversationTitle] = useState('')
-  const [newConversationSystemPrompt, setNewConversationSystemPrompt] = useState('')
-  const [sendingMessageId, setSendingMessageId] = useState<number | null>(null)
+  // Get store state using selectors for optimal re-renders
+  const conversations = useConversations()
+  const selectedConversationId = useSelectedConversationId()
+  const messages = useMessages()
+  const isLoadingConversations = useIsLoadingConversations()
+  const isLoadingMessages = useIsLoadingMessages()
+  const isSendingMessage = useIsSendingMessage()
+  const { streamingContent, isStreaming, streamingMessageId } = useStreamingState()
+  const searchQuery = useSearchQuery()
+  const { showCreateModal, newConversationTitle, newConversationSystemPrompt } =
+    useCreateModalState()
+  const currentConversation = useCurrentConversation()
+
+  // Get all actions using individual hooks to avoid destructuring issues
+  const setConversations = useSetConversations()
+  const setSelectedConversationId = useSetSelectedConversationId()
+  const setMessages = useSetMessages()
+  const addMessage = useAddMessage()
+  const updateMessage = useUpdateMessage()
+  const deleteMessage = useDeleteMessage()
+  const setIsLoadingConversations = useSetIsLoadingConversations()
+  const setIsLoadingMessages = useSetIsLoadingMessages()
+  const setIsSendingMessage = useSetIsSendingMessage()
+  const appendStreamingContent = useAppendStreamingContent()
+  const setIsStreaming = useSetIsStreaming()
+  const setStreamingMessageId = useSetStreamingMessageId()
+  const resetStreaming = useResetStreaming()
+  const addConversation = useAddConversation()
+  const deleteConversation = useDeleteConversation()
+  const pinConversation = usePinConversation()
+  const archiveConversation = useArchiveConversation()
+  const setSearchQuery = useSetSearchQuery()
+  const setShowCreateModal = useSetShowCreateModal()
+  const setNewConversationTitle = useSetNewConversationTitle()
+  const setNewConversationSystemPrompt = useSetNewConversationSystemPrompt()
+  const resetCreateForm = useResetCreateForm()
+  const updateConversation = useUpdateConversation()
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [apiKeys, setApiKeys] = useState({
+    anthropic: localStorage.getItem('anthropic_api_key') || '',
+    openai: localStorage.getItem('openai_api_key') || '',
+  })
+
+  // Use refs to capture current state without triggering re-renders
+  const streamingStateRef = useRef({ streamingMessageId, streamingContent })
+  const actionRefs = useRef({ updateMessage, deleteMessage, resetStreaming, setIsStreaming, appendStreamingContent })
+
+  // Keep refs up-to-date when state changes - only depend on primitive values
+  useEffect(() => {
+    streamingStateRef.current = { streamingMessageId, streamingContent }
+  }, [streamingMessageId, streamingContent])
+
+  // Separately update action refs - these change but we don't want them in other effect dependencies
+  useEffect(() => {
+    actionRefs.current = { updateMessage, deleteMessage, resetStreaming, setIsStreaming, appendStreamingContent }
+  }, [updateMessage, deleteMessage, resetStreaming, setIsStreaming, appendStreamingContent])
+
+  // Memoize streaming callbacks with stable references
+  const handleStreamChunk = useCallback(
+    (content: string) => {
+      actionRefs.current.appendStreamingContent(content)
+    },
+    []
+  )
+
+  const handleStreamComplete = useCallback(
+    (chunks: number, elapsed: number, messageId?: number) => {
+      console.log(`Stream completed: ${chunks} chunks in ${elapsed.toFixed(2)}s`)
+      const { streamingMessageId, streamingContent } = streamingStateRef.current
+      const { updateMessage, resetStreaming, setIsStreaming } = actionRefs.current
+
+      actionRefs.current.setIsStreaming(false)
+
+      // If we got a real message ID from backend, update the placeholder
+      if (messageId && streamingMessageId) {
+        // Update placeholder with real message ID and streamed content
+        updateMessage(streamingMessageId, {
+          id: messageId,
+          content: streamingContent,
+        })
+      }
+
+      resetStreaming()
+    },
+    []
+  )
+
+  const handleStreamError = useCallback(
+    (error: string) => {
+      console.error('Streaming error:', error)
+      const { streamingMessageId } = streamingStateRef.current
+      const { deleteMessage, resetStreaming, setIsStreaming } = actionRefs.current
+
+      setIsStreaming(false)
+      // Remove placeholder message on error
+      if (streamingMessageId) {
+        deleteMessage(streamingMessageId)
+      }
+      resetStreaming()
+    },
+    []
+  )
+
+  // Use streaming response hook
+  const { stream, stop: stopStreaming } = useStreamingResponse({
+    onChunk: handleStreamChunk,
+    onComplete: handleStreamComplete,
+    onError: handleStreamError,
+  })
 
   // Load conversations on mount
   useEffect(() => {
@@ -51,7 +195,7 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const loadConversations = async (params?: ConversationListParams) => {
+  const loadConversations = useCallback(async (params?: ConversationListParams) => {
     try {
       setIsLoadingConversations(true)
       const response = await listConversations(params)
@@ -61,25 +205,28 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
     } finally {
       setIsLoadingConversations(false)
     }
-  }
+  }, [setIsLoadingConversations, setConversations])
 
-  const loadMessages = async (conversationId: number) => {
+  const loadMessages = useCallback(async (conversationId: number) => {
     try {
-      setIsLoading(true)
+      setIsLoadingMessages(true)
       const response = await getConversation(conversationId)
       setMessages(response.messages || [])
     } catch (error) {
       console.error('Failed to load messages:', error)
     } finally {
-      setIsLoading(false)
+      setIsLoadingMessages(false)
     }
-  }
+  }, [setIsLoadingMessages, setMessages])
 
-  const handleSelectConversation = (id: number) => {
-    setSelectedConversationId(id)
-  }
+  const handleSelectConversation = useCallback(
+    (id: number) => {
+      setSelectedConversationId(id)
+    },
+    [setSelectedConversationId]
+  )
 
-  const handleCreateConversation = async () => {
+  const handleCreateConversation = useCallback(async () => {
     if (!newConversationTitle.trim()) return
 
     try {
@@ -90,58 +237,63 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
         default_model: undefined,
       })
 
-      setConversations((prev) => [newConv, ...prev])
+      addConversation(newConv)
       setSelectedConversationId(newConv.id)
-      setNewConversationTitle('')
-      setNewConversationSystemPrompt('')
-      setShowCreateModal(false)
+      resetCreateForm()
     } catch (error) {
       console.error('Failed to create conversation:', error)
     }
-  }
+  }, [newConversationTitle, newConversationSystemPrompt, addConversation, setSelectedConversationId, resetCreateForm])
 
-  const handleDeleteConversation = async (id: number) => {
-    try {
-      // TODO: Implement delete endpoint call
-      setConversations((prev) => prev.filter((c) => c.id !== id))
-      if (selectedConversationId === id) {
-        setSelectedConversationId(null)
-        setMessages([])
+  const handleDeleteConversation = useCallback(
+    async (id: number) => {
+      try {
+        await deleteConversationAPI(id)
+        deleteConversation(id)
+      } catch (error) {
+        console.error('Failed to delete conversation:', error)
       }
-    } catch (error) {
-      console.error('Failed to delete conversation:', error)
-    }
-  }
+    },
+    [deleteConversation]
+  )
 
-  const handlePinConversation = async (id: number, isPinned: boolean) => {
-    try {
-      // TODO: Implement pin endpoint call
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, is_pinned: !c.is_pinned } : c))
-      )
-    } catch (error) {
-      console.error('Failed to pin conversation:', error)
-    }
-  }
+  const handlePinConversation = useCallback(
+    async (id: number) => {
+      try {
+        const conversation = conversations.find((c) => c.id === id)
+        const newPinnedState = !conversation?.is_pinned
+        await pinConversationAPI(id, newPinnedState)
+        pinConversation(id)
+      } catch (error) {
+        console.error('Failed to pin conversation:', error)
+      }
+    },
+    [pinConversation, conversations]
+  )
 
-  const handleArchiveConversation = async (id: number, isArchived: boolean) => {
-    try {
-      // TODO: Implement archive endpoint call
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, is_archived: !c.is_archived } : c))
-      )
-    } catch (error) {
-      console.error('Failed to archive conversation:', error)
-    }
-  }
+  const handleArchiveConversation = useCallback(
+    async (id: number) => {
+      try {
+        const conversation = conversations.find((c) => c.id === id)
+        const newArchivedState = !conversation?.is_archived
+        await archiveConversationAPI(id, newArchivedState)
+        archiveConversation(id)
+      } catch (error) {
+        console.error('Failed to archive conversation:', error)
+      }
+    },
+    [archiveConversation, conversations]
+  )
 
   const handleSendMessage = useCallback(
     async (content: string, file?: File, selectedModel?: string) => {
       if (!selectedConversationId) return
 
       try {
-        setSendingMessageId(selectedConversationId)
-        const newMessage = await sendMessage(
+        setIsSendingMessage(true)
+
+        // Send user message first
+        const userMessage = await sendMessage(
           selectedConversationId,
           content,
           file,
@@ -149,34 +301,91 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
           selectedModel
         )
 
-        // Add message to the list
-        setMessages((prev) => [...prev, newMessage])
+        // Add user message to the list
+        addMessage(userMessage)
 
-        // Update conversation last_message_at
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === selectedConversationId
-              ? {
-                  ...c,
-                  last_message_at: new Date().toISOString(),
-                  message_count: c.message_count + 1,
-                }
-              : c
-          )
-        )
+        // Create optimistic AI message placeholder
+        const aiMessageId = Date.now() // Temporary ID
+        const now = new Date().toISOString()
+        const placeholderMessage: Message = {
+          id: aiMessageId,
+          conversation_id: selectedConversationId,
+          content: '',
+          role: 'ASSISTANT',
+          message_type: 'TEXT',
+          has_attachments: false,
+          attachments: [],
+          is_edited: false,
+          model_used: selectedModel || 'claude-3.5-sonnet',
+          created_at: now,
+          updated_at: now,
+        }
+
+        addMessage(placeholderMessage)
+        setStreamingMessageId(aiMessageId)
+        setIsStreaming(true)
+
+        // Stream AI response via lab-conversations endpoint
+        await stream(`/lab-conversations/conversations/${selectedConversationId}/stream-response`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversation_id: selectedConversationId,
+            model: selectedModel || 'claude-3.5-sonnet',
+            user_message_id: userMessage.id,
+            temperature: 0.7,
+            max_tokens: 2000,
+          }),
+        })
+
+        // Update conversation metadata
+        updateConversation(selectedConversationId, {
+          last_message_at: new Date().toISOString(),
+          message_count: 0, // Will be updated by backend
+        })
       } catch (error) {
         console.error('Failed to send message:', error)
+        setIsStreaming(false)
+        // Remove placeholder message on error
+        if (streamingMessageId) {
+          deleteMessage(streamingMessageId)
+        }
+        // Add error message to conversation
+        const now = new Date().toISOString()
+        const errorMessage: Message = {
+          id: Date.now() + 1,
+          conversation_id: selectedConversationId,
+          content: `Failed to get AI response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          role: 'ASSISTANT',
+          message_type: 'TEXT',
+          has_attachments: false,
+          attachments: [],
+          is_edited: false,
+          created_at: now,
+          updated_at: now,
+        }
+        addMessage(errorMessage)
       } finally {
-        setSendingMessageId(null)
+        setIsSendingMessage(false)
       }
     },
-    [selectedConversationId]
+    [
+      selectedConversationId,
+      setIsSendingMessage,
+      addMessage,
+      setStreamingMessageId,
+      setIsStreaming,
+      updateConversation,
+      deleteMessage,
+      streamingMessageId,
+      stream,
+    ]
   )
 
-  const currentConversation = conversations.find((c) => c.id === selectedConversationId)
-
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex bg-white max-h-[calc(100vh-120px)]">
       {/* Sidebar */}
       <ConversationSidebar
         conversations={conversations}
@@ -195,50 +404,98 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
       <div className="flex-1 flex flex-col">
         {/* Header */}
         {currentConversation ? (
-          <div className="border-b px-6 py-4">
-            <h1 className="text-xl font-semibold text-gray-900">{currentConversation.title}</h1>
-            {currentConversation.description && (
-              <p className="text-sm text-gray-500 mt-1">{currentConversation.description}</p>
-            )}
+          <div className="border-b px-6 py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">{currentConversation.title}</h1>
+              {currentConversation.description && (
+                <p className="text-sm text-gray-500 mt-1">{currentConversation.description}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => setIsSettingsOpen(true)}
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsExportDialogOpen(true)}
+                title="Export conversation"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         ) : (
-          <div className="border-b px-6 py-4 text-center">
+          <div className="border-b px-6 py-4 flex items-center justify-between">
             <p className="text-gray-500">Select a conversation to start chatting</p>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
           </div>
         )}
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p>No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            <>
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isLoading={sendingMessageId === selectedConversationId && message.id === messages[messages.length - 1].id}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+        <StreamingErrorBoundary>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {isLoadingMessages ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p>No messages yet. Start the conversation!</p>
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => {
+                  const isStreamingMessage =
+                    isStreaming && streamingMessageId === message.id
+
+                  return isStreamingMessage ? (
+                    <StreamingChatMessage
+                      key={message.id}
+                      message={message}
+                      isStreaming={true}
+                      streamingContent={streamingContent}
+                      onStop={stopStreaming}
+                    />
+                  ) : (
+                    <ChatMessage
+                      key={message.id}
+                      message={message}
+                      conversationId={selectedConversationId || undefined}
+                      isLoading={
+                        isSendingMessage &&
+                        message.id === messages[messages.length - 1].id
+                      }
+                    />
+                  )
+                })}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+        </StreamingErrorBoundary>
 
         {/* Input area */}
         {currentConversation ? (
           <div className="border-t p-6">
             <ChatInput
               onSendMessage={handleSendMessage}
-              isLoading={sendingMessageId === selectedConversationId}
+              isLoading={isSendingMessage}
               availableModels={availableModels}
-              disabled={isLoading}
+              disabled={isLoadingMessages}
             />
           </div>
         ) : (
@@ -280,11 +537,7 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setShowCreateModal(false)
-                  setNewConversationTitle('')
-                  setNewConversationSystemPrompt('')
-                }}
+                onClick={resetCreateForm}
               >
                 Cancel
               </Button>
@@ -293,6 +546,70 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
                 disabled={!newConversationTitle.trim()}
               >
                 Create Conversation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export conversation dialog */}
+      <ExportDialog
+        conversation={currentConversation}
+        messages={messages}
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+      />
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Anthropic API Key</label>
+              <Input
+                type="password"
+                placeholder="Enter your Anthropic API key"
+                value={apiKeys.anthropic}
+                onChange={(e) => setApiKeys({ ...apiKeys, anthropic: e.target.value })}
+              />
+              <p className="text-xs text-gray-500">
+                Your API key is stored locally in your browser and never sent to our servers.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">OpenAI API Key</label>
+              <Input
+                type="password"
+                placeholder="Enter your OpenAI API key"
+                value={apiKeys.openai}
+                onChange={(e) => setApiKeys({ ...apiKeys, openai: e.target.value })}
+              />
+              <p className="text-xs text-gray-500">
+                Your API key is stored locally in your browser and never sent to our servers.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsSettingsOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  localStorage.setItem('anthropic_api_key', apiKeys.anthropic)
+                  localStorage.setItem('openai_api_key', apiKeys.openai)
+                  setIsSettingsOpen(false)
+                }}
+                className="flex-1"
+              >
+                Save
               </Button>
             </div>
           </div>

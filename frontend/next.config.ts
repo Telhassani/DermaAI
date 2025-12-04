@@ -40,6 +40,24 @@ const nextConfig: NextConfig = {
     // Don't run ESLint during build (run separately in CI)
     ignoreDuringBuilds: false,
   },
+
+  // Proxy API requests to backend to solve CORS and Cookie issues
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
+      },
+      {
+        source: '/docs',
+        destination: 'http://localhost:8000/docs',
+      },
+      {
+        source: '/openapi.json',
+        destination: 'http://localhost:8000/openapi.json',
+      },
+    ]
+  },
 }
 
 export default nextConfig

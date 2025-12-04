@@ -46,20 +46,44 @@ def get_db() -> Generator[Session, None, None]:
         def get_users(db: Session = Depends(get_db)):
             return db.query(User).all()
     """
+    import logging
     from sqlalchemy.exc import DBAPIError, OperationalError
 
-    db = SessionLocal()
+    logger = logging.getLogger(__name__)
+
     try:
-        yield db
+        db = SessionLocal()
     except (OperationalError, DBAPIError) as e:
-        # Only treat connection errors as database failures
+        # Catch connection errors during session creation
+        logger.error(f"[GET_DB] Session creation failed: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=503,
             detail="Service temporarily unavailable. Database connection failed.",
         )
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"[GET_DB] Unexpected error during session creation: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Service temporarily unavailable. Database connection failed.",
+        )
+
+    try:
+        yield db
+    except (OperationalError, DBAPIError) as e:
+        # Only treat connection errors as database failures
+        logger.error(f"[GET_DB] Database error during operation: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Service temporarily unavailable. Database connection failed.",
+        )
+    except Exception as e:
+        # Let other exceptions propagate
+        logger.error(f"[GET_DB] Exception during db session: {type(e).__name__}: {e}")
+        raise
     finally:
         try:
             db.close()
-        except Exception:
-            # Silently ignore errors during session cleanup
-            pass
+        except Exception as e:
+            # Log but silently ignore errors during session cleanup
+            logger.warning(f"[GET_DB] Error closing session: {type(e).__name__}: {e}")

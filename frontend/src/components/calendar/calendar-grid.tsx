@@ -4,15 +4,24 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { Appointment, AppointmentType, AppointmentStatus } from '@/lib/hooks/use-appointments'
-import { useAppointmentDragDrop } from '@/lib/hooks/use-appointment-drag-drop'
-import { useAppointmentResize } from '@/lib/hooks/use-appointment-resize'
+
 import { AppointmentTooltip } from './appointment-tooltip'
 
 import { DraggableAppointment } from './draggable-appointment'
 import { DroppableDay } from './droppable-day'
 import { GripVertical } from 'lucide-react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter, useSensor, useSensors, MouseSensor, TouchSensor, KeyboardSensor } from '@dnd-kit/core'
-import { useState } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import { restrictToWindowEdges } from '@dnd-kit/modifiers'
+import { useState, useRef } from 'react'
 import { AppointmentCard } from './appointment-card'
 import { toast } from 'sonner'
 import {
@@ -26,6 +35,7 @@ interface CalendarGridProps {
   appointments: Appointment[]
   onDayClick?: (date: Date) => void
   onAppointmentClick?: (appointment: Appointment) => void
+  onAppointmentReschedule?: (appointmentId: number, newStartTime: Date, newEndTime: Date) => void
 }
 
 export function CalendarGrid({
@@ -33,30 +43,36 @@ export function CalendarGrid({
   appointments,
   onDayClick,
   onAppointmentClick,
+  onAppointmentReschedule,
 }: CalendarGridProps) {
-  const dragDrop = useAppointmentDragDrop(appointments)
-  const resize = useAppointmentResize(appointments)
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null)
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Reduced from 10 for more responsive drag
+        distance: 5, // 5px movement required to start drag - prevents accidental drags on click
       },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150, // Reduced from 250 for better mobile experience
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor)
+    })
   )
 
+  const [currentDragDate, setCurrentDragDate] = useState<Date | null>(null)
 
+  const handleDragOver = (event: any) => {
+    const { over } = event
+    if (!over) {
+      setCurrentDragDate(null)
+      return
+    }
+
+    const dropData = over.data.current
+    if (dropData?.type === 'day-slot') {
+      setCurrentDragDate(dropData.date as Date)
+    }
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
+    setCurrentDragDate(null)
 
     if (!over) {
       setActiveAppointment(null)
@@ -66,49 +82,22 @@ export function CalendarGrid({
     const appointment = active.data.current?.appointment as Appointment
     const dropData = over.data.current
 
-    if (dropData?.type === 'day-slot') {
+    if (dropData?.type === 'day-slot' && onAppointmentReschedule) {
       const targetDate = dropData.date as Date
 
-      // Call the existing handleDrop logic from the hook
-      // We need to adapt it since the hook expects a DragEvent
-      // But we can just call the logic directly if we expose it properly or adapt here
-      // For now, let's use the hook's logic but we need to pass the date
-      // The hook's handleDrop returns a function that takes a DragEvent
+      // Calculate new start time preserving the time of day
+      const originalStart = new Date(appointment.start_time)
+      const newStart = new Date(targetDate)
+      newStart.setHours(originalStart.getHours())
+      newStart.setMinutes(originalStart.getMinutes())
+      newStart.setSeconds(0)
+      newStart.setMilliseconds(0)
 
-      // Since the hook is designed for HTML5 DnD, we might need to adjust it or manually call the update
-      // Let's look at what handleDrop does: it calls updateMutation
+      // Calculate new end time preserving duration
+      const duration = new Date(appointment.end_time).getTime() - originalStart.getTime()
+      const newEnd = new Date(newStart.getTime() + duration)
 
-      // We'll manually trigger the drop logic here using the hook's internal functions if possible
-      // Or better, let's just use the hook's handleDrop but mock the event since we are refactoring
-      // Actually, the hook is tightly coupled to HTML5 DnD (e.preventDefault, dataTransfer)
-      // We should probably refactor the hook later, but for now let's duplicate the critical logic here
-      // or modify the hook to be agnostic.
-
-      // Let's try to use the hook's handleDrop by creating a fake event
-      // This is a temporary bridge until we fully refactor the hook
-      const fakeEvent = {
-        preventDefault: () => { },
-        stopPropagation: () => { },
-        dataTransfer: {
-          getData: () => JSON.stringify(appointment)
-        }
-      } as unknown as React.DragEvent
-
-      // We need to set the dragged appointment in the hook state for handleDrop to work
-      // But we can't easily do that from here without triggering handleDragStart
-      // So let's manually call the update logic which is cleaner
-
-      // Actually, let's just use the hook's handleDrop but we need to ensure state is set
-      // The hook's state is set via handleDragStart.
-      // Dnd-kit doesn't use the hook's state.
-
-      // We should probably just call the update mutation directly here?
-      // But we need conflict detection etc.
-
-      // Let's use the hook's handleDrop but we need to make sure `dragState.draggedAppointment` is set.
-      // We can set it in onDragStart of DndContext.
-
-      dragDrop.handleDrop(targetDate)(fakeEvent)
+      onAppointmentReschedule(appointment.id, newStart, newEnd)
     }
 
     setActiveAppointment(null)
@@ -143,12 +132,27 @@ export function CalendarGrid({
     return appointmentsByDay[dateKey] || []
   }
 
-  // Type colors for dots
-  const typeColors: Record<AppointmentType, string> = {
-    [AppointmentType.CONSULTATION]: 'bg-blue-500',
-    [AppointmentType.FOLLOW_UP]: 'bg-green-500',
-    [AppointmentType.PROCEDURE]: 'bg-purple-500',
-    [AppointmentType.EMERGENCY]: 'bg-red-500',
+  const restrictToGrid = ({ transform, draggingNodeRect }: any) => {
+    const gridElement = document.getElementById('calendar-month-grid')
+
+    if (!gridElement || !draggingNodeRect) {
+      return transform
+    }
+
+    const gridRect = gridElement.getBoundingClientRect()
+    const nodeRect = draggingNodeRect
+
+    // Calculate boundaries
+    const minX = gridRect.left - nodeRect.left
+    const maxX = gridRect.right - nodeRect.width - nodeRect.left
+    const minY = gridRect.top - nodeRect.top
+    const maxY = gridRect.bottom - nodeRect.height - nodeRect.top
+
+    return {
+      ...transform,
+      x: Math.max(minX, Math.min(maxX, transform.x)),
+      y: Math.max(minY, Math.min(maxY, transform.y)),
+    }
   }
 
   return (
@@ -157,22 +161,15 @@ export function CalendarGrid({
       onDragStart={(event) => {
         const appointment = event.active.data.current?.appointment as Appointment
         setActiveAppointment(appointment)
-        // Sync with hook state for compatibility
-        // We pass a fake event to handleDragStart to set the state
-        const fakeEvent = {
-          dataTransfer: {
-            setData: () => { },
-            effectAllowed: 'move'
-          }
-        } as unknown as React.DragEvent
-        dragDrop.handleDragStart(appointment, 'month-view')(fakeEvent)
       }}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       collisionDetection={closestCenter}
+      modifiers={[restrictToGrid]}
     >
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div id="calendar-month-grid" className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white shadow-sm ring-1 ring-black/5">
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b bg-gray-50">
+        <div className="grid grid-cols-7 border-b border-gray-100 bg-gradient-to-b from-white to-gray-50/50">
           {weekDays.map((day) => (
             <div
               key={day}
@@ -209,7 +206,7 @@ export function CalendarGrid({
                 )}
               >
                 {/* Day number */}
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1 flex items-center justify-center">
                   <span
                     className={cn(
                       'flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium transition-colors',
@@ -222,28 +219,25 @@ export function CalendarGrid({
                   >
                     {dayNumber}
                   </span>
-                  {dayAppointments.length > 0 && (
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                      {dayAppointments.length}
-                    </span>
-                  )}
                 </div>
 
                 {/* Appointments list (first 3) */}
-                <div className="space-y-0.5">
-                  {dayAppointments.slice(0, 3).map((appointment, index) => (
-                    <div key={appointment.id} className="max-h-12 overflow-hidden">
-                      <DraggableAppointment
-                        appointment={appointment}
-                        onClick={(app) => {
-                          onAppointmentClick?.(app)
-                        }}
-                        compact={true}
-                        extraCompact={true}
-                        showActions={false}
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-1 mt-1">
+                  {dayAppointments.slice(0, 3).map((appointment, index) => {
+                    const isDragging = activeAppointment?.id === appointment.id
+                    return (
+                      <div key={appointment.id} className={cn(isDragging && "opacity-0")}>
+                        <DraggableAppointment
+                          appointment={appointment}
+                          onClick={(app) => {
+                            onAppointmentClick?.(app)
+                          }}
+                          variant="month"
+                          showActions={false}
+                        />
+                      </div>
+                    )
+                  })}
 
                   {/* Show more indicator with Popover */}
                   {dayAppointments.length > 3 && (
@@ -254,16 +248,16 @@ export function CalendarGrid({
                             e.stopPropagation()
                             // Don't navigate, just open popover
                           }}
-                          className="w-full rounded px-2 py-1 text-left text-xs font-medium text-blue-600 hover:bg-blue-100"
+                          className="w-full rounded px-1 py-0.5 text-left text-[10px] font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                         >
-                          +{dayAppointments.length - 3} plus
+                          {dayAppointments.length - 3} autres...
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-72 p-3" align="start">
-                        <div className="mb-2 font-medium text-gray-900">
+                        <div className="mb-2 font-medium text-gray-900 text-sm">
                           {format(day, 'EEEE d MMMM', { locale: fr })}
                         </div>
-                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        <div className="space-y-1 max-h-[300px] overflow-y-auto">
                           {dayAppointments.map((appointment) => (
                             <DraggableAppointment
                               key={appointment.id}
@@ -271,7 +265,7 @@ export function CalendarGrid({
                               onClick={(app) => {
                                 onAppointmentClick?.(app)
                               }}
-                              compact={true}
+                              variant="month"
                               showActions={false}
                             />
                           ))}
@@ -283,8 +277,8 @@ export function CalendarGrid({
 
                 {/* Hover overlay for empty days */}
                 {dayAppointments.length === 0 && onDayClick && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="text-xs text-gray-400">Cliquer pour ajouter</span>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none">
+                    {/* Removed text to be cleaner, just highlight is enough or maybe a small plus */}
                   </div>
                 )}
               </DroppableDay>
@@ -292,14 +286,26 @@ export function CalendarGrid({
           })}
         </div>
       </div>
-      <DragOverlay>
+      <DragOverlay modifiers={[restrictToWindowEdges]} dropAnimation={null}>
         {activeAppointment && (
-          <div className="w-64 rotate-3 opacity-90">
-            <AppointmentCard
-              appointment={activeAppointment}
-              compact={true}
-              showActions={false}
-            />
+          <div className="flex items-center gap-2">
+            <div className="w-[150px] opacity-90">
+              <DraggableAppointment
+                appointment={activeAppointment}
+                variant="month"
+                showActions={false}
+                disableTooltip={true}
+              />
+            </div>
+            {currentDragDate && (
+              <div className="rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white shadow-lg">
+                {format(currentDragDate, 'd MMM', { locale: fr })} •{' '}
+                {new Date(activeAppointment.start_time).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
           </div>
         )}
       </DragOverlay>

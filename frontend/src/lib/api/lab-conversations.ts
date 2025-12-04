@@ -138,6 +138,28 @@ export async function listMessages(conversationId: number, params?: MessageListP
 }
 
 /**
+ * Edit a message in a conversation
+ * @param conversationId ID of the conversation
+ * @param messageId ID of the message to edit
+ * @param content New message content
+ * @returns Updated message
+ */
+export async function editMessage(
+  conversationId: number,
+  messageId: number,
+  content: string,
+) {
+  const formData = new FormData()
+  formData.append('content', content)
+
+  const response = await api.client.put(
+    `/lab-conversations/conversations/${conversationId}/messages/${messageId}`,
+    formData
+  )
+  return response.data as Message
+}
+
+/**
  * Delete a message from a conversation
  * @param conversationId ID of the conversation
  * @param messageId ID of the message to delete
@@ -188,4 +210,99 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   }
 
   return { valid: true }
+}
+
+/**
+ * Get all versions of a regenerated message
+ * @param conversationId ID of the conversation
+ * @param messageId ID of the message
+ * @returns List of message versions
+ */
+export async function getMessageVersions(conversationId: number, messageId: number) {
+  const response = await api.get(
+    `/api/v1/lab-conversations/conversations/${conversationId}/messages/${messageId}/versions`
+  )
+  return response.data
+}
+
+/**
+ * Switch to a different version of a message
+ * @param conversationId ID of the conversation
+ * @param messageId ID of the message
+ * @param versionNumber Version number to switch to
+ * @returns Updated message
+ */
+export async function switchMessageVersion(
+  conversationId: number,
+  messageId: number,
+  versionNumber: number,
+) {
+  const response = await api.patch(
+    `/api/v1/lab-conversations/conversations/${conversationId}/messages/${messageId}/switch-version`,
+    null,
+    { params: { version_number: versionNumber } }
+  )
+  return response.data as Message
+}
+
+/**
+ * List all prompt templates for the current doctor
+ * @param params Pagination and filtering parameters
+ * @returns List of prompt templates
+ */
+export async function listPromptTemplates(params?: {
+  category?: string
+  skip?: number
+  limit?: number
+}) {
+  const response = await api.get('/api/v1/lab-conversations/prompt-templates', {
+    params: params || {},
+  })
+  return response.data
+}
+
+/**
+ * Create a new prompt template
+ * @param data Template data
+ * @returns Created template
+ */
+export async function createPromptTemplate(data: {
+  title: string
+  template_text: string
+  description?: string
+  category?: string
+}) {
+  const response = await api.post('/api/v1/lab-conversations/prompt-templates', data)
+  return response.data
+}
+
+/**
+ * Update an existing prompt template
+ * @param templateId ID of the template
+ * @param data Partial template data to update
+ * @returns Updated template
+ */
+export async function updatePromptTemplate(
+  templateId: number,
+  data: {
+    title?: string
+    template_text?: string
+    description?: string
+    category?: string
+    is_active?: boolean
+  },
+) {
+  const response = await api.patch(
+    `/api/v1/lab-conversations/prompt-templates/${templateId}`,
+    data
+  )
+  return response.data
+}
+
+/**
+ * Delete a prompt template
+ * @param templateId ID of the template
+ */
+export async function deletePromptTemplate(templateId: number) {
+  await api.delete(`/api/v1/lab-conversations/prompt-templates/${templateId}`)
 }

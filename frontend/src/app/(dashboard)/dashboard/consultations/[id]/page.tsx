@@ -901,7 +901,7 @@ export default function ConsultationDetailPage() {
               <h3 className="font-semibold text-gray-900">Ordonnances ({prescriptions.length})</h3>
               {prescriptions.map((prescription) => {
                 const isDoctorOwner = user?.id === prescription.doctor_id
-                const canEdit = user?.role === 'doctor' && isDoctorOwner
+                const canEdit = user?.role === 'DOCTOR' && isDoctorOwner
 
                 return (
                   <PrescriptionCard

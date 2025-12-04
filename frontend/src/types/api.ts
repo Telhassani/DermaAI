@@ -387,7 +387,12 @@ export interface PrescriptionUpdateData {
 
 export interface PrescriptionListParams {
   patient_id?: number
+  patient_name?: string
+  patient_identifier?: string
   doctor_id?: number
+  consultation_id?: number
+  start_date?: string
+  end_date?: string
   page?: number
   page_size?: number
   sort_by?: 'prescription_date' | 'valid_until' | 'created_at'

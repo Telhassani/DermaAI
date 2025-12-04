@@ -1,0 +1,15 @@
+{
+  "start_time": "2025-11-27T20:34:15.009720",
+  "end_time": "2025-11-27T20:36:12.365599",
+  "total_requests": 2907,
+  "total_failures": 0,
+  "success_rate": 100.0,
+  "response_times": {
+    "min": 0.7299579738173634,
+    "max": 83.4487079991959,
+    "mean": 4.380072951622389,
+    "median": 3,
+    "p95": 11,
+    "p99": 17
+  },
+  "endpoints": {

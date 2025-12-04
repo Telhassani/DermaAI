@@ -1,4 +1,4 @@
-import { addDays, addWeeks, addMonths, isBefore, isAfter, format } from 'date-fns'
+import { addDays, addWeeks, addMonths, isAfter, format } from 'date-fns'
 
 export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'NONE'
 
@@ -90,10 +90,10 @@ export function generateRecurrenceOccurrences(
 /**
  * Generate appointment data for each occurrence
  */
-export function generateRecurringAppointments(
-  baseAppointment: any,
+export function generateRecurringAppointments<T extends { start_time: string | Date; end_time: string | Date }>(
+  baseAppointment: T,
   recurrenceRule: RecurrenceRule
-): any[] {
+): T[] {
   const startTime = new Date(baseAppointment.start_time)
   const endTime = new Date(baseAppointment.end_time)
 

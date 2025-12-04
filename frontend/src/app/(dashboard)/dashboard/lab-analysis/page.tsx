@@ -10,7 +10,7 @@ const availableModels = [
 
 export default function LabAnalysisPage() {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col gap-4">
       <LabChatPage availableModels={availableModels} />
     </div>
   )

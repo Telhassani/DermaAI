@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Pill,
@@ -57,18 +57,34 @@ export default function PrescriptionsPage() {
   const [endDate, setEndDate] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Debounce timer refs
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionResponse | null>(null)
 
+  // Fetch prescriptions when filters or page changes
   useEffect(() => {
     fetchPrescriptions()
-  }, [currentPage])
+  }, [currentPage, searchPatient, startDate, endDate])
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const fetchPrescriptions = async () => {
     try {
       setLoading(true)
       const data = await listPrescriptions({
+        patient_name: searchPatient || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
         page: currentPage,
         page_size: 20,
       })
@@ -82,10 +98,26 @@ export default function PrescriptionsPage() {
     }
   }
 
-  const handleSearch = () => {
+  const handleSearchPatient = (value: string) => {
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Debounce the search (300ms)
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchPatient(value)
+      setCurrentPage(1)
+    }, 300)
+  }
+
+  const handleDateChange = (type: 'start' | 'end', value: string) => {
+    if (type === 'start') {
+      setStartDate(value)
+    } else {
+      setEndDate(value)
+    }
     setCurrentPage(1)
-    // Apply client-side filtering based on patient name and dates
-    // This filters the fetched data
   }
 
   const clearFilters = () => {
@@ -93,7 +125,6 @@ export default function PrescriptionsPage() {
     setStartDate('')
     setEndDate('')
     setCurrentPage(1)
-    fetchPrescriptions()
   }
 
   const handleEditClick = async (prescription: Prescription) => {
@@ -141,23 +172,6 @@ export default function PrescriptionsPage() {
     })
   }
 
-  const formatDateForInput = (date: string) => {
-    if (!date) return ''
-    return new Date(date).toISOString().split('T')[0]
-  }
-
-  // Filter prescriptions based on search criteria
-  const filteredPrescriptions = prescriptions.filter((prescription) => {
-    const matchesName = !searchPatient ||
-      (prescription.patient_name?.toLowerCase() || '').includes(searchPatient.toLowerCase())
-
-    const prescriptionDate = new Date(prescription.prescription_date)
-    const matchesStartDate = !startDate || prescriptionDate >= new Date(startDate)
-    const matchesEndDate = !endDate || prescriptionDate <= new Date(endDate)
-
-    return matchesName && matchesStartDate && matchesEndDate
-  })
-
   const hasActiveFilters = searchPatient || startDate || endDate
 
   return (
@@ -203,7 +217,7 @@ export default function PrescriptionsPage() {
                 type="text"
                 placeholder="Rechercher par nom de patient..."
                 value={searchPatient}
-                onChange={(e) => setSearchPatient(e.target.value)}
+                onChange={(e) => handleSearchPatient(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
@@ -228,7 +242,7 @@ export default function PrescriptionsPage() {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => handleDateChange('start', e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
@@ -239,7 +253,7 @@ export default function PrescriptionsPage() {
                 <input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => handleDateChange('end', e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
@@ -250,7 +264,7 @@ export default function PrescriptionsPage() {
         {/* Results summary */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            {filteredPrescriptions.length} ordonnance{filteredPrescriptions.length > 1 ? 's' : ''} trouvée{filteredPrescriptions.length > 1 ? 's' : ''}
+            {total} ordonnance{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
           </p>
         </div>
 
@@ -259,7 +273,7 @@ export default function PrescriptionsPage() {
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-600 border-r-transparent"></div>
           </div>
-        ) : filteredPrescriptions.length === 0 ? (
+        ) : prescriptions.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
             <Pill className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-4 text-sm text-gray-500">
@@ -286,7 +300,7 @@ export default function PrescriptionsPage() {
             </div>
 
             {/* Prescription Cards with Spacing */}
-            {filteredPrescriptions.map((prescription) => (
+            {prescriptions.map((prescription) => (
               <div
                 key={prescription.id}
                 onClick={() => router.push(`/dashboard/prescriptions/${prescription.id}`)}

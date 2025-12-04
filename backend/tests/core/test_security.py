@@ -79,8 +79,11 @@ class TestPasswordHashing:
         password = "TestPassword123!"
         hashes = [get_password_hash(password) for _ in range(5)]
 
-        # All bcrypt hashes should be 60 characters
-        assert all(len(h) == 60 for h in hashes)
+        # All argon2 hashes should be at least 80 characters
+        # Exact length depends on hash parameters but should be consistent format
+        assert all(len(h) > 80 for h in hashes)
+        # Verify all hashes start with argon2 prefix
+        assert all(h.startswith("$argon2") for h in hashes)
 
 
 class TestAccessTokenGeneration:
@@ -118,7 +121,7 @@ class TestAccessTokenGeneration:
 
         assert "exp" in payload
         # Should expire in the future
-        exp_time = datetime.fromtimestamp(payload["exp"])
+        exp_time = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
         assert exp_time > datetime.now(timezone.utc)
 
     def test_create_access_token_custom_expiration(self):

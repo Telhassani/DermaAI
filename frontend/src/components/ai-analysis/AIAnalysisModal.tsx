@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { AnimatedModal } from '@/components/ui/animated-modal'
 import { Button } from '@/components/ui/button'
 import { AIAnalysisResultCard } from './AIAnalysisResultCard'
+import { ModelSelector } from './ModelSelector'
 import { useAnalyzeImage } from '@/hooks/useAIAnalysis'
+import { useAIStreamStore } from '@/lib/stores/ai-stream-store'
 import { AnalysisType, AIAnalysisResponse } from '@/lib/api/ai-analysis'
 import { Sparkles, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,6 +28,7 @@ export function AIAnalysisModal({
 }: AIAnalysisModalProps) {
     const [analysis, setAnalysis] = useState<AIAnalysisResponse | null>(null)
     const { mutate: analyze, isPending, error } = useAnalyzeImage()
+    const { selectedModel } = useAIStreamStore()
 
     // Reset state when modal opens
     useEffect(() => {
@@ -88,10 +91,19 @@ export function AIAnalysisModal({
             description="Analyse de l'image par intelligence artificielle pour aide au diagnostic."
             size="lg"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column: Image */}
-                <div className="space-y-4">
-                    <div className="relative rounded-lg overflow-hidden border bg-gray-100 aspect-square flex items-center justify-center">
+            <div className="space-y-6">
+                {/* Model Selection */}
+                <ModelSelector
+                    label="Modèle IA"
+                    description="Sélectionnez le modèle IA pour analyser cette image"
+                    showMetadata={true}
+                />
+
+                {/* Image and Results Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column: Image */}
+                    <div className="space-y-4">
+                        <div className="relative rounded-lg overflow-hidden border bg-gray-100 aspect-square flex items-center justify-center">
                         {imageSrc ? (
                             <img
                                 src={imageSrc}
@@ -160,6 +172,8 @@ export function AIAnalysisModal({
                         </div>
                     )}
                 </div>
+                </div>
+                {/* End of Grid */}
             </div>
         </AnimatedModal>
     )

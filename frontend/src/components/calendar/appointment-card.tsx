@@ -23,12 +23,14 @@ interface AppointmentCardProps {
   showActions?: boolean
 }
 
+
+
 // Type colors mapping
 const typeColors: Record<AppointmentType, { bg: string; border: string; text: string }> = {
   [AppointmentType.CONSULTATION]: {
-    bg: 'bg-blue-50',
-    border: 'border-l-blue-500',
-    text: 'text-blue-700',
+    bg: 'bg-purple-50',
+    border: 'border-l-purple-500',
+    text: 'text-purple-700',
   },
   [AppointmentType.FOLLOW_UP]: {
     bg: 'bg-green-50',
@@ -36,33 +38,15 @@ const typeColors: Record<AppointmentType, { bg: string; border: string; text: st
     text: 'text-green-700',
   },
   [AppointmentType.PROCEDURE]: {
-    bg: 'bg-purple-50',
-    border: 'border-l-purple-500',
-    text: 'text-purple-700',
+    bg: 'bg-blue-50',
+    border: 'border-l-blue-500',
+    text: 'text-blue-700',
   },
   [AppointmentType.EMERGENCY]: {
     bg: 'bg-red-50',
     border: 'border-l-red-500',
     text: 'text-red-700',
   },
-}
-
-// Status labels mapping
-const statusLabels: Record<AppointmentStatus, { label: string; color: string }> = {
-  [AppointmentStatus.SCHEDULED]: { label: 'Planifié', color: 'bg-gray-100 text-gray-700' },
-  [AppointmentStatus.CONFIRMED]: { label: 'Confirmé', color: 'bg-blue-100 text-blue-700' },
-  [AppointmentStatus.IN_PROGRESS]: { label: 'En cours', color: 'bg-yellow-100 text-yellow-700' },
-  [AppointmentStatus.COMPLETED]: { label: 'Terminé', color: 'bg-green-100 text-green-700' },
-  [AppointmentStatus.CANCELLED]: { label: 'Annulé', color: 'bg-red-100 text-red-700' },
-  [AppointmentStatus.NO_SHOW]: { label: 'Absent', color: 'bg-orange-100 text-orange-700' },
-}
-
-// Type labels mapping
-const typeLabels: Record<AppointmentType, string> = {
-  [AppointmentType.CONSULTATION]: 'Consultation',
-  [AppointmentType.FOLLOW_UP]: 'Suivi',
-  [AppointmentType.PROCEDURE]: 'Intervention',
-  [AppointmentType.EMERGENCY]: 'Urgence',
 }
 
 export function AppointmentCard({
@@ -76,7 +60,6 @@ export function AppointmentCard({
   showActions = true,
 }: AppointmentCardProps) {
   const colors = typeColors[appointment.type]
-  const statusInfo = statusLabels[appointment.status]
 
   // Format time
   const startTime = new Date(appointment.start_time).toLocaleTimeString('fr-FR', {
@@ -92,27 +75,28 @@ export function AppointmentCard({
     <div
       onClick={onClick}
       className={cn(
-        'group relative w-full max-w-full overflow-hidden rounded-lg border-l-4 shadow-sm transition-all hover:shadow-md',
-        colors.border,
+        'group relative w-full h-full overflow-hidden rounded-md border transition-all duration-200 hover:shadow-sm hover:border-gray-300',
         colors.bg,
+        colors.border.replace('border-l-', 'border-l-[3px] border-'),
+        'border-gray-200', // Base border color
         onClick && 'cursor-pointer',
-        !extraCompact && 'p-3',
-        compact && !extraCompact && 'p-2',
+        !extraCompact && 'p-2',
+        compact && !extraCompact && 'p-1.5',
         extraCompact && 'p-1'
       )}
     >
+
       {/* Header */}
-      <div className={cn('flex items-start justify-between', extraCompact ? 'mb-0' : 'mb-2')}>
-        <div className="flex-1 space-y-1">
+      <div className={cn('appt-header flex items-start justify-between', extraCompact ? 'mb-0' : 'mb-1')}>
+        <div className="flex-1 min-w-0 space-y-0.5">
           {/* Time */}
-          <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
             {!compact && !extraCompact && (
-              <Clock className={cn('h-3.5 w-3.5 flex-shrink-0', colors.text)} />
+              <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
             )}
             <span className={cn(
-              'truncate font-semibold',
-              extraCompact ? 'text-[10px]' : compact ? 'text-xs' : 'text-xs sm:text-sm',
-              colors.text
+              'appt-time truncate font-medium tracking-tight text-gray-900',
+              extraCompact ? 'text-[10px]' : compact ? 'text-xs' : 'text-sm'
             )}>
               {extraCompact ? startTime : `${startTime} - ${endTime}`}
             </span>
@@ -120,84 +104,62 @@ export function AppointmentCard({
 
           {/* Patient name (if available) */}
           {!compact && !extraCompact && (
-            <div className="flex min-w-0 items-center gap-1.5">
+            <div className="appt-details flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-              <span className="truncate text-xs font-medium text-gray-900 sm:text-sm">
-                {appointment.patient_name || `Patient ID: ${appointment.patient_id}`}
+              <span className="truncate text-xs text-gray-600">
+                {(appointment as any).patient_name || `Patient ID: ${appointment.patient_id}`}
               </span>
-              {appointment.is_first_visit && (
-                <span className="flex-shrink-0 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs font-medium text-white whitespace-nowrap">
-                  1ère visite
-                </span>
-              )}
             </div>
           )}
         </div>
 
         {/* Actions */}
         {showActions && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {onEdit && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Modifier
-                </DropdownMenuItem>
-              )}
-              {onStatusChange && appointment.status !== AppointmentStatus.COMPLETED && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStatusChange(AppointmentStatus.COMPLETED)
-                  }}
+          <div className="appt-actions">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 -mr-1 -mt-1 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Marquer comme terminé
-                </DropdownMenuItem>
-              )}
-              {onDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onDelete(appointment.id); }}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Supprimer
+                  <MoreVertical className="h-3.5 w-3.5 text-gray-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onEdit && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
                   </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      {/* Compact mode: just show status badge */}
-      {compact && (
-        <div className="mt-1">
-          <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', statusInfo.color)}>
-            {statusInfo.label}
-          </span>
-        </div>
-      )}
-
-      {/* Indicator badges */}
-      <div className="absolute -right-1 -top-1 flex gap-1">
-        {appointment.is_upcoming && (
-          <div className="h-2 w-2 rounded-full bg-blue-500 ring-2 ring-white" />
-        )}
-        {appointment.reminder_sent && (
-          <div className="h-2 w-2 rounded-full bg-green-500 ring-2 ring-white" />
+                )}
+                {onStatusChange && appointment.status !== AppointmentStatus.COMPLETED && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onStatusChange(AppointmentStatus.COMPLETED)
+                    }}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Marquer comme terminé
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onDelete(appointment.id); }}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
     </div>

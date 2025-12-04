@@ -210,12 +210,11 @@ export function useUpdateAppointment() {
     },
     onError: (error: any, variables, context) => {
       // Rollback on error
-      if (context?.previousAppointments) {
-        queryClient.setQueryData(appointmentKeys.lists(), context.previousAppointments)
-      }
       if (context?.previousAppointment) {
         queryClient.setQueryData(appointmentKeys.detail(variables.id), context.previousAppointment)
       }
+      // Always invalidate lists to ensure consistency
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() })
       console.error('Update appointment error:', error)
     },
   })

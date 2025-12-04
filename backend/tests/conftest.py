@@ -171,7 +171,7 @@ def test_patient(db, test_doctor):
     """Create test patient"""
     patient = Patient(
         identification_type=IdentificationType.CIN,
-        identification_number="TEST123456",
+        identification_number="AB123456789",
         first_name="Test",
         last_name="Patient",
         date_of_birth=date(1990, 5, 15),
@@ -191,7 +191,7 @@ def test_patient_female(db, test_doctor):
     """Create test female patient"""
     patient = Patient(
         identification_type=IdentificationType.PASSPORT,
-        identification_number="PASS987654",
+        identification_number="PASSPORT123456",
         first_name="Jane",
         last_name="Doe",
         date_of_birth=date(1985, 3, 20),
@@ -213,7 +213,7 @@ def test_patients_multiple(db, test_doctor):
     for i in range(5):
         patient = Patient(
             identification_type=IdentificationType.CIN,
-            identification_number=f"ID{i:05d}",
+            identification_number=f"AB{100000+i:06d}",
             first_name=f"Patient{i}",
             last_name="TestCase",
             date_of_birth=date(1980 + i, (i % 9) + 1, 15),

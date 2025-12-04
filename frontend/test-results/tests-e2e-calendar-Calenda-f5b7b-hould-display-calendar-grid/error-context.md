@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "DermAI" [level=1] [ref=e5]
+      - heading "Connexion" [level=2] [ref=e6]
+      - paragraph [ref=e7]: Accédez à votre cabinet dermatologique
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - text: Email
+          - textbox "Email" [ref=e11]:
+            - /placeholder: doctor@dermai.com
+            - text: doctor@dermai.com
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]: Mot de passe
+            - link "Mot de passe oublié ?" [ref=e15] [cursor=pointer]:
+              - /url: /auth/forgot-password
+          - generic [ref=e16]:
+            - textbox "Mot de passe" [ref=e17]:
+              - /placeholder: password123
+              - text: Doctor123!
+            - button "Voir" [ref=e18] [cursor=pointer]:
+              - generic [ref=e19]: Voir
+      - generic [ref=e20]:
+        - paragraph [ref=e21]: "Comptes de démonstration :"
+        - list [ref=e22]:
+          - listitem [ref=e23]: "👨‍⚕️ Doctor: doctor@dermai.com / password123"
+          - listitem [ref=e24]: "🔐 Admin: admin@dermai.com / password123"
+          - listitem [ref=e25]: "📋 Secretary: secretary@dermai.com / password123"
+      - button "Se connecter" [ref=e26] [cursor=pointer]
+      - paragraph [ref=e27]:
+        - text: Pas encore de compte ?
+        - link "Créer un compte" [ref=e28] [cursor=pointer]:
+          - /url: /auth/register
+  - region "Notifications alt+T"
+  - generic [ref=e33] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e34]:
+      - img [ref=e35]
+    - generic [ref=e38]:
+      - button "Open issues overlay" [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: "0"
+          - generic [ref=e42]: "1"
+        - generic [ref=e43]: Issue
+      - button "Collapse issues badge" [ref=e44]:
+        - img [ref=e45]
+  - alert [ref=e47]
+```

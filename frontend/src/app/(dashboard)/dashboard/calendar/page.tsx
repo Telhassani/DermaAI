@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format, startOfMonth, endOfMonth, startOfWeek } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns'
 import { CalendarToolbar, CalendarView } from '@/components/calendar/calendar-toolbar'
 import { CalendarGrid } from '@/components/calendar/calendar-grid'
 import { CalendarWeekViewDnd } from '@/components/calendar/calendar-week-view-dnd'
@@ -50,9 +50,14 @@ export default function CalendarPage() {
 
     switch (view) {
       case 'month':
+        const monthStart = startOfMonth(currentDate)
+        const monthEnd = endOfMonth(currentDate)
+        const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+        const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+
         return {
-          start_date: format(startOfMonth(currentDate), "yyyy-MM-dd'T'00:00:00"),
-          end_date: format(endOfMonth(currentDate), "yyyy-MM-dd'T'23:59:59"),
+          start_date: format(calendarStart, "yyyy-MM-dd'T'00:00:00"),
+          end_date: format(calendarEnd, "yyyy-MM-dd'T'23:59:59"),
         }
       case 'week':
         const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -144,20 +149,20 @@ export default function CalendarPage() {
   ) => {
     try {
       // Check for conflicts first
-      const currentAppointment = allAppointments.find((a) => a.id === appointmentId)
-      const conflictData = await checkConflicts({
-        start_time: newStartTime.toISOString(),
-        end_time: newEndTime.toISOString(),
-        doctor_id: currentAppointment?.doctor_id || 0,
-        exclude_appointment_id: appointmentId,
-      })
+      // const currentAppointment = allAppointments.find((a) => a.id === appointmentId)
+      // const conflictData = await checkConflicts({
+      //   start_time: newStartTime.toISOString(),
+      //   end_time: newEndTime.toISOString(),
+      //   doctor_id: currentAppointment?.doctor_id || 0,
+      //   exclude_appointment_id: appointmentId,
+      // })
 
-      if (conflictData.has_conflict) {
-        toast.error(
-          `Conflit détecté avec ${conflictData.conflicts?.length || 0} rendez-vous existant(s)`
-        )
-        return
-      }
+      // if (conflictData.has_conflict) {
+      //   toast.warning(
+      //     `Attention: Chevauchement avec ${conflictData.conflicts?.length || 0} rendez-vous existant(s)`
+      //   )
+      //   // Allow proceed
+      // }
 
       // No conflicts, proceed with rescheduling
       await updateMutation.mutateAsync({
@@ -168,7 +173,7 @@ export default function CalendarPage() {
         },
       })
 
-      toast.success('Rendez-vous reprogrammé avec succès')
+      // toast.success('Rendez-vous reprogrammé avec succès')
     } catch (error) {
       toast.error('Erreur lors de la reprogrammation du rendez-vous')
       console.error('Rescheduling error:', error)
@@ -176,7 +181,7 @@ export default function CalendarPage() {
   }
 
   // Apply filters to appointments
-  const appointments = allAppointments.filter((appointment) => {
+  const appointments = allAppointments.filter((appointment: Appointment) => {
     // Filter by type
     if (filters.types.length > 0 && !filters.types.includes(appointment.type)) {
       return false
@@ -187,10 +192,10 @@ export default function CalendarPage() {
       return false
     }
 
-    // Filter by search query (patient ID or reason)
+    // Filter by search query (patient name, reason, or notes)
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase()
-      const matchesPatient = appointment.patient_id.toString().includes(query)
+      const matchesPatient = appointment.patient_name?.toLowerCase().includes(query) || appointment.guest_name?.toLowerCase().includes(query)
       const matchesReason = appointment.reason?.toLowerCase().includes(query)
       const matchesNotes = appointment.notes?.toLowerCase().includes(query)
 
@@ -200,12 +205,12 @@ export default function CalendarPage() {
     }
 
     // Filter cancelled appointments
-    if (!filters.showCancelled && appointment.status === 'CANCELLED') {
+    if (!filters.showCancelled && appointment.status === 'cancelled') {
       return false
     }
 
     // Filter completed appointments
-    if (!filters.showCompleted && appointment.status === 'COMPLETED') {
+    if (!filters.showCompleted && appointment.status === 'completed') {
       return false
     }
 
@@ -281,6 +286,7 @@ export default function CalendarPage() {
               appointments={appointments}
               onDayClick={handleDayClick}
               onAppointmentClick={handleAppointmentClick}
+              onAppointmentReschedule={handleAppointmentReschedule}
             />
           )}
 
@@ -333,14 +339,14 @@ export default function CalendarPage() {
             <div>
               <p className="text-xs text-gray-500">À venir</p>
               <p className="text-lg font-semibold text-blue-600">
-                {appointments.filter((a) => a.is_upcoming).length}
+                {appointments.filter((a: Appointment) => a.is_upcoming).length}
               </p>
             </div>
             <div className="h-10 w-px bg-gray-200" />
             <div>
               <p className="text-xs text-gray-500">Terminés</p>
               <p className="text-lg font-semibold text-green-600">
-                {appointments.filter((a) => a.status === 'completed').length}
+                {appointments.filter((a: Appointment) => a.status === 'completed').length}
               </p>
             </div>
           </div>

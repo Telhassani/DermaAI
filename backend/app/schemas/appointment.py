@@ -258,7 +258,7 @@ class AppointmentListResponse(BaseModel):
     Used for all list endpoints that return multiple appointments.
     """
 
-    appointments: list[AppointmentResponse] = Field(..., description="List of appointments in current page")
+    appointments: list[AppointmentWithDetailsResponse] = Field(..., description="List of appointments in current page")
     total: int = Field(..., description="Total number of appointments matching filters")
     page: int = Field(..., description="Current page number (1-indexed)")
     page_size: int = Field(..., description="Number of items per page")

@@ -34,20 +34,10 @@ export function DroppableTimeSlot({
       ref={setNodeRef}
       className={cn(
         'relative min-h-[60px] border-b border-gray-200 transition-colors',
-        isOver && 'bg-blue-50 ring-2 ring-blue-400 ring-inset',
         className
       )}
     >
       {children}
-
-      {/* Drop indicator */}
-      {isOver && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="rounded-lg bg-blue-500 px-3 py-1 text-xs font-medium text-white shadow-lg">
-            Déposer ici
-          </div>
-        </div>
-      )}
     </div>
   )
 }

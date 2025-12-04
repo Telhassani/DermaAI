@@ -38,7 +38,7 @@ services:
     image: redis:7-alpine
     container_name: dermai-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}  # Must be set via .env file
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -63,8 +63,7 @@ services:
     environment:
       # Database - Must be set via .env file
       DATABASE_URL: ${DATABASE_URL}
-      # Redis - Must be set via .env file
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: redis://redis:6379/0
       # Security - Must be set via .env file
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
@@ -111,7 +110,8 @@ services:
       - /app/node_modules  # Use container's node_modules
       - /app/.next  # Use container's .next cache
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - dermai-network
     command: npm run dev

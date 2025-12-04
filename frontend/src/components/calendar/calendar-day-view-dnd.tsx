@@ -193,41 +193,45 @@ export function CalendarDayViewDnd({
     >
       <div className="flex h-full gap-4">
         {/* Main timeline */}
-        <div className="flex-1 overflow-hidden rounded-lg border bg-white shadow-sm">
+        <div className="flex-1 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           {/* Day header */}
-          <div className={cn('border-b p-4', isCurrentDay && 'bg-blue-50')}>
-            <div className="text-sm font-medium text-gray-500">
-              {format(currentDate, 'EEEE', { locale: fr })}
-            </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span
-                className={cn(
-                  'text-3xl font-bold',
-                  isCurrentDay ? 'text-blue-600' : 'text-gray-900'
-                )}
-              >
-                {format(currentDate, 'd')}
-              </span>
-              <span className="text-lg text-gray-600">
-                {format(currentDate, 'MMMM yyyy', { locale: fr })}
-              </span>
-            </div>
-            <div className="mt-2 text-sm text-gray-600">
-              {sortedAppointments.length} rendez-vous
+          <div className={cn('border-b border-gray-100 p-4', isCurrentDay && 'bg-blue-50/30')}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                  {format(currentDate, 'EEEE', { locale: fr })}
+                </div>
+                <div className="mt-0.5 flex items-baseline gap-2">
+                  <span
+                    className={cn(
+                      'text-3xl font-bold tracking-tight',
+                      isCurrentDay ? 'text-blue-600' : 'text-gray-900'
+                    )}
+                  >
+                    {format(currentDate, 'd')}
+                  </span>
+                  <span className="text-lg text-gray-400 font-medium">
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
+                  </span>
+                </div>
+              </div>
+              <div className="text-sm font-medium text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                {sortedAppointments.length} rendez-vous
+              </div>
             </div>
           </div>
 
           {/* Scrollable timeline */}
-          <div className="relative overflow-auto" style={{ height: 'calc(100% - 120px)' }}>
-            <div className="grid grid-cols-[80px_1fr]">
+          <div className="relative overflow-auto custom-scrollbar" style={{ height: 'calc(100% - 100px)' }}>
+            <div className="grid grid-cols-[70px_1fr]">
               {hours.map((hour) => {
                 const slotId = `slot-${format(currentDate, 'yyyy-MM-dd')}-${hour}`
 
                 return (
                   <div key={hour} className="contents">
                     {/* Time label */}
-                    <div className="sticky left-0 z-10 border-b border-r bg-gray-50 p-3 text-right">
-                      <span className="text-sm font-medium text-gray-600">
+                    <div className="sticky left-0 z-10 border-r border-gray-50 bg-white p-3 text-right pr-4">
+                      <span className="text-xs font-medium text-gray-400 relative -top-2.5">
                         {hour.toString().padStart(2, '0')}:00
                       </span>
                     </div>
@@ -238,16 +242,16 @@ export function CalendarDayViewDnd({
                       date={currentDate}
                       hour={hour}
                       className={cn(
-                        'group relative',
-                        isCurrentDay && 'bg-blue-50/20',
-                        onTimeSlotClick && 'cursor-pointer hover:bg-blue-50'
+                        'group relative border-b border-gray-50', // Lighter borders
+                        isCurrentDay && 'bg-blue-50/5',
+                        onTimeSlotClick && 'cursor-pointer hover:bg-gray-50/50 transition-colors'
                       )}
                     >
                       <div onClick={() => onTimeSlotClick?.(currentDate, hour)} className="absolute inset-0">
-                        {/* 15-minute markers */}
-                        <div className="absolute left-0 right-0 top-[25%] h-px bg-gray-100" />
-                        <div className="absolute left-0 right-0 top-[50%] h-px bg-gray-200" />
-                        <div className="absolute left-0 right-0 top-[75%] h-px bg-gray-100" />
+                        {/* 15-minute markers - made very subtle */}
+                        <div className="absolute left-0 right-0 top-[25%] h-px bg-gray-50/50" />
+                        <div className="absolute left-0 right-0 top-[50%] h-px bg-gray-100/50 border-t border-dashed border-gray-200" />
+                        <div className="absolute left-0 right-0 top-[75%] h-px bg-gray-50/50" />
 
                         {/* Show appointments only in first hour slot to avoid duplication */}
                         {hour === startHour && (
@@ -268,7 +272,7 @@ export function CalendarDayViewDnd({
                                     left: style.left,
                                     width: style.width,
                                   }}
-                                  className="absolute pointer-events-auto overflow-hidden px-0.5"
+                                  className="absolute pointer-events-auto overflow-hidden px-1 py-0.5 transition-all duration-300 ease-in-out"
                                 >
                                   <DraggableAppointment
                                     appointment={appointment}
@@ -290,7 +294,9 @@ export function CalendarDayViewDnd({
                         {/* Hover overlay */}
                         {onTimeSlotClick && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                            <span className="text-sm text-gray-400">Cliquer pour ajouter un rendez-vous</span>
+                            <div className="bg-blue-500/10 text-blue-600 text-xs font-medium px-2 py-1 rounded">
+                              + Ajouter
+                            </div>
                           </div>
                         )}
                       </div>
@@ -313,13 +319,11 @@ export function CalendarDayViewDnd({
 
                 return (
                   <div
-                    className="pointer-events-none absolute left-[80px] right-0 z-30"
+                    className="pointer-events-none absolute left-[70px] right-0 z-30 flex items-center"
                     style={{ top: `${topPosition}%` }}
                   >
-                    <div className="flex items-center">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <div className="h-0.5 flex-1 bg-red-500" />
-                    </div>
+                    <div className="h-2 w-2 -ml-1 rounded-full bg-red-500 ring-2 ring-white" />
+                    <div className="h-px flex-1 bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.4)]" />
                   </div>
                 )
               }

@@ -141,11 +141,11 @@ class AppointmentService:
         if not appointment:
             raise ValueError(f"Appointment {appointment_id} not found")
 
-        if not appointment.can_be_rescheduled():
-            raise ValueError(
-                f"Appointment {appointment_id} cannot be rescheduled "
-                f"(status: {appointment.status}, is_past: {appointment.is_past})"
-            )
+        # if not appointment.can_be_rescheduled():
+        #     raise ValueError(
+        #         f"Appointment {appointment_id} cannot be rescheduled "
+        #         f"(status: {appointment.status}, is_past: {appointment.is_past})"
+        #     )
 
         # Update provided fields
         update_dict = update_data.model_dump(exclude_unset=True)

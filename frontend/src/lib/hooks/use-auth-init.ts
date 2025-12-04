@@ -22,15 +22,10 @@ export function useAuthInit() {
         const token = localStorage.getItem('access_token')
         console.log('[useAuthInit] Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NOT FOUND')
 
-        if (token) {
-          // Token exists, verify it with the backend
-          console.log('[useAuthInit] Token found, calling checkAuth()...')
-          await checkAuth()
-        } else {
-          // No token, mark as initialized and unauthenticated
-          console.log('[useAuthInit] No token found, marking initialized as unauthenticated')
-          useAuthStore.setState({ isInitialized: true })
-        }
+        // Always attempt checkAuth to support httpOnly cookies
+        // Even if no localStorage token exists, the cookie might be valid
+        console.log('[useAuthInit] Calling checkAuth() to verify session (cookie or token)...')
+        await checkAuth()
       } catch (error) {
         console.error('[useAuthInit] Error during auth initialization:', error)
         // Ensure we always mark as initialized even on error

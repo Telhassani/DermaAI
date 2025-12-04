@@ -70,6 +70,8 @@ class MessageResponse(BaseModel):
     has_attachments: bool
     attachments: List[AttachmentResponse] = []
     is_edited: bool
+    current_version_number: int = 1  # For regenerated messages
+    has_versions: bool = False  # Whether message has regenerated versions
     created_at: datetime
     updated_at: datetime
 
@@ -187,6 +189,98 @@ class ConversationAnalytics(BaseModel):
     total_processing_time_ms: int
     files_uploaded: int
     models_used: List[str]
+
+
+# ============================================================================
+# Message Version Schemas
+# ============================================================================
+
+class MessageVersionResponse(BaseModel):
+    """Response for a specific message version"""
+    id: int
+    message_id: int
+    version_number: int
+    content: str
+    model_used: Optional[str] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    processing_time_ms: Optional[int] = None
+    is_current: bool
+    regeneration_reason: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RegenerateMessageRequest(BaseModel):
+    """Request to regenerate a message"""
+    message_id: int
+    model: Optional[str] = None  # Use conversation default if not specified
+    temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
+    max_tokens: Optional[int] = None
+    regeneration_reason: Optional[str] = None
+
+
+class SwitchMessageVersionRequest(BaseModel):
+    """Request to switch to a different message version"""
+    message_id: int
+    version_number: int
+
+
+class MessageWithVersionsResponse(MessageResponse):
+    """Message response with version metadata"""
+    current_version_number: int
+    has_versions: bool
+    versions_count: Optional[int] = None  # If including all versions
+
+
+# ============================================================================
+# Prompt Template Schemas
+# ============================================================================
+
+class PromptTemplateBase(BaseModel):
+    """Base prompt template schema"""
+    title: str = Field(..., min_length=1, max_length=255)
+    template_text: str = Field(..., min_length=1, max_length=5000)
+    description: Optional[str] = None
+    category: Optional[str] = None
+
+
+class PromptTemplateCreate(PromptTemplateBase):
+    """Create prompt template"""
+    pass
+
+
+class PromptTemplateUpdate(BaseModel):
+    """Update prompt template"""
+    title: Optional[str] = None
+    template_text: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class PromptTemplateResponse(PromptTemplateBase):
+    """Prompt template response"""
+    id: int
+    doctor_id: int
+    is_system: bool
+    usage_count: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PromptTemplateListResponse(BaseModel):
+    """Paginated prompt template list"""
+    items: List[PromptTemplateResponse]
+    total: int
+    skip: int
+    limit: int
 
 
 # ============================================================================

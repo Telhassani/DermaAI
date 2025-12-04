@@ -343,6 +343,80 @@ npm run test:e2e:ui  # Mode interactif
 
 ---
 
+## 🗄️ Database Management
+
+### Configuration
+
+**Développement:**
+```bash
+# SQLite (par défaut)
+# .env contient: DATABASE_URL=sqlite:///./test.db
+# ✅ Simple, pas besoin Docker
+# ✅ Parfait pour développement/tests
+```
+
+**Production:**
+```bash
+# PostgreSQL
+# .env contient: DATABASE_URL=postgresql://user:password@host:5432/dbname
+# Docker Compose gère PostgreSQL automatiquement
+docker-compose up -d postgres redis
+```
+
+### Credentials de Démonstration
+
+```
+Email: doctor@dermai.com / password123
+Email: admin@dermai.com / password123
+Email: secretary@dermai.com / password123
+
+Patients de démo: Marie Dupuis, Jean Martin, Sophie Bernard
+Consultations et ordonnances pré-créées
+```
+
+### Commandes de Maintenance
+
+#### Sauvegarder la base de données
+```bash
+# Création automatique avec cleanup des anciennes sauvegardes
+./backend/scripts/backup_db.sh
+
+# Les sauvegardes sont stockées dans: backend/backups/
+# Dernières 7 sauvegardes sont conservées
+```
+
+#### Réinitialiser complètement la base
+```bash
+# Supprime test.db, crée une sauvegarde, puis réinitialise
+./backend/scripts/reset_db.sh
+
+# ⚠️ Cela supprime TOUS les données
+# Une sauvegarde est créée avant la suppression
+```
+
+#### Réinitialiser avec données seulement
+```bash
+cd backend
+python init_db.py
+
+# Ajoute les consultations et ordonnances de démonstration
+# Préserve les utilisateurs et patients existants
+```
+
+#### Inspécter la base SQLite
+```bash
+# Ouvrir la console SQLite
+sqlite3 backend/test.db
+
+# Quelques requêtes utiles:
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM patients;
+SELECT COUNT(*) FROM consultations;
+SELECT COUNT(*) FROM prescriptions;
+```
+
+---
+
 ## 🤝 Contribution
 
 ### Workflow Git

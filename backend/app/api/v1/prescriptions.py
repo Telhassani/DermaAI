@@ -5,8 +5,8 @@ Prescription endpoints - CRUD operations for medical prescriptions
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import desc
-from datetime import datetime
+from sqlalchemy import desc, or_
+from datetime import datetime, date as date_type
 import math
 
 from app.db.session import get_db
@@ -32,6 +32,10 @@ router = APIRouter()
 async def list_prescriptions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    patient_name: Optional[str] = Query(None, description="Search by patient name"),
+    patient_identifier: Optional[str] = Query(None, description="Search by patient identifier (CIN/Passport)"),
+    start_date: Optional[str] = Query(None, description="Filter by start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Filter by end date (YYYY-MM-DD)"),
     patient_id: Optional[int] = Query(None, description="Filter by patient ID"),
     consultation_id: Optional[int] = Query(None, description="Filter by consultation ID"),
     doctor_id: Optional[int] = Query(None, description="Filter by doctor ID"),
@@ -39,14 +43,18 @@ async def list_prescriptions(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ):
     """
-    List prescriptions with pagination and filtering
+    List prescriptions with advanced filtering and pagination
 
     Args:
         db: Database session
         current_user: Current authenticated user
+        patient_name: Search by patient name (first or last name)
+        patient_identifier: Search by patient ID (CIN/Passport)
+        start_date: Filter from this date (inclusive, YYYY-MM-DD)
+        end_date: Filter until this date (inclusive, YYYY-MM-DD)
         patient_id: Filter by patient ID
         consultation_id: Filter by consultation ID
-        doctor_id: Filter by doctor ID
+        doctor_id: Filter by doctor ID (ignored, users only see their own)
         page: Page number (starts at 1)
         page_size: Number of items per page
 
@@ -63,10 +71,44 @@ async def list_prescriptions(
     # Each doctor can only see their own prescriptions
     query = query.filter(Prescription.doctor_id == current_user.id)
 
-    # Apply filters
+    # Apply patient name filter (search in first_name or last_name)
+    if patient_name:
+        patient_name_filter = or_(
+            Patient.first_name.ilike(f"%{patient_name}%"),
+            Patient.last_name.ilike(f"%{patient_name}%"),
+        )
+        query = query.join(Patient).filter(patient_name_filter)
+
+    # Apply patient identifier filter (CIN/Passport number)
+    if patient_identifier:
+        identifier_filter = Patient.identification_number.ilike(f"%{patient_identifier}%")
+        if patient_name:
+            # Already joined, just filter
+            query = query.filter(identifier_filter)
+        else:
+            # Need to join for this filter
+            query = query.join(Patient).filter(identifier_filter)
+
+    # Apply date range filters
+    if start_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Prescription.prescription_date >= start_date_obj)
+        except ValueError:
+            pass  # Ignore invalid date format
+
+    if end_date:
+        try:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Prescription.prescription_date <= end_date_obj)
+        except ValueError:
+            pass  # Ignore invalid date format
+
+    # Apply patient_id filter
     if patient_id:
         query = query.filter(Prescription.patient_id == patient_id)
 
+    # Apply consultation_id filter
     if consultation_id:
         query = query.filter(Prescription.consultation_id == consultation_id)
 
