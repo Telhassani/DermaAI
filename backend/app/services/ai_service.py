@@ -390,18 +390,6 @@ class AIService:
         except Exception as e:
             raise AIServiceError(f"GPT streaming error: {str(e)}")
 
-
-# Global service instance
-_ai_service: Optional[AIService] = None
-
-
-def get_ai_service() -> AIService:
-    """Get or create AI service singleton"""
-    global _ai_service
-    if _ai_service is None:
-        _ai_service = AIService()
-    return _ai_service
-
     async def _stream_ollama_message(
         self,
         model: str,
@@ -419,7 +407,7 @@ def get_ai_service() -> AIService:
                     "content": system_prompt
                 })
             ollama_messages.extend(messages)
-            
+
             async for chunk in ollama_service.stream_chat(
                 model=model,
                 messages=ollama_messages,
@@ -428,3 +416,15 @@ def get_ai_service() -> AIService:
                 yield chunk
         except Exception as e:
             raise AIServiceError(f"Ollama streaming error: {str(e)}")
+
+
+# Global service instance
+_ai_service: Optional[AIService] = None
+
+
+def get_ai_service() -> AIService:
+    """Get or create AI service singleton"""
+    global _ai_service
+    if _ai_service is None:
+        _ai_service = AIService()
+    return _ai_service

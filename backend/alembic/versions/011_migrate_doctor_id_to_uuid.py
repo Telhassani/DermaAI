@@ -1,6 +1,6 @@
 """Migrate doctor_id to UUID in all tables to match Supabase profiles table
 
-Revision ID: 011_migrate_doctor_id_to_uuid
+Revision ID: 011_migrate_doctor_id_uuid
 Revises: make_patient_id_nullable_in_ai_analyses
 Create Date: 2025-12-12 21:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '011_migrate_doctor_id_to_uuid'
+revision = '011_migrate_doctor_id_uuid'
 down_revision = 'make_patient_id_nullable_in_ai_analyses'
 branch_labels = None
 depends_on = None
