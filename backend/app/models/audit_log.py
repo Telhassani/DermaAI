@@ -24,7 +24,7 @@ class AIAnalysisAuditLog(BaseModel):
     __tablename__ = "ai_analysis_audit_logs"
 
     analysis_id = Column(Integer, ForeignKey("ai_analyses.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, nullable=False)  # TODO: Migrate to UUID to match profiles table
     
     action = Column(Enum(AuditAction), nullable=False)
     changes = Column(JSON, nullable=True)  # What changed (diff)
@@ -35,4 +35,4 @@ class AIAnalysisAuditLog(BaseModel):
     
     # Relationships
     analysis = relationship("AIAnalysis", back_populates="audit_logs")
-    user = relationship("User")
+    # user = relationship("User")  # Disabled until user_id migrated to UUID

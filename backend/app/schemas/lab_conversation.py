@@ -5,6 +5,7 @@ Request/response models for chat API endpoints
 
 from datetime import datetime
 from typing import List, Optional, Any
+from uuid import UUID
 from pydantic import BaseModel, Field
 from app.models.lab_conversation import MessageRole, MessageType, AttachmentType
 
@@ -118,7 +119,7 @@ class ConversationUpdate(BaseModel):
 class ConversationResponse(ConversationBase):
     """Conversation response"""
     id: int
-    doctor_id: int
+    doctor_id: UUID  # UUID to match profiles table
     default_model: Optional[str] = None
     system_prompt: Optional[str] = None
     message_count: int

@@ -40,6 +40,14 @@ cleanup_auth_storage() {
 
 start_backend() {
   echo -e "${BLUE}🚀 Starting backend on port 8000...${NC}"
+  
+  # Kill anything running on port 8000
+  PID_8000=$(lsof -ti :8000 || true)
+  if [ ! -z "$PID_8000" ]; then
+    echo -e "${YELLOW}⚠️  Killing existing process on port 8000 (PID: $PID_8000)...${NC}"
+    kill -9 $PID_8000 2>/dev/null || true
+  fi
+
   cd "$BACKEND_DIR"
 
   # Check if venv exists

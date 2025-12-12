@@ -84,16 +84,37 @@ export function useStreamingResponse(options: UseStreamingResponseOptions = {}) 
             startTimeRef.current = Date.now()
             onStart?.()
 
-            // Get auth token from localStorage
-            const token = localStorage.getItem('access_token')
+            // Get auth token from Supabase client or localStorage fallback
+            let token: string | null = null
+            try {
+              const { createClient } = await import('@/lib/supabase/client')
+              const supabase = createClient()
+              const { data: { session } } = await supabase.auth.getSession()
+              token = session?.access_token ?? null
+            } catch (error) {
+              // Fallback to localStorage for backwards compatibility
+              token = localStorage.getItem('access_token')
+            }
+
             const headers = new Headers(options?.headers || {})
             if (token) {
               headers.set('Authorization', `Bearer ${token}`)
             }
 
             // Construct full URL
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
-            const fullUrl = url.startsWith('http') ? url : `${baseUrl}/api/v1${url}`
+            // Construct full URL
+            let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+            // Remove trailing slash
+            baseUrl = baseUrl.replace(/\/$/, '')
+            // Remove /api/v1 suffix if present to avoid duplication
+            baseUrl = baseUrl.replace(/\/api\/v1$/, '')
+
+            const endpoint = url.startsWith('/') ? url : `/${url}`
+            const fullUrl = url.startsWith('http')
+              ? url
+              : `${baseUrl}/api/v1${endpoint}`
+
+            console.log('[Streaming] Requesting URL:', fullUrl)
 
             // Fetch with streaming response
             const response = await fetch(fullUrl, {

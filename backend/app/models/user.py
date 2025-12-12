@@ -1,12 +1,16 @@
 """
 User model - Authentication and authorization
+Maps to 'profiles' table in Supabase database
+Integrated with Supabase Auth for authentication
 """
 
-from sqlalchemy import Column, String, Boolean, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Boolean, Enum as SQLEnum, DateTime, Integer
+from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime
 import enum
+import uuid
 
-from app.db.base import BaseModel
+from app.db.base import Base
 
 
 class UserRole(str, enum.Enum):
@@ -18,15 +22,16 @@ class UserRole(str, enum.Enum):
     ASSISTANT = "ASSISTANT"
 
 
-class User(BaseModel):
+class User(Base):
     """
     User model for authentication and authorization
+    Maps to the 'profiles' table in Supabase database
 
     Attributes:
-        email: User email (unique, used for login)
-        hashed_password: Bcrypt hashed password
+        id: UUID primary key (matches Supabase auth.users.id)
+        email: User email (from Supabase Auth)
         full_name: User's full name
-        role: User role (admin, doctor, secretary, assistant)
+        role: User role (ADMIN, DOCTOR, SECRETARY, ASSISTANT)
         is_active: Whether user account is active
         is_verified: Whether email is verified
         phone: User phone number
@@ -34,13 +39,16 @@ class User(BaseModel):
         mfa_secret: TOTP secret for MFA
     """
 
-    __tablename__ = "users"
+    __tablename__ = "profiles"
 
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    # Primary key - UUID for Supabase integration
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # Basic user info
+    email = Column(String(255), nullable=False, unique=True, index=True)
     full_name = Column(String(255), nullable=False)
     role = Column(
-        SQLEnum(UserRole, name="user_role"),
+        SQLEnum(UserRole, name="user_role", create_type=False),
         nullable=False,
         default=UserRole.DOCTOR,
     )
@@ -52,9 +60,16 @@ class User(BaseModel):
     mfa_enabled = Column(Boolean, default=False, nullable=False)
     mfa_secret = Column(String(255), nullable=True)
 
-    # Relationships (to be added later)
-    patients = relationship("Patient", back_populates="doctor")
-    appointments = relationship("Appointment", back_populates="doctor")
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
+
+    # Relationships removed - patient/appointment tables still use integer doctor_id
+    # TODO: Migrate patient and appointment tables to use UUID doctor_id to re-enable relationships
+    # patients = relationship("Patient", back_populates="doctor", foreign_keys="Patient.doctor_id")
+    # appointments = relationship("Appointment", back_populates="doctor", foreign_keys="Appointment.doctor_id")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

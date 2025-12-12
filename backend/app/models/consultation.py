@@ -45,7 +45,7 @@ class Consultation(BaseModel):
 
     # Foreign Keys
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
 
     # Consultation Details
     consultation_date = Column(Date, nullable=False, index=True, default=datetime.now)
@@ -92,7 +92,7 @@ class Consultation(BaseModel):
 
     # Relationships
     patient_rel = relationship("Patient")
-    doctor = relationship("User")
+    # doctor = relationship("User")  # Disabled until doctor_id migrated to UUID
     # prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
     # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")
 

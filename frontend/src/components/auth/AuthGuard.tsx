@@ -36,9 +36,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     console.log('[AuthGuard] State check:', { isInitialized, hasUser: !!user })
     // If initialization is complete and user is not authenticated, redirect to login
     if (isInitialized && !user) {
-      console.log('[AuthGuard] Not authenticated')
-      // STOP REDIRECT FOR DEBUGGING
-      // router.push('/login')
+      console.log('[AuthGuard] Not authenticated, redirecting to login')
+      router.push('/login')
     }
   }, [isInitialized, user, router])
 

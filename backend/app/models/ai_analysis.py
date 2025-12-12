@@ -45,7 +45,7 @@ class AIAnalysis(BaseModel):
     
     # Relationships
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=True, index=True)
     
     # AI Processing Metadata
@@ -90,7 +90,7 @@ class AIAnalysis(BaseModel):
     
     # Relationships
     patient = relationship("Patient", backref="ai_analyses")
-    doctor = relationship("User", backref="ai_analyses")
+    # doctor = relationship("User", backref="ai_analyses")  # Disabled until doctor_id migrated to UUID
     consultation = relationship("Consultation", backref="ai_analyses")
     images = relationship("AIAnalysisImage", back_populates="analysis", cascade="all, delete-orphan")
     audit_logs = relationship("AIAnalysisAuditLog", back_populates="analysis", cascade="all, delete-orphan")

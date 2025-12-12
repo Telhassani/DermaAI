@@ -1,17 +1,21 @@
 """
 API dependencies - Reusable dependencies for routes
+Uses Supabase JWT authentication with profiles table
 """
 
+import logging
 from typing import Annotated, Optional
+from uuid import UUID
 from fastapi import Depends, HTTPException, status, Cookie, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from jose import jwt, JWTError
 
 from app.core.config import settings
-from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
-from app.schemas.user import TokenData
+
+logger = logging.getLogger(__name__)
 
 # OAuth2 scheme for JWT token - set auto_error=False to handle missing token manually
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
@@ -40,11 +44,75 @@ async def get_token(
     return None
 
 
+def decode_supabase_token(token: str) -> Optional[dict]:
+    """
+    Decode and verify a Supabase JWT token.
+
+    Args:
+        token: JWT token from Supabase
+
+    Returns:
+        Decoded token payload or None if invalid
+    """
+    try:
+        logger.debug(f"Attempting to decode token (first 50 chars): {token[:50] if token else 'None'}...")
+
+        # Decode without verification first to inspect the token
+        unverified = jwt.get_unverified_claims(token)
+        logger.debug(f"Unverified claims decoded successfully: email={unverified.get('email')}, sub={unverified.get('sub')}")
+
+        # Check if it looks like a Supabase token (has 'sub' claim with UUID)
+        sub = unverified.get('sub')
+        if not sub:
+            logger.warning("Token missing 'sub' claim")
+            return None
+
+        # In development mode, allow unverified tokens for easier testing
+        if settings.ENVIRONMENT == "development":
+            logger.info(f"Using unverified Supabase token for user: {unverified.get('email')}")
+            return unverified
+
+        # In production, verify the token with JWT secret
+        if settings.SUPABASE_JWT_SECRET:
+            try:
+                payload = jwt.decode(
+                    token,
+                    settings.SUPABASE_JWT_SECRET,
+                    algorithms=["HS256"],
+                    audience="authenticated"
+                )
+                logger.info(f"Supabase token verified for: {payload.get('email')}")
+                return payload
+            except JWTError:
+                # Try without audience validation
+                try:
+                    payload = jwt.decode(
+                        token,
+                        settings.SUPABASE_JWT_SECRET,
+                        algorithms=["HS256"],
+                        options={"verify_aud": False}
+                    )
+                    logger.info(f"Supabase token verified (no aud) for: {payload.get('email')}")
+                    return payload
+                except JWTError as e:
+                    logger.warning(f"Supabase token verification failed: {e}")
+                    return None
+
+        return None
+
+    except Exception as e:
+        import traceback
+        logger.error(f"Error decoding token: {e}")
+        logger.error(f"Full traceback:\n{traceback.format_exc()}")
+        return None
+
+
 async def get_current_user(
     token: Annotated[Optional[str], Depends(get_token)], db: Session = Depends(get_db)
 ) -> User:
     """
-    Get current authenticated user from JWT token
+    Get current authenticated user from Supabase JWT token.
+    Looks up user in the 'profiles' table by their Supabase UUID.
 
     Args:
         token: JWT access token from Authorization header or httpOnly cookie
@@ -64,35 +132,45 @@ async def get_current_user(
 
     # Check if token was provided
     if not token:
+        logger.debug("No token provided")
         raise credentials_exception
 
-    # Decode token
-    token_data = decode_token(token)
-    if token_data is None:
+    # Decode the Supabase token
+    payload = decode_supabase_token(token)
+    if not payload:
+        logger.debug("Failed to decode token")
         raise credentials_exception
 
-    # Get user from database
-    user_id = token_data.get("user_id")
-    if user_id is None:
+    # Get user ID (UUID) from token
+    user_uuid_str = payload.get("sub")
+    email = payload.get("email")
+
+    if not user_uuid_str:
+        logger.debug("Token missing 'sub' claim")
         raise credentials_exception
 
-    # Cast user_id to integer to ensure type consistency (FIX #3)
     try:
-        user_id = int(user_id)
-    except (ValueError, TypeError):
+        user_uuid = UUID(user_uuid_str)
+    except (ValueError, TypeError) as e:
+        logger.error(f"Invalid UUID in token: {e}")
         raise credentials_exception
 
+    # Look up user in profiles table by UUID (Supabase primary key)
     try:
-        # Query user by ID
-        user = db.query(User).filter(User.id == user_id).first()
-    except Exception:
-        raise credentials_exception
+        user = db.query(User).filter(User.id == user_uuid).first()
 
-    # User must exist in database - no fake user objects
-    if user is None:
-        raise credentials_exception
+        if not user:
+            logger.info(f"User not found in profiles table for UUID: {user_uuid}, email: {email}")
+            raise credentials_exception
 
-    return user
+        logger.debug(f"Found user: {user.email} (role: {user.role})")
+        return user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error looking up user: {e}")
+        raise credentials_exception
 
 
 async def get_current_active_user(

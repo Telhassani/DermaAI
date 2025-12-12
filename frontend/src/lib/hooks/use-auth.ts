@@ -16,15 +16,16 @@ export function useAuth() {
 
   return {
     user: store.user,
-    token: store.token,
+    session: store.session,
     isLoading: store.isLoading,
     isAuthenticated: store.isAuthenticated,
     login: store.login,
     logout: store.logout,
     checkAuth: store.checkAuth,
     setUser: store.setUser,
-    setToken: store.setToken,
+    setSession: store.setSession,
     setLoading: store.setLoading,
     isInitialized: store.isInitialized,
+    getAccessToken: store.getAccessToken,
   }
 }

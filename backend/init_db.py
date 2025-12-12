@@ -42,13 +42,13 @@ def seed_data():
         if existing_admin:
             print("⚠️  Admin user already exists. Updating password hash...")
             # Always update the password hash to ensure it's correct
-            existing_admin.hashed_password = get_password_hash("password123")
+            existing_admin.hashed_password = get_password_hash("Doctor123!")
             db.add(existing_admin)
             admin_user = existing_admin
         else:
             admin_user = User(
                 email="admin@dermai.com",
-                hashed_password=get_password_hash("password123"),
+                hashed_password=get_password_hash("Doctor123!"),
                 full_name="DermAI Admin",
                 role=UserRole.ADMIN,
                 is_active=True,
@@ -62,13 +62,13 @@ def seed_data():
         if existing_doctor:
             print("⚠️  Doctor user already exists. Updating password hash...")
             # Always update the password hash to ensure it's correct
-            existing_doctor.hashed_password = get_password_hash("password123")
+            existing_doctor.hashed_password = get_password_hash("Doctor123!")
             db.add(existing_doctor)
             doctor_user = existing_doctor
         else:
             doctor_user = User(
                 email="doctor@dermai.com",
-                hashed_password=get_password_hash("password123"),
+                hashed_password=get_password_hash("Doctor123!"),
                 full_name="Dr. Jean Dupont",
                 role=UserRole.DOCTOR,
                 is_active=True,
@@ -82,13 +82,13 @@ def seed_data():
         if existing_secretary:
             print("⚠️  Secretary user already exists. Updating password hash...")
             # Always update the password hash to ensure it's correct
-            existing_secretary.hashed_password = get_password_hash("password123")
+            existing_secretary.hashed_password = get_password_hash("Doctor123!")
             db.add(existing_secretary)
             secretary_user = existing_secretary
         else:
             secretary_user = User(
                 email="secretary@dermai.com",
-                hashed_password=get_password_hash("password123"),
+                hashed_password=get_password_hash("Doctor123!"),
                 full_name="Marie Martin",
                 role=UserRole.SECRETARY,
                 is_active=True,
@@ -102,9 +102,9 @@ def seed_data():
         if not existing_admin or not existing_doctor or not existing_secretary:
             print("✅ Users created successfully!")
             print("\n📝 Demo accounts created:")
-            print("   🔐 Admin: admin@dermai.com / password123")
-            print("   👨‍⚕️ Doctor: doctor@dermai.com / password123")
-            print("   📋 Secretary: secretary@dermai.com / password123")
+            print("   🔐 Admin: admin@dermai.com / Doctor123!")
+            print("   👨‍⚕️ Doctor: doctor@dermai.com / Doctor123!")
+            print("   📋 Secretary: secretary@dermai.com / Doctor123!")
 
         # Create sample patients for the doctor (always check and create if missing)
 

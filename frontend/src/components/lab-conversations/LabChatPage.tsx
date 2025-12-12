@@ -13,6 +13,7 @@ import {
   deleteConversation as deleteConversationAPI,
   pinConversation as pinConversationAPI,
   archiveConversation as archiveConversationAPI,
+  deleteMessage as deleteMessageAPI,
 } from '@/lib/api/lab-conversations'
 import { useStreamingResponse } from '@/lib/hooks/useStreamingResponse'
 import {
@@ -64,7 +65,7 @@ interface LabChatPageProps {
   availableModels?: string[]
 }
 
-export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChatPageProps) {
+export function LabChatPage({ availableModels = ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001', 'claude-opus-4-5-20251101', 'claude-3-5-haiku-20241022'] }: LabChatPageProps) {
   // Get store state using selectors for optimal re-renders
   const conversations = useConversations()
   const selectedConversationId = useSelectedConversationId()
@@ -110,6 +111,35 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
     anthropic: localStorage.getItem('anthropic_api_key') || '',
     openai: localStorage.getItem('openai_api_key') || '',
   })
+
+  // Log localStorage contents on mount for debugging
+  useEffect(() => {
+    const anthropicKey = localStorage.getItem('anthropic_api_key')
+    const openaiKey = localStorage.getItem('openai_api_key')
+
+    console.log('[LabChatPage] Component mounted. API keys in localStorage:', {
+      anthropic: anthropicKey ? `${anthropicKey.substring(0, 20)}...` : '(not set)',
+      openai: openaiKey ? `${openaiKey.substring(0, 20)}...` : '(not set)',
+    })
+  }, [])
+
+  // Reload API keys from localStorage when settings dialog opens
+  useEffect(() => {
+    if (isSettingsOpen) {
+      const anthropicKey = localStorage.getItem('anthropic_api_key')
+      const openaiKey = localStorage.getItem('openai_api_key')
+
+      console.log('[Settings] Loading API keys from localStorage:', {
+        anthropic: anthropicKey ? `${anthropicKey.substring(0, 20)}...` : '(not set)',
+        openai: openaiKey ? `${openaiKey.substring(0, 20)}...` : '(not set)',
+      })
+
+      setApiKeys({
+        anthropic: anthropicKey || '',
+        openai: openaiKey || '',
+      })
+    }
+  }, [isSettingsOpen])
 
   // Use refs to capture current state without triggering re-renders
   const streamingStateRef = useRef({ streamingMessageId, streamingContent })
@@ -316,7 +346,7 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
           has_attachments: false,
           attachments: [],
           is_edited: false,
-          model_used: selectedModel || 'claude-3.5-sonnet',
+          model_used: selectedModel || 'claude-sonnet-4-5-20250929',
           created_at: now,
           updated_at: now,
         }
@@ -330,10 +360,12 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Anthropic-Key': localStorage.getItem('anthropic_api_key') || '',
+            'X-OpenAI-Key': localStorage.getItem('openai_api_key') || '',
           },
           body: JSON.stringify({
             conversation_id: selectedConversationId,
-            model: selectedModel || 'claude-3.5-sonnet',
+            model: selectedModel || 'claude-sonnet-4-5-20250929',
             user_message_id: userMessage.id,
             temperature: 0.7,
             max_tokens: 2000,
@@ -479,6 +511,142 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
                         isSendingMessage &&
                         message.id === messages[messages.length - 1].id
                       }
+                      onRegenerate={async () => {
+                        if (!selectedConversationId) return
+
+                        try {
+                          const messageIndex = messages.findIndex(m => m.id === message.id)
+
+                          // Handle AI messages differently - delete current message too
+                          if (message.role === 'ASSISTANT') {
+                            // Delete THIS AI message and all after it
+                            const messagesToDelete = messages.slice(messageIndex)
+
+                            for (const msg of messagesToDelete) {
+                              try {
+                                await deleteMessageAPI(selectedConversationId, msg.id)
+                                deleteMessage(msg.id)
+                              } catch (error) {
+                                console.error('Failed to delete message:', error)
+                              }
+                            }
+
+                            // Find the previous user message
+                            const previousUserMessage = messages
+                              .slice(0, messageIndex)
+                              .reverse()
+                              .find(m => m.role === 'USER')
+
+                            if (!previousUserMessage) {
+                              console.error('No previous user message found')
+                              return
+                            }
+
+                            // Create optimistic AI message placeholder
+                            const aiMessageId = Date.now()
+                            const now = new Date().toISOString()
+                            const placeholderMessage: Message = {
+                              id: aiMessageId,
+                              conversation_id: selectedConversationId,
+                              content: '',
+                              role: 'ASSISTANT',
+                              message_type: 'TEXT',
+                              has_attachments: false,
+                              attachments: [],
+                              is_edited: false,
+                              model_used: 'claude-sonnet-4-5-20250929',
+                              created_at: now,
+                              updated_at: now,
+                            }
+
+                            addMessage(placeholderMessage)
+                            setStreamingMessageId(aiMessageId)
+                            setIsStreaming(true)
+
+                            // Stream AI response using previous user message
+                            await stream(`/lab-conversations/conversations/${selectedConversationId}/stream-response`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'X-Anthropic-Key': localStorage.getItem('anthropic_api_key') || '',
+                                'X-OpenAI-Key': localStorage.getItem('openai_api_key') || '',
+                              },
+                              body: JSON.stringify({
+                                conversation_id: selectedConversationId,
+                                model: 'claude-sonnet-4-5-20250929',
+                                user_message_id: previousUserMessage.id,
+                                temperature: 0.7,
+                                max_tokens: 2000,
+                              }),
+                            })
+
+                            // Update conversation message count
+                            updateConversation(selectedConversationId, {
+                              message_count: messages.length - messagesToDelete.length + 1,
+                              last_message_at: new Date().toISOString(),
+                            })
+                          } else {
+                            // For USER messages: delete all messages after this one
+                            const messagesToDelete = messages.slice(messageIndex + 1)
+
+                            for (const msg of messagesToDelete) {
+                              try {
+                                await deleteMessageAPI(selectedConversationId, msg.id)
+                                deleteMessage(msg.id)
+                              } catch (error) {
+                                console.error('Failed to delete message:', error)
+                              }
+                            }
+
+                            // Create optimistic AI message placeholder
+                            const aiMessageId = Date.now()
+                            const now = new Date().toISOString()
+                            const placeholderMessage: Message = {
+                              id: aiMessageId,
+                              conversation_id: selectedConversationId,
+                              content: '',
+                              role: 'ASSISTANT',
+                              message_type: 'TEXT',
+                              has_attachments: false,
+                              attachments: [],
+                              is_edited: false,
+                              model_used: 'claude-sonnet-4-5-20250929',
+                              created_at: now,
+                              updated_at: now,
+                            }
+
+                            addMessage(placeholderMessage)
+                            setStreamingMessageId(aiMessageId)
+                            setIsStreaming(true)
+
+                            // Stream AI response using existing user message
+                            await stream(`/lab-conversations/conversations/${selectedConversationId}/stream-response`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'X-Anthropic-Key': localStorage.getItem('anthropic_api_key') || '',
+                                'X-OpenAI-Key': localStorage.getItem('openai_api_key') || '',
+                              },
+                              body: JSON.stringify({
+                                conversation_id: selectedConversationId,
+                                model: 'claude-sonnet-4-5-20250929',
+                                user_message_id: message.id,
+                                temperature: 0.7,
+                                max_tokens: 2000,
+                              }),
+                            })
+
+                            // Update conversation message count
+                            updateConversation(selectedConversationId, {
+                              message_count: messages.length - messagesToDelete.length + 1,
+                              last_message_at: new Date().toISOString(),
+                            })
+                          }
+                        } catch (error) {
+                          console.error('Failed to regenerate:', error)
+                          setIsStreaming(false)
+                        }
+                      }}
                     />
                   )
                 })}
@@ -603,8 +771,20 @@ export function LabChatPage({ availableModels = ['claude-3.5-sonnet'] }: LabChat
               </Button>
               <Button
                 onClick={() => {
+                  // Save to localStorage
                   localStorage.setItem('anthropic_api_key', apiKeys.anthropic)
                   localStorage.setItem('openai_api_key', apiKeys.openai)
+
+                  // Verify it was saved
+                  const savedAnthropic = localStorage.getItem('anthropic_api_key')
+                  const savedOpenai = localStorage.getItem('openai_api_key')
+
+                  console.log('[Settings] Saved API keys:', {
+                    anthropic: savedAnthropic ? `${savedAnthropic.substring(0, 20)}...` : '(empty)',
+                    openai: savedOpenai ? `${savedOpenai.substring(0, 20)}...` : '(empty)',
+                  })
+
+                  toast.success('API keys saved successfully!')
                   setIsSettingsOpen(false)
                 }}
                 className="flex-1"

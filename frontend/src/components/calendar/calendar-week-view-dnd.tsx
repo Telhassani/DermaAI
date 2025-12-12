@@ -19,6 +19,7 @@ import { Appointment, AppointmentType } from '@/lib/hooks/use-appointments'
 import { DraggableAppointment } from './draggable-appointment'
 import { DroppableTimeSlot } from './droppable-time-slot'
 import { AppointmentCard } from './appointment-card'
+import { useCurrentTime } from '@/lib/hooks/use-current-time'
 import { toast } from 'sonner'
 
 interface CalendarWeekViewDndProps {
@@ -465,7 +466,9 @@ export function CalendarWeekViewDnd({
 
           {/* Current time indicator (if today is in view) */}
           {weekDays.some((day) => isToday(day)) && (() => {
-            const now = new Date()
+            const now = useCurrentTime()
+            if (!now) return null
+
             const currentHour = now.getHours()
             const currentMinutes = now.getMinutes()
 

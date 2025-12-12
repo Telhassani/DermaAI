@@ -4,7 +4,8 @@ Provides conversation management, messaging, and AI interaction for lab analysis
 Independent mode - NO patient context
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Header
+from starlette.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
@@ -71,7 +72,7 @@ logger = logging.getLogger(__name__)
     summary="Create a new lab conversation",
 )
 @limiter.limit("10/minute")  # Rate limit: 10 new conversations per minute
-async def create_conversation(
+def create_conversation(
     data: ConversationCreate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
@@ -103,7 +104,7 @@ async def create_conversation(
     response_model=ConversationListResponse,
     summary="List all conversations for current doctor",
 )
-async def list_conversations(
+def list_conversations(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     is_archived: Optional[bool] = Query(None),
@@ -149,7 +150,7 @@ async def list_conversations(
     response_model=ConversationDetailResponse,
     summary="Get conversation with recent messages",
 )
-async def get_conversation(
+def get_conversation(
     conversation_id: int,
     message_limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(get_current_active_user),
@@ -187,7 +188,7 @@ async def get_conversation(
     response_model=ConversationResponse,
     summary="Update conversation settings",
 )
-async def update_conversation(
+def update_conversation(
     conversation_id: int,
     data: ConversationUpdate,
     current_user: User = Depends(get_current_active_user),
@@ -219,7 +220,7 @@ async def update_conversation(
     status_code=204,
     summary="Delete a conversation",
 )
-async def delete_conversation(
+def delete_conversation(
     conversation_id: int,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
@@ -246,7 +247,7 @@ async def delete_conversation(
     response_model=ConversationResponse,
     summary="Pin or unpin a conversation",
 )
-async def pin_conversation(
+def pin_conversation(
     conversation_id: int,
     is_pinned: bool = Query(...),
     current_user: User = Depends(get_current_active_user),
@@ -280,7 +281,7 @@ async def pin_conversation(
     response_model=ConversationResponse,
     summary="Archive or unarchive a conversation",
 )
-async def archive_conversation(
+def archive_conversation(
     conversation_id: int,
     is_archived: bool = Query(...),
     current_user: User = Depends(get_current_active_user),
@@ -346,14 +347,15 @@ async def send_message(
         raise HTTPException(status_code=403, detail="Only doctors can send messages")
 
     # Verify conversation exists and belongs to user
-    conversation = LabConversationService.get_conversation(
-        db, conversation_id, current_user.id
+    conversation = await run_in_threadpool(
+        LabConversationService.get_conversation, db, conversation_id, current_user.id
     )
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     # Create user message
-    user_message = LabMessageService.create_message(
+    user_message = await run_in_threadpool(
+        LabMessageService.create_message,
         db,
         conversation_id,
         MessageRole.USER,
@@ -400,7 +402,8 @@ async def send_message(
                 attachment_type = AttachmentType.OTHER
 
             # Create attachment record
-            attachment = LabMessageAttachmentService.create_attachment(
+            attachment = await run_in_threadpool(
+                LabMessageAttachmentService.create_attachment,
                 db,
                 user_message.id,
                 file.filename or safe_filename,
@@ -410,6 +413,12 @@ async def send_message(
                 mime_type=file.content_type,
             )
             logger.info(f"Created attachment {attachment.id} for message {user_message.id}, saved to {relative_path}")
+            
+            # Update message to mark it has attachments
+            user_message.has_attachments = True
+            db.commit()
+            db.refresh(user_message)
+            logger.info(f"Updated message {user_message.id} has_attachments=True")
 
         except HTTPException:
             raise
@@ -435,7 +444,7 @@ async def send_message(
     response_model=MessageListResponse,
     summary="Get message history for a conversation",
 )
-async def list_messages(
+def list_messages(
     conversation_id: int,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -485,7 +494,7 @@ async def list_messages(
     summary="Edit a message",
 )
 @limiter.limit("30/minute")  # Rate limit: 30 edits per minute
-async def edit_message(
+def edit_message(
     conversation_id: int,
     message_id: int,
     content: str = Form(...),
@@ -553,7 +562,7 @@ async def edit_message(
     status_code=204,
     summary="Delete a message",
 )
-async def delete_message(
+def delete_message(
     conversation_id: int,
     message_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -601,7 +610,7 @@ async def delete_message(
     response_model=ConversationAnalytics,
     summary="Get conversation usage analytics",
 )
-async def get_analytics(
+def get_analytics(
     conversation_id: int,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
@@ -657,6 +666,7 @@ async def generate_ai_response_stream(
     user_message_id: int,
     user_id: int,
     db: Session,
+    api_keys: Optional[Dict[str, Optional[str]]] = None,
 ):
     """
     Generate streaming AI response and save to database.
@@ -680,6 +690,7 @@ async def generate_ai_response_stream(
             temperature=temperature,
             max_tokens=max_tokens,
             system_prompt=system_prompt,
+            api_keys=api_keys,
         ):
             if chunk:
                 accumulated_content += chunk
@@ -697,7 +708,8 @@ async def generate_ai_response_stream(
         elapsed_time = asyncio.get_event_loop().time() - start_time
 
         # Create AI response message in database
-        ai_message = LabMessageService.create_message(
+        ai_message = await run_in_threadpool(
+            LabMessageService.create_message,
             db,
             conversation_id,
             MessageRole.ASSISTANT,
@@ -710,12 +722,14 @@ async def generate_ai_response_stream(
         )
 
         # Update conversation metadata
-        conversation = LabConversationService.get_conversation(db, conversation_id, user_id)
+        conversation = await run_in_threadpool(
+            LabConversationService.get_conversation, db, conversation_id, user_id
+        )
         if conversation:
             conversation.message_count = (conversation.message_count or 0) + 1
             from datetime import datetime
             conversation.last_message_at = datetime.utcnow()
-            db.commit()
+            await run_in_threadpool(db.commit)
 
         # Send completion event with the saved message ID
         yield f"data: {json.dumps({'type': 'complete', 'chunks': chunk_count, 'elapsed_seconds': elapsed_time, 'message_id': ai_message.id})}\n\n"
@@ -740,11 +754,13 @@ async def generate_ai_response_stream(
     tags=["Lab Conversations"],
 )
 @limiter.limit("10/minute")  # Rate limit: 10 AI requests per minute per IP
-async def stream_ai_response(
+def stream_ai_response(
     conversation_id: int,
     request: StreamAIResponseRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
+    x_anthropic_key: Optional[str] = Header(None, alias="X-Anthropic-Key"),
+    x_openai_key: Optional[str] = Header(None, alias="X-OpenAI-Key"),
 ):
     """
     Generate a streaming AI response for a conversation.
@@ -789,19 +805,93 @@ async def stream_ai_response(
         db, conversation_id, skip=0, limit=100
     )
 
-    # Build message history for AI (exclude latest user message as it's being processed)
-    message_history: List[Dict[str, str]] = []
-    for msg in messages[:-1]:  # Exclude the current user message
+    # Build message history for AI with support for image attachments
+    message_history: List[Dict[str, Any]] = []
+    
+    for msg in messages[:-1]:  # Exclude the current user message (will add separately)
+        # Build message content (can be text-only or multi-modal)
+        message_content = []
+        
+        # Add text content
+        message_content.append({
+            "type": "text",
+            "text": msg.content,
+        })
+        
+        # Add image attachments if present
+        if msg.has_attachments and msg.attachments:
+            for attachment in msg.attachments:
+                # Check if it's an image type
+                if attachment.file_type == AttachmentType.IMAGE:
+                    try:
+                        # Read and encode image as base64
+                        import base64
+                        from pathlib import Path
+                        
+                        file_path = Path(attachment.file_path)
+                        if file_path.exists():
+                            with open(file_path, "rb") as image_file:
+                                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+                            
+                            # Add image to message content in Claude vision format
+                            message_content.append({
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": attachment.mime_type or "image/jpeg",
+                                    "data": image_data
+                                }
+                            })
+                            logger.info(f"Added image attachment to message history: {attachment.file_name}")
+                        else:
+                            logger.warning(f"Image file not found: {attachment.file_path}")
+                    except Exception as e:
+                        logger.error(f"Error encoding image attachment: {e}")
+        
         message_history.append({
             "role": msg.role.value.lower(),
-            "content": msg.content,
+            "content": message_content,
         })
 
-    # Add the current user message
+    # Add the current user message with its attachments
+    user_message_content = []
+    user_message_content.append({
+        "type": "text",
+        "text": user_message.content,
+    })
+    
+    # Add attachments from current user message
+    if user_message.has_attachments and user_message.attachments:
+        for attachment in user_message.attachments:
+            if attachment.file_type == AttachmentType.IMAGE:
+                try:
+                    import base64
+                    from pathlib import Path
+                    
+                    file_path = Path(attachment.file_path)
+                    if file_path.exists():
+                        with open(file_path, "rb") as image_file:
+                            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+                        
+                        user_message_content.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": attachment.mime_type or "image/jpeg",
+                                "data": image_data
+                            }
+                        })
+                        logger.info(f"Added image attachment to current user message: {attachment.file_name}")
+                    else:
+                        logger.warning(f"Image file not found: {attachment.file_path}")
+                except Exception as e:
+                    logger.error(f"Error encoding current message image: {e}")
+    
     message_history.append({
         "role": "user",
-        "content": user_message.content,
+        "content": user_message_content,
     })
+
 
     # Log the request
     logger.info(
@@ -822,12 +912,33 @@ async def stream_ai_response(
                 }
             )
 
-        # Get system prompt from conversation or use default
-        system_prompt = conversation.system_prompt or (
-            "You are an expert medical assistant specializing in dermatology and lab analysis. "
-            "Provide accurate, evidence-based responses to support clinical decision-making. "
-            "Always maintain patient confidentiality and recommend consulting with healthcare providers for diagnosis."
-        )
+        # Check if the user message has image attachments
+        has_images = False
+        if user_message.has_attachments and user_message.attachments:
+            for attachment in user_message.attachments:
+                if attachment.file_type == AttachmentType.IMAGE:
+                    has_images = True
+                    break
+        
+        # Use specialized dermatology prompt for images, otherwise use conversation's system prompt
+        if has_images:
+            system_prompt = """You are an expert dermatologist analyzing medical images of skin lesions or dermatological conditions.
+
+Please provide a detailed clinical analysis of the image(s), including:
+1. Visual characteristics (color, size, shape, borders, texture)
+2. Possible differential diagnoses
+3. Clinical observations and severity assessment
+4. Recommended next steps or specialist referral if needed
+
+Format your response clearly with sections for each aspect of the analysis.
+Be thorough but concise. Use medical terminology appropriately."""
+            logger.info(f"Using specialized dermatology system prompt for image analysis")
+        else:
+            system_prompt = conversation.system_prompt or (
+                "You are an expert medical assistant specializing in dermatology and lab analysis. "
+                "Provide accurate, evidence-based responses to support clinical decision-making. "
+                "Always maintain patient confidentiality and recommend consulting with healthcare providers for diagnosis."
+            )
 
         # Create streaming response
         return StreamingResponse(
@@ -842,6 +953,10 @@ async def stream_ai_response(
                 user_message_id=request.user_message_id,
                 user_id=current_user.id,
                 db=db,
+                api_keys={
+                    "anthropic": x_anthropic_key,
+                    "openai": x_openai_key,
+                },
             ),
             media_type="text/event-stream",
             headers={

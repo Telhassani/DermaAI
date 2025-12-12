@@ -32,7 +32,7 @@ class Prescription(BaseModel):
     # Foreign Keys
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=False, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
 
     # Prescription Details
     prescription_date = Column(Date, nullable=False, default=datetime.now, index=True)
@@ -62,8 +62,7 @@ class Prescription(BaseModel):
     # Relationships
     # consultation = relationship("Consultation", back_populates="prescriptions")
     patient = relationship("Patient")
-    doctor = relationship("User")
-    # doctor = relationship("User", back_populates="prescriptions")
+    # doctor = relationship("User")  # Disabled until doctor_id migrated to UUID
 
     @property
     def patient_name(self) -> str:

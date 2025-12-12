@@ -17,8 +17,10 @@ import {
   Brain,
   BarChart3,
   Pill,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 interface SidebarProps {
   className?: string
@@ -30,37 +32,54 @@ const menuItems = [
   {
     title: 'Vue d\'ensemble',
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', badge: null },
-      { icon: BarChart3, label: 'Statistiques', href: '/dashboard/stats', badge: null },
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', badge: null, roles: null },
+      { icon: BarChart3, label: 'Statistiques', href: '/dashboard/stats', badge: null, roles: null },
     ],
   },
   {
     title: 'Gestion',
     items: [
-      { icon: Users, label: 'Patients', href: '/dashboard/patients', badge: null },
-      { icon: FileText, label: 'Consultations', href: '/dashboard/consultations', badge: null },
-      { icon: Calendar, label: 'Calendrier', href: '/dashboard/calendar', badge: null },
-      { icon: Pill, label: 'Ordonnances', href: '/dashboard/prescriptions', badge: null },
+      { icon: Users, label: 'Patients', href: '/dashboard/patients', badge: null, roles: null },
+      { icon: FileText, label: 'Consultations', href: '/dashboard/consultations', badge: null, roles: null },
+      { icon: Calendar, label: 'Calendrier', href: '/dashboard/calendar', badge: null, roles: null },
+      { icon: Pill, label: 'Ordonnances', href: '/dashboard/prescriptions', badge: null, roles: null },
     ],
   },
   {
     title: 'IA & Analyse',
     items: [
-      { icon: Brain, label: 'Analyse IA', href: '/dashboard/lab-analysis', badge: 'BETA' },
-      { icon: Microscope, label: 'Images', href: '/dashboard/images', badge: null },
+      { icon: Brain, label: 'Analyse IA', href: '/dashboard/lab-analysis', badge: 'BETA', roles: null },
+      { icon: Microscope, label: 'Images', href: '/dashboard/images', badge: null, roles: null },
+    ],
+  },
+  {
+    title: 'Administration',
+    items: [
+      { icon: UserCog, label: 'Utilisateurs', href: '/dashboard/users', badge: null, roles: ['ADMIN'] },
     ],
   },
   {
     title: 'Paramètres',
     items: [
-      { icon: Settings, label: 'Réglages', href: '/dashboard/settings', badge: null },
-      { icon: CreditCard, label: 'Facturation', href: '/dashboard/billing', badge: null },
+      { icon: Settings, label: 'Réglages', href: '/dashboard/settings', badge: null, roles: null },
+      { icon: CreditCard, label: 'Facturation', href: '/dashboard/billing', badge: null, roles: null },
     ],
   },
 ]
 
 export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const { user } = useAuthStore()
+
+  // Filter menu items based on user role
+  const filteredMenuItems = menuItems.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (!item.roles) return true // No role restriction
+      if (!user) return false // User not loaded
+      return item.roles.includes(user.role)
+    }),
+  })).filter((section) => section.items.length > 0) // Remove empty sections
 
   return (
     <aside
@@ -104,7 +123,7 @@ export function Sidebar({ className, collapsed, onToggle }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-6">
-          {menuItems.map((section, sectionIdx) => (
+          {filteredMenuItems.map((section, sectionIdx) => (
             <div key={sectionIdx}>
               {!collapsed && (
                 <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">

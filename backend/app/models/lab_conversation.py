@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional
 import enum
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON, Enum as SQLEnum, Float, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -45,7 +46,7 @@ class LabConversation(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Doctor ownership (only link required)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # UUID to match profiles table
 
     # Conversation metadata
     title = Column(String(255), nullable=False, default="New Lab Analysis Chat")
@@ -73,7 +74,7 @@ class LabConversation(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    doctor = relationship("User", backref="lab_conversations")
+    # doctor = relationship("User", backref="lab_conversations")  # Disabled until doctor_id migrated to UUID
     messages = relationship("LabMessage", back_populates="conversation", cascade="all, delete-orphan")
 
 
@@ -203,7 +204,7 @@ class PromptTemplate(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Owner
-    doctor_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
 
     # Template content
     category = Column(String(100), nullable=True, index=True)  # e.g., "lab_analysis", "image_analysis"
@@ -223,4 +224,4 @@ class PromptTemplate(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    doctor = relationship("User", backref="prompt_templates")
+    # doctor = relationship("User", backref="prompt_templates")  # Disabled until doctor_id migrated to UUID

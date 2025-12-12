@@ -2,11 +2,12 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { api } from '@/lib/api/client'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 
 export interface User {
-  id: number
+  id: string  // UUID from Supabase
   email: string
   full_name: string
   role: 'ADMIN' | 'DOCTOR' | 'SECRETARY' | 'ASSISTANT'
@@ -17,33 +18,38 @@ export interface User {
 interface AuthStoreState {
   // State
   user: User | null
-  token: string | null
-  refreshToken: string | null
+  supabaseUser: SupabaseUser | null
+  session: Session | null
   isInitialized: boolean
   isAuthenticated: boolean
   isLoading: boolean
 
   // Setters
   setUser: (user: User | null) => void
-  setToken: (token: string | null) => void
-  setRefreshToken: (refreshToken: string | null) => void
+  setSession: (session: Session | null) => void
   setInitialized: (isInitialized: boolean) => void
   setLoading: (isLoading: boolean) => void
-  setState: (state: Partial<AuthStoreState>) => void
 
   // Auth methods
-  login: (credentials: { username: string; password: string }) => Promise<void>
-  logout: () => void
+  login: (credentials: { email: string; password: string }) => Promise<void>
+  loginWithGoogle: () => Promise<void>
+  logout: () => Promise<void>
   checkAuth: () => Promise<void>
+  getAccessToken: () => Promise<string | null>
 }
+
+// Use same logic as API client for consistency
+const API_URL = typeof window === 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
 
 export const useAuthStore = create<AuthStoreState>()(
   persist(
     (set, get) => ({
       // Initial state
       user: null,
-      token: null,
-      refreshToken: null,
+      supabaseUser: null,
+      session: null,
       isInitialized: false,
       isAuthenticated: false,
       isLoading: false,
@@ -53,42 +59,12 @@ export const useAuthStore = create<AuthStoreState>()(
         set({ user, isAuthenticated: !!user })
       },
 
-      setToken: (token) => {
-        // Prefer httpOnly cookies set by backend
-        // Keep localStorage as fallback for backward compatibility with older deployments
-        if (token) {
-          try {
-            localStorage.setItem('access_token', token)
-          } catch {
-            // localStorage may be disabled or full; httpOnly cookies will handle auth
-          }
-        } else {
-          try {
-            localStorage.removeItem('access_token')
-          } catch {
-            // Ignore localStorage errors
-          }
-        }
-        set({ token })
-      },
-
-      setRefreshToken: (refreshToken) => {
-        // Prefer httpOnly cookies set by backend
-        // Keep localStorage as fallback for backward compatibility
-        if (refreshToken) {
-          try {
-            localStorage.setItem('refresh_token', refreshToken)
-          } catch {
-            // localStorage may be disabled; httpOnly cookies will handle auth
-          }
-        } else {
-          try {
-            localStorage.removeItem('refresh_token')
-          } catch {
-            // Ignore localStorage errors
-          }
-        }
-        set({ refreshToken })
+      setSession: (session) => {
+        set({
+          session,
+          supabaseUser: session?.user ?? null,
+          isAuthenticated: !!session
+        })
       },
 
       setInitialized: (isInitialized) => {
@@ -99,33 +75,61 @@ export const useAuthStore = create<AuthStoreState>()(
         set({ isLoading })
       },
 
-      setState: (newState) => {
-        set(newState)
+      // Get access token for API calls
+      getAccessToken: async () => {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        return session?.access_token ?? null
       },
 
       // Login method
       login: async (credentials) => {
         try {
           set({ isLoading: true })
-          // Pass credentials directly - api.auth.login handles FormData conversion
-          const response = await api.auth.login(credentials)
-          const { access_token, refresh_token } = response.data
 
-          get().setToken(access_token)
-          get().setRefreshToken(refresh_token)
+          const supabase = createClient()
 
-          const userResponse = await api.auth.me()
-          const user = userResponse.data
+          // Sign in with Supabase
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
+          })
 
-          get().setUser(user)
-          get().setInitialized(true)
+          if (error) {
+            throw new Error(error.message)
+          }
 
-          toast.success(`Bienvenue ${user.full_name} !`)
-          // Return success - caller will handle navigation with Next.js router
-          return
+          if (!data.session) {
+            throw new Error('No session returned from Supabase')
+          }
+
+          // Fetch app user data from backend using Supabase token
+          const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${data.session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.detail || 'Failed to fetch user data from backend')
+          }
+
+          const appUser: User = await response.json()
+
+          set({
+            session: data.session,
+            supabaseUser: data.user,
+            user: appUser,
+            isAuthenticated: true,
+            isInitialized: true,
+          })
+
+          toast.success(`Bienvenue ${appUser.full_name} !`)
         } catch (error: unknown) {
           console.error('Login error:', error)
-          const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion. Vérifiez vos identifiants.'
+          const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion'
           toast.error(errorMessage)
           throw error
         } finally {
@@ -133,54 +137,116 @@ export const useAuthStore = create<AuthStoreState>()(
         }
       },
 
-      // Logout method
-      logout: () => {
-        // Clear localStorage as fallback
+      // Login with Google OAuth
+      loginWithGoogle: async () => {
         try {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user')
-        } catch {
-          // Ignore localStorage errors
+          set({ isLoading: true })
+
+          const supabase = createClient()
+
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`,
+            },
+          })
+
+          if (error) {
+            throw new Error(error.message)
+          }
+
+          // The redirect will happen automatically
+        } catch (error: unknown) {
+          console.error('Google login error:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion Google'
+          toast.error(errorMessage)
+          set({ isLoading: false })
+          throw error
         }
-        // Clear state
-        set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isInitialized: true })
-        // Backend will clear httpOnly cookies via /logout endpoint
-        window.location.href = '/auth/login'
+      },
+
+      // Logout method
+      logout: async () => {
+        try {
+          const supabase = createClient()
+          await supabase.auth.signOut()
+        } catch (error) {
+          console.error('Logout error:', error)
+        } finally {
+          // Clear state regardless of API success
+          set({
+            user: null,
+            supabaseUser: null,
+            session: null,
+            isAuthenticated: false,
+            isInitialized: true,
+          })
+          window.location.href = '/login'
+        }
       },
 
       // Check authentication status
       checkAuth: async () => {
         try {
-          // Try to get user info - if httpOnly cookies are valid, this will work
-          // If not, the backend will return 401 and we'll catch it
-          const response = await api.auth.me()
-          const user = response.data
-          // Treat httpOnly cookie as valid if /me endpoint succeeds
-          set({ user, isAuthenticated: true, isInitialized: true })
-        } catch (error: any) {
-          // Auth failed - clear local state but trust httpOnly cookie clearing
-          console.error('Auth check failed:', error)
-          // SHOW ERROR TO USER
-          toast.error(`Auth check failed: ${error.message || 'Unknown error'}`)
+          const supabase = createClient()
+          const { data: { session }, error } = await supabase.auth.getSession()
 
-          try {
-            localStorage.removeItem('access_token')
-            localStorage.removeItem('user')
-          } catch {
-            // Ignore localStorage errors
+          if (error || !session) {
+            set({
+              user: null,
+              supabaseUser: null,
+              session: null,
+              isAuthenticated: false,
+              isInitialized: true,
+            })
+            return
           }
-          set({ user: null, token: null, isAuthenticated: false, isInitialized: true })
+
+          // Fetch app user data from backend
+          const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (response.ok) {
+            const appUser: User = await response.json()
+            set({
+              session,
+              supabaseUser: session.user,
+              user: appUser,
+              isAuthenticated: true,
+              isInitialized: true,
+            })
+          } else {
+            // Backend rejected the token - clear auth state
+            console.warn('Backend rejected Supabase token')
+            set({
+              user: null,
+              supabaseUser: null,
+              session: null,
+              isAuthenticated: false,
+              isInitialized: true,
+            })
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error)
+          set({
+            user: null,
+            supabaseUser: null,
+            session: null,
+            isAuthenticated: false,
+            isInitialized: true,
+          })
         }
       },
     }),
     {
       name: 'auth-store',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        // Do NOT persist isInitialized - it must be false on every reload
-        // isInitialized: state.isInitialized,
+      partialize: () => ({
+        // Don't persist any auth state - Supabase handles session persistence
+        // We re-verify on each page load via checkAuth()
       }),
     }
   )

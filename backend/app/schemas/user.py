@@ -5,6 +5,7 @@ User schemas - Pydantic models for API requests/responses
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 import re
 
 from app.models.user import UserRole
@@ -64,7 +65,7 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     """Schema for user response (public data)"""
 
-    id: int
+    id: UUID  # UUID primary key (Supabase format)
     is_active: bool
     is_verified: bool
     mfa_enabled: bool
@@ -93,7 +94,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Schema for token payload"""
 
-    user_id: int
+    user_id: UUID  # UUID user ID (Supabase format)
     email: str
     role: UserRole
 

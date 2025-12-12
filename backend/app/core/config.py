@@ -78,6 +78,13 @@ class Settings(BaseSettings):
         return self.ALLOWED_ORIGINS_STR
 
     # =====================================
+    # SUPABASE
+    # =====================================
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_JWT_SECRET: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+
+    # =====================================
     # AI APIs & MODELS
     # =====================================
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -95,9 +102,13 @@ class Settings(BaseSettings):
     # API Key encryption for session storage
     API_KEY_ENCRYPTION_KEY: Optional[str] = None
 
+    # Ollama (Local Models)
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_ENABLED: bool = True
+
     # AI Model Configuration
-    DEFAULT_AI_MODEL: str = "claude-3-5-sonnet-20241022"
-    AVAILABLE_AI_MODELS: str = '["claude-3-5-sonnet-20241022","claude-3-opus-20250219","gpt-4-turbo","gpt-4o"]'
+    DEFAULT_AI_MODEL: str = "claude-sonnet-4-5-20250929"
+    AVAILABLE_AI_MODELS: str = '["claude-sonnet-4-5-20250929","claude-haiku-4-5-20251001","claude-opus-4-5-20251101","claude-3-5-haiku-20241022","claude-3-7-sonnet-20250219","gpt-4-turbo","gpt-4o"]'
 
     # Model-specific settings
     AI_MODEL_TEMPERATURE: float = 0.7

@@ -3,7 +3,7 @@
  * Handles multi-turn AI chat conversations independent of patient context
  */
 
-import { api } from './client'
+import apiClient, { api } from './client'
 import type {
   Conversation,
   ConversationDetail,
@@ -152,7 +152,7 @@ export async function editMessage(
   const formData = new FormData()
   formData.append('content', content)
 
-  const response = await api.client.put(
+  const response = await apiClient.put(
     `/lab-conversations/conversations/${conversationId}/messages/${messageId}`,
     formData
   )
@@ -219,8 +219,8 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
  * @returns List of message versions
  */
 export async function getMessageVersions(conversationId: number, messageId: number) {
-  const response = await api.get(
-    `/api/v1/lab-conversations/conversations/${conversationId}/messages/${messageId}/versions`
+  const response = await apiClient.get(
+    `/lab-conversations/conversations/${conversationId}/messages/${messageId}/versions`
   )
   return response.data
 }
@@ -237,8 +237,8 @@ export async function switchMessageVersion(
   messageId: number,
   versionNumber: number,
 ) {
-  const response = await api.patch(
-    `/api/v1/lab-conversations/conversations/${conversationId}/messages/${messageId}/switch-version`,
+  const response = await apiClient.patch(
+    `/lab-conversations/conversations/${conversationId}/messages/${messageId}/switch-version`,
     null,
     { params: { version_number: versionNumber } }
   )
@@ -255,7 +255,7 @@ export async function listPromptTemplates(params?: {
   skip?: number
   limit?: number
 }) {
-  const response = await api.get('/api/v1/lab-conversations/prompt-templates', {
+  const response = await apiClient.get('/lab-conversations/prompt-templates', {
     params: params || {},
   })
   return response.data
@@ -272,7 +272,7 @@ export async function createPromptTemplate(data: {
   description?: string
   category?: string
 }) {
-  const response = await api.post('/api/v1/lab-conversations/prompt-templates', data)
+  const response = await apiClient.post('/lab-conversations/prompt-templates', data)
   return response.data
 }
 
@@ -292,8 +292,8 @@ export async function updatePromptTemplate(
     is_active?: boolean
   },
 ) {
-  const response = await api.patch(
-    `/api/v1/lab-conversations/prompt-templates/${templateId}`,
+  const response = await apiClient.patch(
+    `/lab-conversations/prompt-templates/${templateId}`,
     data
   )
   return response.data
@@ -304,5 +304,5 @@ export async function updatePromptTemplate(
  * @param templateId ID of the template
  */
 export async function deletePromptTemplate(templateId: number) {
-  await api.delete(`/api/v1/lab-conversations/prompt-templates/${templateId}`)
+  await apiClient.delete(`/lab-conversations/prompt-templates/${templateId}`)
 }

@@ -70,6 +70,7 @@ export function AIAnalysisModal({
                 patient_id: patientId,
                 consultation_id: consultationId,
                 image_data: base64Data,
+                ai_model: selectedModel || undefined,
             },
             {
                 onSuccess: (data) => {
@@ -104,74 +105,74 @@ export function AIAnalysisModal({
                     {/* Left Column: Image */}
                     <div className="space-y-4">
                         <div className="relative rounded-lg overflow-hidden border bg-gray-100 aspect-square flex items-center justify-center">
-                        {imageSrc ? (
-                            <img
-                                src={imageSrc}
-                                alt="Analysis target"
-                                className="object-contain max-h-full max-w-full"
-                            />
-                        ) : (
-                            <div className="text-gray-400">Aucune image sélectionnée</div>
+                            {imageSrc ? (
+                                <img
+                                    src={imageSrc}
+                                    alt="Analysis target"
+                                    className="object-contain max-h-full max-w-full"
+                                />
+                            ) : (
+                                <div className="text-gray-400">Aucune image sélectionnée</div>
+                            )}
+                        </div>
+
+                        {!analysis && (
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    onClick={handleAnalyze}
+                                    disabled={isPending || !imageSrc}
+                                    className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                                >
+                                    {isPending ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Analyse en cours...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Lancer l'analyse
+                                        </>
+                                    )}
+                                </Button>
+                                <p className="text-xs text-gray-500 text-center">
+                                    L'analyse peut prendre quelques secondes.
+                                </p>
+                            </div>
                         )}
                     </div>
 
-                    {!analysis && (
-                        <div className="flex flex-col gap-2">
-                            <Button
-                                onClick={handleAnalyze}
-                                disabled={isPending || !imageSrc}
-                                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
-                            >
-                                {isPending ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Analyse en cours...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Lancer l'analyse
-                                    </>
-                                )}
-                            </Button>
-                            <p className="text-xs text-gray-500 text-center">
-                                L'analyse peut prendre quelques secondes.
-                            </p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Right Column: Results or Placeholder */}
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                    {error ? (
-                        <div className="rounded-lg bg-red-50 p-4 border border-red-100 text-red-800 flex items-start gap-3">
-                            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <h4 className="font-semibold">Erreur d'analyse</h4>
-                                <p className="text-sm mt-1">
-                                    Une erreur est survenue lors de l'analyse. Veuillez réessayer.
+                    {/* Right Column: Results or Placeholder */}
+                    <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                        {error ? (
+                            <div className="rounded-lg bg-red-50 p-4 border border-red-100 text-red-800 flex items-start gap-3">
+                                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <h4 className="font-semibold">Erreur d'analyse</h4>
+                                    <p className="text-sm mt-1">
+                                        Une erreur est survenue lors de l'analyse. Veuillez réessayer.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : analysis ? (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <AIAnalysisResultCard analysis={analysis} />
+                                <div className="mt-4 flex justify-end">
+                                    <Button variant="outline" onClick={onClose}>
+                                        Fermer
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-gray-400 border-2 border-dashed rounded-lg">
+                                <Sparkles className="h-12 w-12 mb-4 opacity-20" />
+                                <h3 className="font-medium text-gray-900 mb-1">Prêt à analyser</h3>
+                                <p className="text-sm">
+                                    Cliquez sur "Lancer l'analyse" pour obtenir une évaluation IA de cette image.
                                 </p>
                             </div>
-                        </div>
-                    ) : analysis ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <AIAnalysisResultCard analysis={analysis} />
-                            <div className="mt-4 flex justify-end">
-                                <Button variant="outline" onClick={onClose}>
-                                    Fermer
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-8 text-gray-400 border-2 border-dashed rounded-lg">
-                            <Sparkles className="h-12 w-12 mb-4 opacity-20" />
-                            <h3 className="font-medium text-gray-900 mb-1">Prêt à analyser</h3>
-                            <p className="text-sm">
-                                Cliquez sur "Lancer l'analyse" pour obtenir une évaluation IA de cette image.
-                            </p>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
                 </div>
                 {/* End of Grid */}
             </div>

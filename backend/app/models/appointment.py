@@ -81,7 +81,7 @@ class Appointment(BaseModel):
 
     # Foreign Keys with Indices
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
 
     # Guest Information (for non-registered patients)
     guest_name = Column(String(255), nullable=True)
@@ -119,9 +119,9 @@ class Appointment(BaseModel):
     recurrence_rule = Column(JSON, nullable=True)  # RFC 5545 format recurrence rule
     recurring_series_id = Column(Integer, nullable=True, index=True)  # Parent series ID
 
-    # Relationships (commented to avoid eager loading issues - use lazy loading)
+    # Relationships
     patient = relationship("Patient", back_populates="appointments")
-    doctor = relationship("User", back_populates="appointments")
+    # doctor = relationship("User", back_populates="appointments")  # Disabled until doctor_id migrated to UUID
 
     def __repr__(self) -> str:
         """String representation of appointment"""

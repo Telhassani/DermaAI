@@ -23,7 +23,7 @@ class LabResult(BaseModel):
     __tablename__ = "lab_results"
 
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=True, index=True)
     
     # Lab Information
@@ -48,6 +48,6 @@ class LabResult(BaseModel):
     
     # Relationships
     patient = relationship("Patient", backref="lab_results")
-    doctor = relationship("User", backref="lab_results")
+    # doctor = relationship("User", backref="lab_results")  # Disabled until doctor_id migrated to UUID
     consultation = relationship("Consultation", backref="lab_results")
     ai_analysis = relationship("AIAnalysis", backref="lab_results")

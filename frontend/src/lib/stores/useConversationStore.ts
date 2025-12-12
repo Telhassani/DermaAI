@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { shallow } from 'zustand/shallow'
+import { useShallow } from 'zustand/react/shallow'
 import type { Conversation, Message, ConversationListParams } from '@/types/api'
 
 // Types for new features
@@ -271,11 +271,11 @@ export const useConversationStore = create<ConversationState>()(
               messages: state.messages.map((msg) =>
                 msg.id === messageId
                   ? {
-                      ...msg,
-                      content: selectedVersion.content,
-                      current_version_number: versionNumber,
-                      model_used: selectedVersion.model_used,
-                    }
+                    ...msg,
+                    content: selectedVersion.content,
+                    current_version_number: versionNumber,
+                    model_used: selectedVersion.model_used,
+                  }
                   : msg
               ),
             }
@@ -343,11 +343,13 @@ export const useStreamingState = (): {
   isStreaming: boolean
   streamingMessageId: number | null
 } =>
-  useConversationStore((state) => ({
-    streamingContent: state.streamingContent,
-    isStreaming: state.isStreaming,
-    streamingMessageId: state.streamingMessageId,
-  }), shallow)
+  useConversationStore(
+    useShallow((state) => ({
+      streamingContent: state.streamingContent,
+      isStreaming: state.isStreaming,
+      streamingMessageId: state.streamingMessageId,
+    }))
+  )
 
 export const useSearchQuery = () =>
   useConversationStore((state) => state.searchQuery)
@@ -357,11 +359,13 @@ export const useCreateModalState = (): {
   newConversationTitle: string
   newConversationSystemPrompt: string
 } =>
-  useConversationStore((state) => ({
-    showCreateModal: state.showCreateModal,
-    newConversationTitle: state.newConversationTitle,
-    newConversationSystemPrompt: state.newConversationSystemPrompt,
-  }), shallow)
+  useConversationStore(
+    useShallow((state) => ({
+      showCreateModal: state.showCreateModal,
+      newConversationTitle: state.newConversationTitle,
+      newConversationSystemPrompt: state.newConversationSystemPrompt,
+    }))
+  )
 
 export const useCurrentConversation = () => {
   const selectedConversationId = useConversationStore((state) => state.selectedConversationId)
@@ -455,36 +459,40 @@ export const useConversationActions = (): Pick<ConversationState,
   'pinConversation' | 'archiveConversation' | 'setSearchQuery' | 'setShowCreateModal' |
   'setNewConversationTitle' | 'setNewConversationSystemPrompt' | 'resetCreateForm' | 'reset'
 > =>
-  useConversationStore((state) => ({
-    setConversations: state.setConversations,
-    setSelectedConversationId: state.setSelectedConversationId,
-    setMessages: state.setMessages,
-    addMessage: state.addMessage,
-    updateMessage: state.updateMessage,
-    deleteMessage: state.deleteMessage,
-    setIsLoadingConversations: state.setIsLoadingConversations,
-    setIsLoadingMessages: state.setIsLoadingMessages,
-    setIsSendingMessage: state.setIsSendingMessage,
-    appendStreamingContent: state.appendStreamingContent,
-    setIsStreaming: state.setIsStreaming,
-    setStreamingMessageId: state.setStreamingMessageId,
-    resetStreaming: state.resetStreaming,
-    addConversation: state.addConversation,
-    updateConversation: state.updateConversation,
-    deleteConversation: state.deleteConversation,
-    pinConversation: state.pinConversation,
-    archiveConversation: state.archiveConversation,
-    setSearchQuery: state.setSearchQuery,
-    setShowCreateModal: state.setShowCreateModal,
-    setNewConversationTitle: state.setNewConversationTitle,
-    setNewConversationSystemPrompt: state.setNewConversationSystemPrompt,
-    resetCreateForm: state.resetCreateForm,
-    reset: state.reset,
-  }), shallow)
+  useConversationStore(
+    useShallow((state) => ({
+      setConversations: state.setConversations,
+      setSelectedConversationId: state.setSelectedConversationId,
+      setMessages: state.setMessages,
+      addMessage: state.addMessage,
+      updateMessage: state.updateMessage,
+      deleteMessage: state.deleteMessage,
+      setIsLoadingConversations: state.setIsLoadingConversations,
+      setIsLoadingMessages: state.setIsLoadingMessages,
+      setIsSendingMessage: state.setIsSendingMessage,
+      appendStreamingContent: state.appendStreamingContent,
+      setIsStreaming: state.setIsStreaming,
+      setStreamingMessageId: state.setStreamingMessageId,
+      resetStreaming: state.resetStreaming,
+      addConversation: state.addConversation,
+      updateConversation: state.updateConversation,
+      deleteConversation: state.deleteConversation,
+      pinConversation: state.pinConversation,
+      archiveConversation: state.archiveConversation,
+      setSearchQuery: state.setSearchQuery,
+      setShowCreateModal: state.setShowCreateModal,
+      setNewConversationTitle: state.setNewConversationTitle,
+      setNewConversationSystemPrompt: state.setNewConversationSystemPrompt,
+      resetCreateForm: state.resetCreateForm,
+      reset: state.reset,
+    }))
+  )
 
 // Message versions hook
 export const useMessageVersions = (messageId: number) => {
-  const versions = useConversationStore((state) => state.messageVersions[messageId] || [])
+  const versions = useConversationStore(
+    useShallow((state) => state.messageVersions[messageId] || [])
+  )
   const isLoading = useConversationStore((state) => state.loadingVersions.has(messageId))
 
   return useMemo(() => ({ versions, isLoading }), [versions, isLoading])

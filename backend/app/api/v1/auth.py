@@ -3,7 +3,7 @@ Authentication endpoints - Register, Login, Logout, Token refresh
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -31,10 +31,11 @@ logger = logging.getLogger(__name__)
 
 class RefreshTokenRequest(BaseModel):
     """Schema for refresh token request"""
-    refresh_token: str
+    refresh_token: Optional[str] = None
 
 
 router = APIRouter()
+
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -90,25 +91,41 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 
 
 @router.post("/login")
-@limiter.limit("10/hour")
-def login(
+async def login(
     request: Request,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
 ):
     """
     Login user and return JWT tokens via httpOnly cookies.
-
-    Args:
-        form_data: OAuth2 form with username (email) and password
-        db: Database session
-
-    Returns:
-        Access token and refresh token (set via httpOnly secure cookies)
-
-    Raises:
-        HTTPException: If credentials are invalid
     """
+    # Manual body parsing workaround for hanging issue with OAuth2PasswordRequestForm
+    try:
+        print("[DEBUG] Starting stream read...", flush=True)
+        body_bytes = b""
+        async for chunk in request.stream():
+            print(f"[DEBUG] Got chunk: {len(chunk)} bytes", flush=True)
+            body_bytes += chunk
+        print(f"[DEBUG] Stream read complete. Total: {len(body_bytes)}", flush=True)
+        from urllib.parse import parse_qs
+        body_str = body_bytes.decode("utf-8")
+        parsed = parse_qs(body_str)
+        username = parsed.get("username", [None])[0]
+        password = parsed.get("password", [None])[0]
+        
+        if not username or not password:
+             raise HTTPException(status_code=400, detail="Missing username or password")
+
+    except Exception as e:
+        logger.error(f"[LOGIN] Form parse error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid form data")
+        
+    class FormData:
+        def __init__(self, u, p):
+            self.username = u
+            self.password = p
+            
+    form_data = FormData(username, password)
+
     logger.debug(f"[LOGIN] Attempting login for email: {form_data.username}")
 
     # Find user by email
@@ -152,6 +169,7 @@ def login(
 
     # Check if user is active
     if not user.is_active:
+        print("[DEBUG] User inactive!", flush=True)
         log_audit_event(
             user_id=str(user.id),
             action="LOGIN",
@@ -165,9 +183,11 @@ def login(
         )
 
     # Create tokens
+    print("[DEBUG] Creating tokens...", flush=True)
     token_data = {"user_id": user.id, "email": user.email, "role": user.role.value}
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
+    print("[DEBUG] Tokens created.", flush=True)
 
     # Log successful login
     log_audit_event(
@@ -185,6 +205,7 @@ def login(
         "token_type": "bearer",
     }
 
+    print("[DEBUG] Returning response.", flush=True)
     response = JSONResponse(content=response_data)
 
     # Set httpOnly secure cookies (tokens are not accessible via JavaScript)

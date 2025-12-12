@@ -39,12 +39,12 @@ export function LoginForm() {
     setFormError(null)
     try {
       await login({
-        username: data.email,
+        email: data.email,
         password: data.password,
       })
       console.log('[LoginForm] Login successful, redirecting to dashboard...')
       // Force full page reload to ensure auth state is fresh
-      window.location.href = '/dashboard'
+      router.push('/dashboard')
     } catch (error: any) {
       console.error('[LoginForm] Login failed:', error)
       setFormError(error.message || 'Une erreur est survenue lors de la connexion')
@@ -137,11 +137,12 @@ export function LoginForm() {
         <div className="rounded-md bg-blue-50 p-4">
           <p className="text-sm font-medium text-blue-800">Comptes de démonstration :</p>
           <ul className="mt-2 space-y-1 text-xs text-blue-700">
-            <li>👨‍⚕️ Doctor: doctor@dermai.com / Doctor123!</li>
-            <li>🔐 Admin: admin@dermai.com / password123</li>
-            <li>📋 Secretary: secretary@dermai.com / password123</li>
+            <li>🔐 Admin: admin@dermai.com / Admin123!</li>
+            <li>👨‍⚕️ Doctor: elhassani.tariq@gmail.com</li>
+            <li>👨‍⚕️ Doctor: sanaa@dermai.com</li>
           </ul>
         </div>
+
 
         {/* Submit button */}
         <Button type="submit" className="w-full" size="lg" disabled={isLoading}>

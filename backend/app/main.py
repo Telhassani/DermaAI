@@ -23,16 +23,17 @@ from app.core.security_headers import SecurityHeadersMiddleware
 setup_logging()
 
 # Initialize Sentry (optional - only if SENTRY_DSN is set)
-if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.ENVIRONMENT,
-        traces_sample_rate=1.0 if settings.DEBUG else 0.1,
-        integrations=[
-            sentry_sdk.integrations.fastapi.FastApiIntegration(),
-            sentry_sdk.integrations.sqlalchemy.SqlalchemyIntegration(),
-        ],
-    )
+# Initialize Sentry (optional - only if SENTRY_DSN is set)
+# if settings.SENTRY_DSN:
+#     sentry_sdk.init(
+#         dsn=settings.SENTRY_DSN,
+#         environment=settings.ENVIRONMENT,
+#         traces_sample_rate=1.0 if settings.DEBUG else 0.1,
+#         integrations=[
+#             sentry_sdk.integrations.fastapi.FastApiIntegration(),
+#             sentry_sdk.integrations.sqlalchemy.SqlalchemyIntegration(),
+#         ],
+#     )
 
 # Initialize rate limiter
 # limiter = Limiter(key_func=get_remote_address)
@@ -56,7 +57,7 @@ app = FastAPI(
 # =====================================
 
 # Security Headers Middleware (must be added first to apply to all responses)
-app.add_middleware(SecurityHeadersMiddleware, settings=settings)
+# app.add_middleware(SecurityHeadersMiddleware, settings=settings)
 
 # CORS Middleware
 app.add_middleware(
@@ -113,10 +114,11 @@ async def api_v1_root():
 
 
 # Include routers
-from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments, ai_analysis, lab_results, lab_conversations, ai_stream
+from app.api.v1 import auth, patients, consultations, prescriptions, images, appointments, ai_analysis, lab_results, lab_conversations, ai_stream, users
 
 # Enable real authentication router with database
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
+app.include_router(users.router, prefix=f"{settings.API_V1_PREFIX}/users", tags=["Users"])
 app.include_router(patients.router, prefix=f"{settings.API_V1_PREFIX}/patients", tags=["Patients"])
 app.include_router(consultations.router, prefix=f"{settings.API_V1_PREFIX}/consultations", tags=["Consultations"])
 app.include_router(prescriptions.router, prefix=f"{settings.API_V1_PREFIX}/prescriptions", tags=["Prescriptions"])

@@ -31,8 +31,10 @@ import type {
 } from '@/types/api'
 
 // API base URL from environment variables
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
-console.log('API Client initialized with URL:', API_URL)
+const API_URL = typeof window === 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
+  : '' // Use relative path on client to use Next.js proxy/rewrites
+console.log('API Client initialized with URL:', API_URL || '(relative proxy)')
 
 // Create axios instance
 export const apiClient = axios.create({
@@ -71,16 +73,27 @@ const processQueue = (error: unknown | null, token: string | null = null): void 
 
 // Request interceptor - Add auth token to requests
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('access_token')
+  async (config: InternalAxiosRequestConfig) => {
+    // Try to get Supabase token first, fall back to localStorage for backwards compatibility
+    let token: string | null = null
+
+    try {
+      // Import Supabase client dynamically to avoid SSR issues
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      token = session?.access_token ?? null
+    } catch (error) {
+      // Fallback to localStorage if Supabase fails
+      token = localStorage.getItem('access_token')
+    }
 
     // Add token to headers if it exists
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
       // Only log in development mode to avoid security issues in production
       if (process.env.NODE_ENV === 'development') {
-        console.debug(`[API] Request to ${config.url}`)
+        console.debug(`[API] Request to ${config.url} with token`)
       }
     } else {
       if (process.env.NODE_ENV === 'development') {

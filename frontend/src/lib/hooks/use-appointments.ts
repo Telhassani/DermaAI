@@ -47,6 +47,9 @@ export interface Appointment {
   guest_name?: string
   guest_phone?: string
   guest_email?: string
+  patient_name?: string
+  patient_phone?: string
+  doctor_name?: string
 }
 
 export interface AppointmentWithDetails extends Appointment {

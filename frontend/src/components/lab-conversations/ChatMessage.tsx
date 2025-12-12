@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Message } from '@/types/api'
 import { cn } from '@/lib/utils'
-import { FileIcon, Loader2, Edit2, Trash2, Copy, Zap } from 'lucide-react'
+import { FileIcon, Loader2, Edit2, Trash2, Copy, Zap, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { MessageEditDialog } from './MessageEditDialog'
@@ -23,9 +23,10 @@ interface ChatMessageProps {
   isLoading?: boolean
   conversationId?: number
   onRegenerate?: () => void
+  onResend?: (message: Message) => void
 }
 
-export function ChatMessage({ message, isLoading, conversationId, onRegenerate }: ChatMessageProps) {
+export function ChatMessage({ message, isLoading, conversationId, onRegenerate, onResend }: ChatMessageProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isEditingMessage, setIsEditingMessage] = useState(false)
   const updateMessage = useUpdateMessage()
@@ -46,13 +47,21 @@ export function ChatMessage({ message, isLoading, conversationId, onRegenerate }
         const updatedMessage = await editMessageAPI(conversationId, message.id, content)
         updateMessage(message.id, { content: updatedMessage.content })
         setIsEditDialogOpen(false)
+
+        // ChatGPT-style: regenerate response after editing user message
+        if (message.role === 'USER' && onRegenerate) {
+          // Small delay to ensure UI updates
+          setTimeout(() => {
+            onRegenerate()
+          }, 100)
+        }
       } catch (error) {
         console.error('Failed to edit message:', error)
       } finally {
         setIsEditingMessage(false)
       }
     },
-    [conversationId, message.id, updateMessage]
+    [conversationId, message.id, updateMessage, message.role, onRegenerate]
   )
 
   const handleDeleteMessage = useCallback(() => {
@@ -171,7 +180,19 @@ export function ChatMessage({ message, isLoading, conversationId, onRegenerate }
             </Button>
           )}
 
-          {/* Version selector dropdown */}
+          {/* Resend button (user messages only) */}
+          {isUser && onResend && !isLoading && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onResend(message)}
+              title="Resend this message"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          )}
+
+          {/* Edit and delete buttons (user messages only) */}
           {isAssistant && versions.length > 1 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

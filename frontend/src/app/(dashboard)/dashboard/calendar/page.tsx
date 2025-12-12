@@ -13,13 +13,8 @@ import {
   CalendarFiltersPanel,
   CalendarFilters,
 } from '@/components/calendar/calendar-filters-panel'
-import {
-  useAppointments,
-  useUpdateAppointment,
-  useDeleteAppointment,
-  useCheckAppointmentConflicts,
-  Appointment,
-} from '@/lib/hooks/use-appointments'
+import { Appointment, useAppointments, useCheckAppointmentConflicts, useDeleteAppointment, useUpdateAppointment } from '@/lib/hooks/use-appointments'
+import { useCurrentTime } from '@/lib/hooks/use-current-time'
 import { toast } from 'sonner'
 
 export default function CalendarPage() {
@@ -36,6 +31,9 @@ export default function CalendarPage() {
     showCancelled: true,
     showCompleted: true,
   })
+
+  // Safe time for hydration
+  const currentTime = useCurrentTime()
 
   // Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -351,7 +349,7 @@ export default function CalendarPage() {
             </div>
           </div>
           <div className="text-xs text-gray-500">
-            Dernière mise à jour : {format(new Date(), 'HH:mm')}
+            Dernière mise à jour : {currentTime ? format(currentTime, 'HH:mm') : '--:--'}
           </div>
         </div>
       )}

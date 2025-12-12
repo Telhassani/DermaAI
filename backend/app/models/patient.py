@@ -74,8 +74,8 @@ class Patient(BaseModel):
     medical_history = Column(Text, nullable=True)
 
     # Relationships
-    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    doctor = relationship("User", back_populates="patients")
+    doctor_id = Column(Integer, nullable=True)  # TODO: Migrate to UUID to match profiles table
+    # doctor = relationship("User", back_populates="patients")  # Disabled until doctor_id migrated to UUID
     appointments = relationship("Appointment", back_populates="patient")
     # prescriptions = relationship("Prescription", back_populates="patient")
 

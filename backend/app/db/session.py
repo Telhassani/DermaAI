@@ -51,8 +51,12 @@ def get_db() -> Generator[Session, None, None]:
 
     logger = logging.getLogger(__name__)
 
+    print(f"[DEBUG] get_db called. URL: {settings.DATABASE_URL}", flush=True)
+
     try:
+        print("[DEBUG] Creating session...", flush=True)
         db = SessionLocal()
+        print("[DEBUG] Session created.", flush=True)
     except (OperationalError, DBAPIError) as e:
         # Catch connection errors during session creation
         logger.error(f"[GET_DB] Session creation failed: {type(e).__name__}: {e}")

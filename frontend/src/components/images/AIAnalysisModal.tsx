@@ -36,7 +36,7 @@ export function AIAnalysisModal({
       setUserPrompt('')
       setAnalysisResult(null)
       setError(null)
-      setSelectedModel('claude-3-5-sonnet-20241022')
+      setSelectedModel('claude-sonnet-4-5-20250929')
     }
   }, [isOpen])
 
@@ -123,22 +123,22 @@ export function AIAnalysisModal({
             <div className="space-y-2">
               <label className={cn(
                 "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                selectedModel === 'claude-3-5-sonnet-20241022'
+                selectedModel === 'claude-sonnet-4-5-20250929'
                   ? 'border-purple-500 bg-purple-50'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               )}>
                 <input
                   type="radio"
                   name="model"
-                  value="claude-3-5-sonnet-20241022"
-                  checked={selectedModel === 'claude-3-5-sonnet-20241022'}
+                  value="claude-sonnet-4-5-20250929"
+                  checked={selectedModel === 'claude-sonnet-4-5-20250929'}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   disabled={loading}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500"
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Claude 3.5 Sonnet</p>
-                  <p className="text-xs text-gray-500">Fast and accurate analysis</p>
+                  <p className="text-sm font-medium text-gray-900">Claude Sonnet 4.5</p>
+                  <p className="text-xs text-gray-500">Fast and accurate analysis (recommended)</p>
                 </div>
               </label>
 
@@ -160,6 +160,27 @@ export function AIAnalysisModal({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Claude Opus 4.5</p>
                   <p className="text-xs text-gray-500">Most accurate and detailed analysis</p>
+                </div>
+              </label>
+
+              <label className={cn(
+                "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                selectedModel === 'claude-haiku-4-5-20251001'
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              )}>
+                <input
+                  type="radio"
+                  name="model"
+                  value="claude-haiku-4-5-20251001"
+                  checked={selectedModel === 'claude-haiku-4-5-20251001'}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={loading}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Claude Haiku 4.5</p>
+                  <p className="text-xs text-gray-500">Fastest response time</p>
                 </div>
               </label>
             </div>
