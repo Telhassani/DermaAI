@@ -34,7 +34,7 @@ export interface AvailableModelsResponse {
  * @returns Available models and Ollama availability status
  */
 export async function getAvailableModels(): Promise<AvailableModelsResponse> {
-  const response = await apiClient.get('/api/v1/lab-conversations/available-models')
+  const response = await apiClient.get('/lab-conversations/available-models')
   return response.data as AvailableModelsResponse
 }
 
