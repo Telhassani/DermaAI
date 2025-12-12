@@ -10,7 +10,22 @@ import { LabChatPage } from '../LabChatPage'
 import * as labConversationsApi from '@/lib/api/lab-conversations'
 
 // Mock the API
-vi.mock('@/lib/api/lab-conversations')
+vi.mock('@/lib/api/lab-conversations', () => ({
+  getAvailableModels: vi.fn(() => Promise.resolve({
+    claude_models: ['claude-sonnet-4-5-20250929'],
+    ollama_models: [],
+    all_models: ['claude-sonnet-4-5-20250929'],
+    ollama_available: false,
+  })),
+  listConversations: vi.fn(),
+  getConversation: vi.fn(),
+  createConversation: vi.fn(),
+  sendMessage: vi.fn(),
+  deleteConversation: vi.fn(),
+  pinConversation: vi.fn(),
+  archiveConversation: vi.fn(),
+  deleteMessage: vi.fn(),
+}))
 vi.mock('@/lib/hooks/useStreamingResponse')
 vi.mock('@/lib/stores/useConversationStore')
 
@@ -40,7 +55,7 @@ describe('LabChatPage', () => {
         limit: 50,
       })
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       await waitFor(() => {
         expect(screen.getByText('Test Conversation')).toBeInTheDocument()
@@ -68,7 +83,7 @@ describe('LabChatPage', () => {
 
       vi.mocked(labConversationsApi.createConversation).mockResolvedValue(newConversation)
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       // Open create modal
       const createButton = screen.getByText(/create/i)
@@ -123,7 +138,7 @@ describe('LabChatPage', () => {
         messages: [],
       })
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       await waitFor(() => {
         const conversationItem = screen.getByText('Test Conversation')
@@ -185,7 +200,7 @@ describe('LabChatPage', () => {
 
       vi.mocked(labConversationsApi.sendMessage).mockResolvedValue(userMessage)
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       await waitFor(() => {
         const conversationItem = screen.getByText('Test Conversation')
@@ -221,7 +236,7 @@ describe('LabChatPage', () => {
 
       vi.mocked(labConversationsApi.sendMessage).mockResolvedValue(userMessage)
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       // Select conversation
       await waitFor(() => {
@@ -248,7 +263,7 @@ describe('LabChatPage', () => {
       // This test would require mocking the streaming hook
       // to return isStreaming: true and streaming content
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       // The test would verify that StreamingChatMessage is rendered
       // when isStreaming is true
@@ -261,7 +276,7 @@ describe('LabChatPage', () => {
         new Error('Failed to load conversations')
       )
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       // Should continue rendering without crashing
       expect(screen.getByText(/conversation/i)).toBeInTheDocument()
@@ -302,7 +317,7 @@ describe('LabChatPage', () => {
         new Error('Failed to send message')
       )
 
-      render(<LabChatPage availableModels={['claude-3-5-sonnet-20241022']} />)
+      render(<LabChatPage />)
 
       // Select conversation
       await waitFor(() => {

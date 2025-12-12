@@ -3,6 +3,7 @@ Prescription model - Medical prescriptions linked to consultations
 """
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, Date, Boolean, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -32,7 +33,7 @@ class Prescription(BaseModel):
     # Foreign Keys
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=False, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
 
     # Prescription Details
     prescription_date = Column(Date, nullable=False, default=datetime.now, index=True)
@@ -60,9 +61,9 @@ class Prescription(BaseModel):
     is_delivered = Column(Boolean, default=False)
 
     # Relationships
-    # consultation = relationship("Consultation", back_populates="prescriptions")
-    patient = relationship("Patient")
-    # doctor = relationship("User")  # Disabled until doctor_id migrated to UUID
+    consultation = relationship("Consultation", back_populates="prescriptions", foreign_keys="Prescription.consultation_id")
+    patient = relationship("Patient", back_populates="prescriptions", foreign_keys="Prescription.patient_id")
+    doctor = relationship("User", back_populates="prescriptions", foreign_keys="Prescription.doctor_id")
 
     @property
     def patient_name(self) -> str:

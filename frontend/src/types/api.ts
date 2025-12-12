@@ -28,7 +28,7 @@ export interface RegisterRequest {
 }
 
 export interface User {
-  id: number
+  id: string
   email: string
   full_name: string
   role: 'admin' | 'doctor' | 'secretary' | 'assistant'
@@ -48,7 +48,7 @@ export interface RefreshTokenRequest {
 export interface Patient {
   id: number
   user_id?: number
-  doctor_id?: number
+  doctor_id?: string
   first_name: string
   last_name: string
   full_name: string
@@ -122,7 +122,7 @@ export interface PatientStats {
 export interface Appointment {
   id: number
   patient_id: number | null
-  doctor_id: number
+  doctor_id: string
   start_time: string
   end_time: string
   type: AppointmentType
@@ -147,7 +147,7 @@ export interface Appointment {
 
 export interface AppointmentCreateData {
   patient_id: number | null
-  doctor_id: number
+  doctor_id: string
   start_time: string
   end_time: string
   type?: AppointmentType
@@ -162,7 +162,7 @@ export interface AppointmentCreateData {
 
 export interface AppointmentUpdateData {
   patient_id?: number | null
-  doctor_id?: number
+  doctor_id?: string
   start_time?: string
   end_time?: string
   type?: AppointmentType
@@ -206,7 +206,7 @@ export interface AppointmentListResponse {
 export interface ConflictCheckData {
   start_time: string
   end_time: string
-  doctor_id: number
+  doctor_id: string
   exclude_appointment_id?: number
 }
 
@@ -241,7 +241,7 @@ export interface AppointmentStats {
 export interface Consultation {
   id: number
   patient_id: number
-  doctor_id: number
+  doctor_id: string
   consultation_date: string
   consultation_time: string
   chief_complaint: string
@@ -271,7 +271,7 @@ export interface Consultation {
 
 export interface ConsultationCreateData {
   patient_id: number
-  doctor_id: number
+  doctor_id: string
   consultation_date: string
   consultation_time: string
   chief_complaint: string
@@ -348,7 +348,7 @@ export interface MedicationItem {
 export interface Prescription {
   id: number
   patient_id: number
-  doctor_id: number
+  doctor_id: string
   consultation_id: number
   medications: MedicationItem[]
   prescription_date: string
@@ -364,7 +364,7 @@ export interface Prescription {
 
 export interface PrescriptionCreateData {
   patient_id: number
-  doctor_id: number
+  doctor_id: string
   consultation_id: number
   medications: MedicationItem[]
   prescription_date: string
@@ -436,14 +436,14 @@ export interface ImageAnalysis {
 
 export interface ImageUploadData {
   patient_id: number
-  doctor_id: number
+  doctor_id: string
   description?: string
   file: File
 }
 
 export interface ImageListParams {
   patient_id?: number
-  doctor_id?: number
+  doctor_id?: string
   page?: number
   page_size?: number
   sort_by?: 'uploaded_at' | 'created_at'
@@ -506,7 +506,7 @@ export interface Message {
 
 export interface Conversation {
   id: number
-  doctor_id: number
+  doctor_id: string
   title: string
   description?: string
   default_model?: string

@@ -14,6 +14,7 @@ import {
   pinConversation as pinConversationAPI,
   archiveConversation as archiveConversationAPI,
   deleteMessage as deleteMessageAPI,
+  getAvailableModels,
 } from '@/lib/api/lab-conversations'
 import { useStreamingResponse } from '@/lib/hooks/useStreamingResponse'
 import {
@@ -62,10 +63,13 @@ import { ExportDialog } from './ExportDialog'
 import { Download, Settings } from 'lucide-react'
 
 interface LabChatPageProps {
-  availableModels?: string[]
+  // Props removed - models are now fetched from backend
 }
 
-export function LabChatPage({ availableModels = ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001', 'claude-opus-4-5-20251101', 'claude-3-5-haiku-20241022'] }: LabChatPageProps) {
+export function LabChatPage({}: LabChatPageProps = {}) {
+  // State for available models
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
   // Get store state using selectors for optimal re-renders
   const conversations = useConversations()
   const selectedConversationId = useSelectedConversationId()
@@ -111,6 +115,33 @@ export function LabChatPage({ availableModels = ['claude-sonnet-4-5-20250929', '
     anthropic: localStorage.getItem('anthropic_api_key') || '',
     openai: localStorage.getItem('openai_api_key') || '',
   })
+
+  // Fetch available models on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setIsLoadingModels(true)
+        const response = await getAvailableModels()
+        // Set all available models (both Claude and Ollama)
+        setAvailableModels(response.all_models)
+
+        console.log('[LabChatPage] Available models loaded:', {
+          claude_models: response.claude_models.length,
+          ollama_models: response.ollama_models.length,
+          total: response.all_models.length,
+          ollama_available: response.ollama_available,
+        })
+      } catch (error) {
+        console.error('[LabChatPage] Failed to fetch available models:', error)
+        // Fallback to empty array if fetch fails - user can still use default model
+        setAvailableModels([])
+      } finally {
+        setIsLoadingModels(false)
+      }
+    }
+
+    fetchModels()
+  }, [])
 
   // Log localStorage contents on mount for debugging
   useEffect(() => {

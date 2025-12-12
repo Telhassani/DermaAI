@@ -19,6 +19,26 @@ import type {
 } from '@/types/api'
 
 /**
+ * Response type for available models endpoint
+ */
+export interface AvailableModelsResponse {
+  claude_models: string[]
+  ollama_models: string[]
+  all_models: string[]
+  ollama_available: boolean
+}
+
+/**
+ * Get list of available AI models (Claude and Ollama)
+ * No authentication required
+ * @returns Available models and Ollama availability status
+ */
+export async function getAvailableModels(): Promise<AvailableModelsResponse> {
+  const response = await apiClient.get('/api/v1/lab-conversations/available-models')
+  return response.data as AvailableModelsResponse
+}
+
+/**
  * Create a new lab analysis conversation
  * @param data Conversation creation data
  * @returns Created conversation

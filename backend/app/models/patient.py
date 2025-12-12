@@ -3,6 +3,7 @@ Patient model - Core entity for dermatology practice
 """
 
 from sqlalchemy import Column, String, Date, Enum as SQLEnum, Integer, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 
@@ -74,10 +75,10 @@ class Patient(BaseModel):
     medical_history = Column(Text, nullable=True)
 
     # Relationships
-    doctor_id = Column(Integer, nullable=True)  # TODO: Migrate to UUID to match profiles table
-    # doctor = relationship("User", back_populates="patients")  # Disabled until doctor_id migrated to UUID
-    appointments = relationship("Appointment", back_populates="patient")
-    # prescriptions = relationship("Prescription", back_populates="patient")
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    doctor = relationship("User", back_populates="patients", foreign_keys="Patient.doctor_id")
+    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
+    prescriptions = relationship("Prescription", back_populates="patient", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Patient(id={self.id}, name={self.full_name})>"

@@ -5,6 +5,7 @@ Integrated with Supabase Auth for authentication
 """
 
 from sqlalchemy import Column, String, Boolean, Enum as SQLEnum, DateTime, Integer
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import enum
@@ -60,16 +61,20 @@ class User(Base):
     mfa_enabled = Column(Boolean, default=False, nullable=False)
     mfa_secret = Column(String(255), nullable=True)
 
+    # Password storage (for local authentication when not using Supabase Auth)
+    hashed_password = Column(String(255), nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime, nullable=True)
 
-    # Relationships removed - patient/appointment tables still use integer doctor_id
-    # TODO: Migrate patient and appointment tables to use UUID doctor_id to re-enable relationships
-    # patients = relationship("Patient", back_populates="doctor", foreign_keys="Patient.doctor_id")
-    # appointments = relationship("Appointment", back_populates="doctor", foreign_keys="Appointment.doctor_id")
+    # Relationships
+    patients = relationship("Patient", back_populates="doctor", foreign_keys="Patient.doctor_id")
+    appointments = relationship("Appointment", back_populates="doctor", foreign_keys="Appointment.doctor_id")
+    consultations = relationship("Consultation", back_populates="doctor", foreign_keys="Consultation.doctor_id")
+    prescriptions = relationship("Prescription", back_populates="doctor", foreign_keys="Prescription.doctor_id")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

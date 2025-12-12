@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Integer, Text, Boolean, JSON, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 
@@ -81,7 +82,7 @@ class Appointment(BaseModel):
 
     # Foreign Keys with Indices
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
-    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
 
     # Guest Information (for non-registered patients)
     guest_name = Column(String(255), nullable=True)
@@ -120,8 +121,8 @@ class Appointment(BaseModel):
     recurring_series_id = Column(Integer, nullable=True, index=True)  # Parent series ID
 
     # Relationships
-    patient = relationship("Patient", back_populates="appointments")
-    # doctor = relationship("User", back_populates="appointments")  # Disabled until doctor_id migrated to UUID
+    patient = relationship("Patient", back_populates="appointments", foreign_keys="Appointment.patient_id")
+    doctor = relationship("User", back_populates="appointments", foreign_keys="Appointment.doctor_id")
 
     def __repr__(self) -> str:
         """String representation of appointment"""

@@ -140,7 +140,7 @@ async def get_available_models(
     """
     try:
         ai_service = get_ai_service()
-        available_models = ai_service.get_available_models()
+        available_models = await ai_service.get_available_models()
 
         return GetAvailableModelsResponse(
             available_models=available_models,
@@ -199,8 +199,8 @@ async def stream_ai_response(
     try:
         # Validate model
         ai_service = get_ai_service()
-        if not ai_service.validate_model(request.model):
-            available = ai_service.get_available_models()
+        if not await ai_service.validate_model(request.model):
+            available = await ai_service.get_available_models()
             raise HTTPException(
                 status_code=400,
                 detail={
@@ -260,12 +260,12 @@ async def validate_model(
     """
     try:
         ai_service = get_ai_service()
-        is_valid = ai_service.validate_model(model)
+        is_valid = await ai_service.validate_model(model)
 
         return {
             "model": model,
             "valid": is_valid,
-            "available_models": ai_service.get_available_models() if not is_valid else None,
+            "available_models": await ai_service.get_available_models() if not is_valid else None,
         }
     except Exception as e:
         logger.error(f"Error validating model: {str(e)}")

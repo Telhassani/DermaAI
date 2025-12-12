@@ -3,6 +3,7 @@ AI Analysis model - Stores results of AI analysis for images and lab results
 """
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, Float, Enum, JSON, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -45,7 +46,7 @@ class AIAnalysis(BaseModel):
     
     # Relationships
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=True, index=True)
     
     # AI Processing Metadata
@@ -89,9 +90,9 @@ class AIAnalysis(BaseModel):
     error_message = Column(Text, nullable=True)
     
     # Relationships
-    patient = relationship("Patient", backref="ai_analyses")
-    # doctor = relationship("User", backref="ai_analyses")  # Disabled until doctor_id migrated to UUID
-    consultation = relationship("Consultation", backref="ai_analyses")
+    patient = relationship("Patient", backref="ai_analyses", foreign_keys="AIAnalysis.patient_id")
+    doctor = relationship("User", backref="ai_analyses", foreign_keys="AIAnalysis.doctor_id")
+    consultation = relationship("Consultation", backref="ai_analyses", foreign_keys="AIAnalysis.consultation_id")
     images = relationship("AIAnalysisImage", back_populates="analysis", cascade="all, delete-orphan")
     audit_logs = relationship("AIAnalysisAuditLog", back_populates="analysis", cascade="all, delete-orphan")
 

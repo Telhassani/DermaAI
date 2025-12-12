@@ -113,9 +113,10 @@ class AIService:
 
         return available
 
-    def validate_model(self, model: str) -> bool:
+    async def validate_model(self, model: str) -> bool:
         """Validate if model is available for current configuration"""
-        return model in self.get_available_models()
+        available = await self.get_available_models()
+        return model in available
 
     async def send_message(
         self,
@@ -138,8 +139,8 @@ class AIService:
         Returns:
             Model response text
         """
-        if not self.validate_model(model):
-            available = self.get_available_models()
+        if not await self.validate_model(model):
+            available = await self.get_available_models()
             raise AIServiceError(
                 f"Model {model} not available. Available: {available}"
             )
@@ -200,8 +201,8 @@ class AIService:
         Yields:
             Streaming response chunks
         """
-        if not self.validate_model(model):
-            available = self.get_available_models()
+        if not await self.validate_model(model):
+            available = await self.get_available_models()
             raise AIServiceError(
                 f"Model {model} not available. Available: {available}"
             )

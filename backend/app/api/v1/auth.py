@@ -184,7 +184,7 @@ async def login(
 
     # Create tokens
     print("[DEBUG] Creating tokens...", flush=True)
-    token_data = {"user_id": user.id, "email": user.email, "role": user.role.value}
+    token_data = {"user_id": str(user.id), "email": user.email, "role": user.role.value}
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
     print("[DEBUG] Tokens created.", flush=True)

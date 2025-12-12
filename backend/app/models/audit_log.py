@@ -3,6 +3,7 @@ Audit Log model - Tracks actions on AI analyses for compliance
 """
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Enum, JSON, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -24,7 +25,7 @@ class AIAnalysisAuditLog(BaseModel):
     __tablename__ = "ai_analysis_audit_logs"
 
     analysis_id = Column(Integer, ForeignKey("ai_analyses.id"), nullable=False, index=True)
-    user_id = Column(Integer, nullable=False)  # TODO: Migrate to UUID to match profiles table
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
     
     action = Column(Enum(AuditAction), nullable=False)
     changes = Column(JSON, nullable=True)  # What changed (diff)
@@ -34,5 +35,5 @@ class AIAnalysisAuditLog(BaseModel):
     timestamp = Column(DateTime, default=datetime.now, nullable=False)
     
     # Relationships
-    analysis = relationship("AIAnalysis", back_populates="audit_logs")
-    # user = relationship("User")  # Disabled until user_id migrated to UUID
+    analysis = relationship("AIAnalysis", back_populates="audit_logs", foreign_keys="AIAnalysisAuditLog.analysis_id")
+    user = relationship("User", backref="audit_logs", foreign_keys="AIAnalysisAuditLog.user_id")

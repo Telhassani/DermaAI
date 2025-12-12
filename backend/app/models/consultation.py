@@ -3,6 +3,7 @@ Consultation model - Medical consultation records for dermatology
 """
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, Date, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -45,7 +46,7 @@ class Consultation(BaseModel):
 
     # Foreign Keys
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
 
     # Consultation Details
     consultation_date = Column(Date, nullable=False, index=True, default=datetime.now)
@@ -91,9 +92,9 @@ class Consultation(BaseModel):
     biopsy_results = Column(Text, nullable=True)
 
     # Relationships
-    patient_rel = relationship("Patient")
-    # doctor = relationship("User")  # Disabled until doctor_id migrated to UUID
-    # prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
+    patient = relationship("Patient", foreign_keys="Consultation.patient_id")
+    doctor = relationship("User", back_populates="consultations", foreign_keys="Consultation.doctor_id")
+    prescriptions = relationship("Prescription", back_populates="consultation", cascade="all, delete-orphan")
     # images = relationship("ConsultationImage", back_populates="consultation", cascade="all, delete-orphan")
 
     def __repr__(self):

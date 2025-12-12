@@ -45,13 +45,15 @@ class OllamaService:
         return any(keyword in model_name.lower() for keyword in vision_keywords)
     
     async def get_vision_models(self) -> List[str]:
-        """Get list of vision-capable models"""
+        """
+        Get list of vision-capable models.
+        Returns ALL models available in Ollama, not just vision-capable ones.
+        Users can select any model they have installed.
+        """
         models = await self.list_models()
-        return [
-            model["name"] 
-            for model in models 
-            if self.is_vision_model(model["name"])
-        ]
+        # Return all available models (sorted by name for consistency)
+        model_names = [model["name"] for model in models]
+        return sorted(model_names)
     
     async def stream_chat(
         self,

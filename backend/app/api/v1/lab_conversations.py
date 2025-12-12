@@ -51,6 +51,7 @@ from app.services.lab_conversation_service import (
 from app.services.ai_model_router import ai_model_router
 from app.services.ai_service import get_ai_service, AIServiceError
 from app.services.file_service import get_file_service
+from app.services.ollama_service import ollama_service
 from app.core.logging import log_audit_event
 from app.core.config import settings
 from app.core.rate_limiter import limiter
@@ -58,6 +59,60 @@ from pydantic import BaseModel
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# RESPONSE SCHEMAS
+# ============================================================================
+
+
+class AvailableModelsResponse(BaseModel):
+    """Response containing available AI models"""
+    claude_models: List[str]
+    ollama_models: List[str]
+    all_models: List[str]
+    ollama_available: bool
+
+
+# ============================================================================
+# PUBLIC ENDPOINTS (No authentication required)
+# ============================================================================
+
+
+@router.get(
+    "/available-models",
+    response_model=AvailableModelsResponse,
+    summary="Get available AI models",
+    tags=["Models"]
+)
+async def get_available_models():
+    """
+    Get list of available AI models including Claude and Ollama models.
+
+    Returns:
+    - **claude_models**: List of available Claude models
+    - **ollama_models**: List of available Ollama models (vision-capable only)
+    - **all_models**: Combined list of all available models
+    - **ollama_available**: Whether Ollama is running and accessible
+    """
+    ai_service = get_ai_service()
+
+    # Get available models from AI service
+    all_available = await ai_service.get_available_models()
+
+    # Separate Claude and Ollama models
+    claude_models = [m for m in all_available if m.startswith('claude-')]
+    ollama_models = [m for m in all_available if not m.startswith('claude-')]
+
+    # Check if Ollama is available
+    ollama_available = await ollama_service.is_available()
+
+    return AvailableModelsResponse(
+        claude_models=claude_models,
+        ollama_models=ollama_models,
+        all_models=all_available,
+        ollama_available=ollama_available,
+    )
 
 
 # ============================================================================
@@ -754,7 +809,7 @@ async def generate_ai_response_stream(
     tags=["Lab Conversations"],
 )
 @limiter.limit("10/minute")  # Rate limit: 10 AI requests per minute per IP
-def stream_ai_response(
+async def stream_ai_response(
     conversation_id: int,
     request: StreamAIResponseRequest,
     current_user: User = Depends(get_current_active_user),
@@ -902,8 +957,8 @@ def stream_ai_response(
     try:
         # Validate model
         ai_service = get_ai_service()
-        if not ai_service.validate_model(request.model):
-            available = ai_service.get_available_models()
+        if not await ai_service.validate_model(request.model):
+            available = await ai_service.get_available_models()
             raise HTTPException(
                 status_code=400,
                 detail={

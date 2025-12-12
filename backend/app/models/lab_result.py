@@ -3,6 +3,7 @@ Lab Result model - Stores laboratory test results
 """
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, Date, Enum, JSON, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 
@@ -23,7 +24,7 @@ class LabResult(BaseModel):
     __tablename__ = "lab_results"
 
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
-    doctor_id = Column(Integer, nullable=False, index=True)  # TODO: Migrate to UUID to match profiles table
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
     consultation_id = Column(Integer, ForeignKey("consultations.id"), nullable=True, index=True)
     
     # Lab Information
@@ -47,7 +48,7 @@ class LabResult(BaseModel):
     is_manually_entered = Column(Boolean, default=False)
     
     # Relationships
-    patient = relationship("Patient", backref="lab_results")
-    # doctor = relationship("User", backref="lab_results")  # Disabled until doctor_id migrated to UUID
-    consultation = relationship("Consultation", backref="lab_results")
-    ai_analysis = relationship("AIAnalysis", backref="lab_results")
+    patient = relationship("Patient", backref="lab_results", foreign_keys="LabResult.patient_id")
+    doctor = relationship("User", backref="lab_results", foreign_keys="LabResult.doctor_id")
+    consultation = relationship("Consultation", backref="lab_results", foreign_keys="LabResult.consultation_id")
+    ai_analysis = relationship("AIAnalysis", backref="lab_results", foreign_keys="LabResult.ai_analysis_id")
